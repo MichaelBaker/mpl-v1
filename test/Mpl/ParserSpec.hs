@@ -12,6 +12,6 @@ spec = do
       parses `shouldBe` [Int "1"]
 
     it "parses prefix function application" $ do
-      let (parses, r) = parse "(f1)"
+      let (parses, r) = parse "(f 1)"
       parses `shouldBe` [App "f" (Int "1")]
 
