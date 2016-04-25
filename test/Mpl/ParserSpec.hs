@@ -13,5 +13,5 @@ spec = do
 
     it "parses prefix function application" $ do
       let (parses, r) = parse "(f 92)"
-      parses `shouldBe` [App "f" (Int "92")]
+      parses `shouldBe` [App (Ident "f") (Int "92")]
 
