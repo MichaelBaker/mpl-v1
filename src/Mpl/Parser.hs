@@ -3,9 +3,9 @@
 module Mpl.Parser where
 
 import Control.Applicative ((<|>), many)
-import Data.Char           (isSpace)
-import Data.Text           (Text)
-import Text.Earley         ((<?>), Grammar, Report, Prod, satisfy, rule, fullParses, token, listLike)
+import Data.Char           (isSpace, isDigit)
+import Data.Text           (Text, pack)
+import Text.Earley         ((<?>), Grammar, Report, Prod, list, satisfy, rule, fullParses, token, listLike)
 
 import qualified Text.Earley as E
 
@@ -29,5 +29,10 @@ grammar = mdo
     <*  skipWhitespace
     <*  token ')'
     <?> "application"
-  int <- rule $ Int <$> listLike "1" <?> "integer"
+
+  int <- rule $ (\firstDigit rest -> Int $ pack $ firstDigit:rest)
+    <$> satisfy (`elem` ['1', '2', '3', '4', '5', '6', '7', '8', '9'])
+    <*> many (satisfy isDigit)
+    <?> "integer"
+
   return (int <|> app)
