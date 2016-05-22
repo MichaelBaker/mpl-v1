@@ -2,7 +2,7 @@
 
 module Mpl.Parser where
 
-import Control.Applicative ((<|>), many)
+import Control.Applicative ((<|>), many, some)
 import Data.Char           (isSpace, isDigit, isAsciiUpper, isAsciiLower)
 import Data.Text           (Text, pack)
 import Text.Earley         ((<?>), Grammar, Report, Prod, list, satisfy, rule, fullParses, token, listLike)
@@ -11,6 +11,7 @@ import qualified Text.Earley as E
 
 data AST = App   AST AST
          | Int   Text
+         | Float Text
          | Ident Text
          deriving (Show, Eq)
 
@@ -26,7 +27,7 @@ grammar = mdo
     <*  skipWhitespace
     <*> ident
     <*  skipWhitespace
-    <*> int
+    <*> (int <|> float)
     <*  skipWhitespace
     <*  token ')'
     <?> "application"
@@ -35,9 +36,16 @@ grammar = mdo
     <$> satisfy isAsciiLower
     <*> many (satisfy $ \a -> any ($ a) [isAsciiLower, isAsciiUpper, isDigit])
 
-  int <- rule $ (\firstDigit rest -> Int $ pack $ firstDigit:rest)
+  float <- rule $ (\firstDigit rest dot fraction -> Float $ pack $ firstDigit:rest ++ [dot] ++ fraction)
+    <$> satisfy (`elem` ['1', '2', '3', '4', '5', '6', '7', '8', '9'])
+    <*> many (satisfy isDigit)
+    <*> satisfy (== '.')
+    <*> some (satisfy isDigit)
+    <?> "float"
+
+  int <- rule $ (\firstDigit rest -> Float $ pack $ firstDigit:rest)
     <$> satisfy (`elem` ['1', '2', '3', '4', '5', '6', '7', '8', '9'])
     <*> many (satisfy isDigit)
     <?> "integer"
 
-  return (int <|> app)
+  return (int <|> app <|> float)
