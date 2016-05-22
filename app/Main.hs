@@ -12,4 +12,4 @@ loop = do
     Nothing     -> return ()
     Just "exit" -> return ()
     Just "quit" -> return ()
-    Just a      -> outputStrLn (eval a) >> loop
+    Just a      -> outputStrLn (eval a) >> outputStrLn "" >> loop

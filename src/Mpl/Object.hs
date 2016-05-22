@@ -21,10 +21,10 @@ instance Show Object where
   show (Object TMap v)    = "{" ++ (if null fields then fields else init fields) ++ "}"
     where map    = fromJust $ fromDynamic v :: Map.Map Object Object
           fields = Map.foldlWithKey' showField "" map
-          showField acc k v = acc ++ show k ++ ": " ++ show v ++ ","
+          showField acc k v = acc ++ show k ++ ": " ++ show v ++ ", "
   show (Object TList v)   = "[" ++ if null values then values else init values  ++ "]"
     where list   = fromJust $ fromDynamic v :: [Object]
-          values = foldl' (\acc v -> acc ++ show v ++ ",") "" list
+          values = foldl' (\acc v -> acc ++ show v ++ ", ") "" list
   show (Object TFun v)    = show "<Function>"
   show (Object TString v) = fromJust $ fromDynamic v
   show (Object TError v)  = "Error: " ++ (fromJust $ fromDynamic v)
