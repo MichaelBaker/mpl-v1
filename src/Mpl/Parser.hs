@@ -26,11 +26,12 @@ grammar = mdo
       spaceBefore a = some (satisfy whitespace) *> a
       spaceAfter  a = a <* some (satisfy whitespace)
       floating    a = spaceAfter a <|> a
+      floatingExp   = floating exp
 
   list <- rule $ pure (\es last -> case last of Nothing -> AList es; Just l -> AList (es ++ [l]))
     <*  floating (token '[')
     <*> many (spaceAfter exp)
-    <*> optional (exp)
+    <*> optional exp
     <*  token ']'
     <?> "list"
 
@@ -50,7 +51,7 @@ grammar = mdo
     <*> many (satisfy isDigit)
     <?> "integer"
 
-  return $ spaceBefore exp <|> exp
+  return $ spaceBefore floatingExp <|> floatingExp
 
 -- app <- rule $ pure AApp
 --   <*  token '('
