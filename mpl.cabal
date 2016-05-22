@@ -16,17 +16,24 @@ library
   hs-source-dirs:      src
   default-extensions:  OverloadedStrings
   exposed-modules:     Mpl.Parser
+                     , Mpl.Interpreter
+                     , Mpl.Object
   build-depends:       base >= 4.7 && < 5
                      , Earley
                      , text
+                     , llvm-general-pure
+                     , llvm-general
+                     , containers
   default-language:    Haskell2010
 
 executable mpl
   hs-source-dirs:      app
   main-is:             Main.hs
+  default-extensions:  OverloadedStrings
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , mpl
+                     , haskeline
   default-language:    Haskell2010
 
 test-suite mpl-test
@@ -39,6 +46,7 @@ test-suite mpl-test
                      , hspec
                      , text
                      , QuickCheck
+                     , hint
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 

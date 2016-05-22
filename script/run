@@ -1,0 +1,4 @@
+#!/usr/bin/env bash -e
+
+stack build
+stack exec mpl

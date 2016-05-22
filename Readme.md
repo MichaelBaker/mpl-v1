@@ -2,6 +2,11 @@
 
 This is the project I use to play around with programming language theory and implementation when the mood strikes me.
 
+## Things I want
+
+* Support for immutable data
+* Stratified features. The language an ecosystem should have a low floor, a hight ceiling, and a straightforward path between them.
+
 ## Topics in programming language design
 
 ### Programming Language For Human Communication
