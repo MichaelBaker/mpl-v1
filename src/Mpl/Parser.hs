@@ -14,6 +14,7 @@ data AST = AApp   AST [AST]
          | AFloat Text
          | AIdent Text
          | AList  [AST]
+         | AMap   [(AST, AST)]
          deriving (Show, Eq)
 
 parse :: Text -> ([AST], Report Text Text)
@@ -21,8 +22,9 @@ parse = fullParses (E.parser grammar)
 
 grammar :: Grammar r (Prod r Text Char AST)
 grammar = mdo
-  let exp           = int <|> float <|> list
-      whitespace  a = isSpace a || a == ','
+  let exp           = int <|> float <|> list <|> amap
+      whitespace    = isSpace
+      skipManySpace = many (satisfy whitespace)
       spaceBefore a = some (satisfy whitespace) *> a
       spaceAfter  a = a <* some (satisfy whitespace)
       floating    a = spaceAfter a <|> a
@@ -30,10 +32,26 @@ grammar = mdo
 
   list <- rule $ pure (\es last -> case last of Nothing -> AList es; Just l -> AList (es ++ [l]))
     <*  floating (token '[')
-    <*> many (spaceAfter exp)
+    <*> many (spaceAfter exp <|> (exp <* skipManySpace <* token ',' <* skipManySpace))
     <*> optional exp
     <*  token ']'
     <?> "list"
+
+  amap <- rule $ pure (\es last -> case last of Nothing -> AMap es; Just l -> AMap (es ++ [l]))
+    <*  floating (token '{')
+    <*> many (spaceAfter mapPair)
+    <*> optional mapPair
+    <*  token '}'
+    <?> "amap"
+
+  mapPair <- rule $ (,)
+    <$> exp
+    <* many (satisfy whitespace)
+    <* optional (satisfy (== ':'))
+    <*> floating exp
+    <* many (satisfy whitespace)
+    <* optional (satisfy (== ','))
+    <?> "mapPair"
 
   float <- rule $ (\whole dot fraction -> AFloat $ pack $ whole ++ [dot] ++ fraction)
     <$> (

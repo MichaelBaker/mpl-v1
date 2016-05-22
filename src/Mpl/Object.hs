@@ -1,6 +1,7 @@
 module Mpl.Object where
 
 import Data.Dynamic    (Dynamic, toDyn, fromDynamic)
+import Data.Typeable   (Typeable)
 import Data.Maybe      (fromJust)
 import Data.List       (foldl')
 import Numeric         (showFFloatAlt)
@@ -16,16 +17,35 @@ data Type = TInt
           | TString
           | TError
 
+coerce :: (Typeable a) => Dynamic -> a
+coerce = fromJust . fromDynamic
+
 instance Show Object where
-  show (Object TInt v)    = show (fromJust $ fromDynamic v :: Integer)
-  show (Object TFloat v)  = showFFloatAlt Nothing (fromJust $ fromDynamic v :: Float) ""
-  show (Object TMap v)    = "{" ++ (if null fields then fields else init fields) ++ "}"
-    where map    = fromJust $ fromDynamic v :: Map.Map Object Object
+  show (Object TInt v)    = show (coerce v :: Integer)
+  show (Object TFloat v)  = showFFloatAlt Nothing (coerce v :: Float) ""
+  show (Object TMap v)    = "{" ++ (if null fields then fields else init (init fields)) ++ "}"
+    where map    = coerce v :: Map.Map Object Object
           fields = Map.foldlWithKey' showField "" map
           showField acc k v = acc ++ show k ++ ": " ++ show v ++ ", "
   show (Object TList v)   = "[" ++ if null values then values else init (init values)  ++ "]"
-    where list   = fromJust $ fromDynamic v :: [Object]
+    where list   = coerce v :: [Object]
           values = foldl' (\acc v -> acc ++ show v ++ ", ") "" list
   show (Object TFun v)    = show "<Function>"
-  show (Object TString v) = fromJust $ fromDynamic v
-  show (Object TError v)  = "Error: " ++ (fromJust $ fromDynamic v)
+  show (Object TString v) = coerce v
+  show (Object TError v)  = "Error: " ++ (coerce v)
+
+instance Eq Object where
+  (Object TInt v1)    == (Object TInt v2)    = (coerce v1 :: Integer)               == (coerce v2 :: Integer)
+  (Object TFloat v1)  == (Object TFloat v2)  = (coerce v1 :: Float)                 == (coerce v2 :: Float)
+  (Object TMap v1)    == (Object TMap v2)    = (coerce v1 :: Map.Map Object Object) == (coerce v2 :: Map.Map Object Object)
+  (Object TList v1)   == (Object TList v2)   = (coerce v1 :: [Object])              == (coerce v2 :: [Object])
+  (Object TString v1) == (Object TString v2) = (coerce v1 :: String)                == (coerce v2 :: String)
+  _                   == _                   = False
+
+instance Ord Object where
+  (Object TInt v1)    `compare` (Object TInt v2)    = (coerce v1 :: Integer)               `compare` (coerce v2 :: Integer)
+  (Object TFloat v1)  `compare` (Object TFloat v2)  = (coerce v1 :: Float)                 `compare` (coerce v2 :: Float)
+  (Object TMap v1)    `compare` (Object TMap v2)    = (coerce v1 :: Map.Map Object Object) `compare` (coerce v2 :: Map.Map Object Object)
+  (Object TList v1)   `compare` (Object TList v2)   = (coerce v1 :: [Object])              `compare` (coerce v2 :: [Object])
+  (Object TString v1) `compare` (Object TString v2) = (coerce v1 :: String)                `compare` (coerce v2 :: String)
+  _                   `compare` _                   = EQ

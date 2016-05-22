@@ -6,6 +6,7 @@ import Data.Text    (Text, pack, unpack)
 import Text.Earley  (Report)
 import Data.Dynamic (toDyn)
 import Data.List    (intercalate)
+import qualified Data.Map.Strict as Map
 
 eval :: String -> String
 eval string = case run string of
@@ -25,6 +26,7 @@ exec (AIdent a)  = Object TError $ toDyn ("Identifiers not implemented yet" :: S
 exec (AInt a)    = Object TInt   $ toDyn (read $ unpack a :: Integer)
 exec (AFloat a)  = Object TFloat $ toDyn (read $ unpack a :: Float)
 exec (AList  as) = Object TList  $ toDyn $ map exec as
+exec (AMap   as) = Object TMap   $ toDyn $ Map.fromList $ map (\(a, b) -> (exec a, exec b)) as
 
 handleParseFail :: ([AST], Report Text Text) -> Either String AST
 handleParseFail (a:[], _)   = Right a

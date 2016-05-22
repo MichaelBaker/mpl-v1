@@ -12,3 +12,4 @@ spec = do
     test "a single int"              "8907"    "8907"
     test "a single float"            "234.522" "234.522"
     test "a list of ints and floats" "  [ 123,234.5423, 2 3 6 234.322] \n\n" "[123, 234.5423, 2, 3, 6, 234.322]"
+    test "an int -> int map"         "{1 2 3 4}" "{1: 2, 3: 4}"
