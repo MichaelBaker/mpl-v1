@@ -1,5 +1,6 @@
 module Mpl.Object where
 
+import Data.Text       (Text, unpack)
 import Data.Dynamic    (Dynamic, toDyn, fromDynamic)
 import Data.Typeable   (Typeable)
 import Data.Maybe      (fromJust)
@@ -31,7 +32,7 @@ instance Show Object where
     where list   = coerce v :: [Object]
           values = foldl' (\acc v -> acc ++ show v ++ ", ") "" list
   show (Object TFun v)    = show "<Function>"
-  show (Object TString v) = coerce v
+  show (Object TString v) = "\"" ++ (unpack $ coerce v) ++ "\""
   show (Object TError v)  = "Error: " ++ (coerce v)
 
 instance Eq Object where
@@ -39,7 +40,7 @@ instance Eq Object where
   (Object TFloat v1)  == (Object TFloat v2)  = (coerce v1 :: Float)                 == (coerce v2 :: Float)
   (Object TMap v1)    == (Object TMap v2)    = (coerce v1 :: Map.Map Object Object) == (coerce v2 :: Map.Map Object Object)
   (Object TList v1)   == (Object TList v2)   = (coerce v1 :: [Object])              == (coerce v2 :: [Object])
-  (Object TString v1) == (Object TString v2) = (coerce v1 :: String)                == (coerce v2 :: String)
+  (Object TString v1) == (Object TString v2) = (coerce v1 :: Text)                  == (coerce v2 :: Text)
   _                   == _                   = False
 
 instance Ord Object where
@@ -47,5 +48,5 @@ instance Ord Object where
   (Object TFloat v1)  `compare` (Object TFloat v2)  = (coerce v1 :: Float)                 `compare` (coerce v2 :: Float)
   (Object TMap v1)    `compare` (Object TMap v2)    = (coerce v1 :: Map.Map Object Object) `compare` (coerce v2 :: Map.Map Object Object)
   (Object TList v1)   `compare` (Object TList v2)   = (coerce v1 :: [Object])              `compare` (coerce v2 :: [Object])
-  (Object TString v1) `compare` (Object TString v2) = (coerce v1 :: String)                `compare` (coerce v2 :: String)
+  (Object TString v1) `compare` (Object TString v2) = (coerce v1 :: Text)                  `compare` (coerce v2 :: Text)
   _                   `compare` _                   = EQ

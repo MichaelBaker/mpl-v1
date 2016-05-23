@@ -9,12 +9,13 @@ import Text.Earley         ((<?>), Grammar, Report, Prod, list, satisfy, rule, f
 
 import qualified Text.Earley as E
 
-data AST = AApp   AST [AST]
-         | AInt   Text
-         | AFloat Text
-         | AIdent Text
-         | AList  [AST]
-         | AMap   [(AST, AST)]
+data AST = AApp    AST [AST]
+         | AInt    Text
+         | AFloat  Text
+         | AIdent  Text
+         | AString Text
+         | AList   [AST]
+         | AMap    [(AST, AST)]
          deriving (Show, Eq)
 
 parse :: Text -> ([AST], Report Text Text)
@@ -22,13 +23,14 @@ parse = fullParses (E.parser grammar)
 
 grammar :: Grammar r (Prod r Text Char AST)
 grammar = mdo
-  let exp           = int <|> float <|> list <|> amap
+  let exp           = int <|> float <|> string <|> list <|> amap
       whitespace    = isSpace
       skipManySpace = many (satisfy whitespace)
       spaceBefore a = some (satisfy whitespace) *> a
       spaceAfter  a = a <* some (satisfy whitespace)
       floating    a = spaceAfter a <|> a
       floatingExp   = floating exp
+      maybeFollowing r separator = spaceAfter r <|> (r <* skipManySpace <* separator <* skipManySpace)
 
   list <- rule $ pure (\es last -> case last of Nothing -> AList es; Just l -> AList (es ++ [l]))
     <*  floating (token '[')
@@ -39,19 +41,20 @@ grammar = mdo
 
   amap <- rule $ pure (\es last -> case last of Nothing -> AMap es; Just l -> AMap (es ++ [l]))
     <*  floating (token '{')
-    <*> many (spaceAfter mapPair)
+    <*> many (maybeFollowing mapPair (token ','))
     <*> optional mapPair
     <*  token '}'
     <?> "amap"
 
   mapPair <- rule $ (,)
-    <$> exp
-    <* many (satisfy whitespace)
-    <* optional (satisfy (== ':'))
+    <$> maybeFollowing exp (token ':')
     <*> floating exp
-    <* many (satisfy whitespace)
-    <* optional (satisfy (== ','))
     <?> "mapPair"
+
+  string <- rule $ pure (AString . pack)
+    <*  token '"'
+    <*> many (satisfy (/= '"'))
+    <*  token '"'
 
   float <- rule $ (\whole dot fraction -> AFloat $ pack $ whole ++ [dot] ++ fraction)
     <$> (
@@ -70,15 +73,3 @@ grammar = mdo
     <?> "integer"
 
   return $ spaceBefore floatingExp <|> floatingExp
-
--- app <- rule $ pure AApp
---   <*  token '('
---   <*> floatingExp
---   <*> (some floatingExp)
---   <*  token ')'
---   <?> "application"
-
--- ident <- rule $ (\firstLetter rest -> AIdent $ pack $ firstLetter:rest)
---   <$> satisfy isAsciiLower
---   <*> many (satisfy $ \a -> any ($ a) [isAsciiLower, isAsciiUpper, isDigit])
---   <?> "identifier"
