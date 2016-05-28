@@ -39,3 +39,11 @@ spec = do
       parses "trailing inner whitespace" "[12 13 ]"                   (AList [AInt "12", AInt "13"])
       parses "surrounding whitespace"    " [ 12 13]"                  (AList [AInt "12", AInt "13"])
       parses "crazy"                     " [   1,53, 23, 8 12,13  ,]" (AList [AInt "1", AInt "53", AInt "23", AInt "8", AInt "12", AInt "13"])
+
+    -- TODO: Map literals
+
+    describe "functions" $ do
+      parses "no arguments" "#([] 5)" (AFunc (AList []) (AInt "5"))
+
+    describe "application" $ do
+      parses "simple application" "(a 5)" (AApp (AIdent "a") [(AInt "5")])

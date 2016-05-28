@@ -10,8 +10,9 @@ import Text.Earley         ((<?>), Grammar, Report, Prod, list, satisfy, rule, f
 import qualified Text.Earley as E
 
 data AST = AApp    AST [AST]
-         | AList   [AST]
          | AMap    [(AST, AST)]
+         | AFunc   AST AST
+         | AList   [AST]
          | AIdent  Text
          | AText   Text
          | AFloat  Text
@@ -23,7 +24,7 @@ parse = fullParses (E.parser grammar)
 
 grammar :: Grammar r (Prod r Text Char AST)
 grammar = mdo
-  let exp           = int <|> float <|> text <|> ident <|> list <|> map
+  let exp           = int <|> float <|> text <|> ident <|> list <|> func <|> application <|> map
       whitespace    = isSpace
       skipManySpace = many (satisfy whitespace)
       spaceBefore a = some (satisfy whitespace) *> a
@@ -33,13 +34,8 @@ grammar = mdo
       identSymbols  = ['<', '>', '?', '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '_', '+', '|', '\\', '/', '.']
       naturalDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
       maybeFollowing r separator = spaceAfter r <|> (r <* skipManySpace <* separator <* skipManySpace)
-
-  list <- rule $ pure (\es last -> case last of Nothing -> AList es; Just l -> AList (es ++ [l]))
-    <*  floating (token '[')
-    <*> many (spaceAfter exp <|> (exp <* skipManySpace <* token ',' <* skipManySpace))
-    <*> optional exp
-    <*  token ']'
-    <?> "list"
+      separated cons es Nothing  = cons es
+      separated cons es (Just l) = cons (es ++ [l])
 
   map <- rule $ pure (\es last -> case last of Nothing -> AMap es; Just l -> AMap (es ++ [l]))
     <*  floating (token '{')
@@ -52,6 +48,28 @@ grammar = mdo
     <$> maybeFollowing exp (token ':')
     <*> floating exp
     <?> "mapPair"
+
+  application <- rule $ pure (separated . AApp)
+    <* floating (token '(')
+    <*> spaceAfter exp
+    <*> many (spaceAfter exp)
+    <*> optional exp
+    <* token ')'
+    <?> "application"
+
+  func <- rule $ pure AFunc
+    <* floating (listLike ("#(" :: Text))
+    <*> floating list
+    <*> floatingExp
+    <* token ')'
+    <?> "function"
+
+  list <- rule $ pure (separated AList)
+    <*  floating (token '[')
+    <*> many (maybeFollowing exp (token ','))
+    <*> optional exp
+    <*  token ']'
+    <?> "list"
 
   ident <- rule $ (\a as -> AIdent $ pack (a:as))
     <$> satisfy (\c -> any ($ c) [isAsciiLower, (`elem` identSymbols)])

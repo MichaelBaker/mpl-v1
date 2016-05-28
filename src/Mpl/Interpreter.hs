@@ -24,13 +24,18 @@ run string = do
   return $ show result
 
 exec :: AST -> Object
-exec (AApp    a b) = Object TError  $ toDyn ("Function application not implemented yet" :: String)
-exec (AIdent  a)   = Object TError  $ toDyn ("Identifiers not implemented yet" :: String)
-exec (AInt    a)   = Object TInt    $ toDyn (read $ unpack a :: Integer)
-exec (AFloat  a)   = Object TFloat  $ toDyn (read $ unpack a :: Float)
-exec (AList   as)  = Object TList   $ toDyn $ map exec as
-exec (AMap    as)  = Object TMap    $ toDyn $ Map.fromList $ map (\(a, b) -> (exec a, exec b)) as
-exec (AText   a)   = Object TText   $ toDyn a
+exec (AIdent  a)    = Object TIdent  $ toDyn a
+exec (AFunc   as a) = Object TFunc   $ toDyn ((exec as, a) :: (Object, AST))
+exec (AInt    a)    = Object TInt    $ toDyn (read $ unpack a :: Integer)
+exec (AFloat  a)    = Object TFloat  $ toDyn (read $ unpack a :: Float)
+exec (AList   as)   = Object TList   $ toDyn $ map exec as
+exec (AMap    as)   = Object TMap    $ toDyn $ Map.fromList $ map (\(a, b) -> (exec a, exec b)) as
+exec (AText   a)    = Object TText   $ toDyn a
+exec (AApp    a b)  = applyFunction a b
+
+applyFunction f as = case exec f of
+                       Object TFunc val -> let (params, body) = coerce val :: (Object, AST) in exec body
+                       _ -> Object TError $ toDyn (show f ++ " is not a function" :: String)
 
 handleParseFail :: ([AST], Report Text Text) -> Either String AST
 handleParseFail (a:[], _)   = Right a
@@ -45,7 +50,9 @@ data Type = TInt
           | TList
           | TFun
           | TText
+          | TIdent
           | TError
+          | TFunc
 
 coerce :: (Typeable a) => Dynamic -> a
 coerce = fromJust . fromDynamic
@@ -63,6 +70,8 @@ instance Show Object where
   show (Object TFun v)    = show "<Function>"
   show (Object TText v)   = "\"" ++ (unpack $ coerce v) ++ "\""
   show (Object TError v)  = "Error: " ++ (coerce v)
+  show (Object TFunc v)   = let (params, body) = coerce v in "#(" ++ show (params :: Object) ++ " " ++ show (body :: AST) ++ ")"
+  show (Object TIdent v)  = unpack $ coerce v
 
 instance Eq Object where
   (Object TInt v1)    == (Object TInt v2)    = (coerce v1 :: Integer)               == (coerce v2 :: Integer)
@@ -77,5 +86,5 @@ instance Ord Object where
   (Object TFloat v1)  `compare` (Object TFloat v2)  = (coerce v1 :: Float)                 `compare` (coerce v2 :: Float)
   (Object TMap v1)    `compare` (Object TMap v2)    = (coerce v1 :: Map.Map Object Object) `compare` (coerce v2 :: Map.Map Object Object)
   (Object TList v1)   `compare` (Object TList v2)   = (coerce v1 :: [Object])              `compare` (coerce v2 :: [Object])
-  (Object TText v1)   `compare` (Object TText v2) = (coerce v1 :: Text)                  `compare` (coerce v2 :: Text)
+  (Object TText v1)   `compare` (Object TText v2)   = (coerce v1 :: Text)                  `compare` (coerce v2 :: Text)
   _                   `compare` _                   = EQ
