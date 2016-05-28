@@ -1,0 +1,30 @@
+# 0.0
+
+Assumptions and guarantees:
+- Global garbage collection
+- Never refuse to run a syntactically correct program 
+- All values are immutable
+
+Capabilities:
+- Warn of provable contradictions (treating a value as both a string and an integer)
+
+# 1.0
+
+Assumptions and guarantees:
+- Global garbage collection
+- Programs will not crash for unexpected reasons other than resource limitations
+- All values are immutable
+
+Capabilities:
+- Helps you ensure that you've written a sound program
+
+# 2.0
+
+Assumptions and guarantees:
+- Memory management is statically determined
+- Programs will not crash for unexpected reasons other than resource limitations
+- Values and references are explicitly mutable or immutable at each use site
+- All data has a guaranteed layout in memory
+
+Capabilities:
+- Predictable memory performance

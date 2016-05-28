@@ -10,12 +10,12 @@ import Text.Earley         ((<?>), Grammar, Report, Prod, list, satisfy, rule, f
 import qualified Text.Earley as E
 
 data AST = AApp    AST [AST]
-         | AInt    Text
-         | AFloat  Text
-         | AIdent  Text
-         | AString Text
          | AList   [AST]
          | AMap    [(AST, AST)]
+         | AIdent  Text
+         | AText   Text
+         | AFloat  Text
+         | AInt    Text
          deriving (Show, Eq)
 
 parse :: Text -> ([AST], Report Text Text)
@@ -23,7 +23,7 @@ parse = fullParses (E.parser grammar)
 
 grammar :: Grammar r (Prod r Text Char AST)
 grammar = mdo
-  let exp           = int <|> float <|> string <|> list <|> amap
+  let exp           = int <|> float <|> text <|> list <|> amap
       whitespace    = isSpace
       skipManySpace = many (satisfy whitespace)
       spaceBefore a = some (satisfy whitespace) *> a
@@ -51,7 +51,7 @@ grammar = mdo
     <*> floating exp
     <?> "mapPair"
 
-  string <- rule $ pure (AString . pack)
+  text <- rule $ pure (AText . pack)
     <*  token '"'
     <*> many (satisfy (/= '"'))
     <*  token '"'

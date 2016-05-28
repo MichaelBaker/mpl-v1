@@ -20,9 +20,9 @@ spec = do
       test "leading zero" "0.0"                   (AFloat "0.0")
       test "all digits"   "1234567890.0987654321" (AFloat "1234567890.0987654321")
 
-    describe "string" $ do
-      test "empty string" "\"\""      (AString "")
-      test "plain string" "\"hello\"" (AString "hello")
+    describe "text" $ do
+      test "empty text" "\"\""      (AText "")
+      test "plain text" "\"hello\"" (AText "hello")
 
     describe "lists" $ do
       test "empty"                     "[]"                         (AList [])

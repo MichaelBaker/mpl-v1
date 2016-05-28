@@ -17,7 +17,6 @@ library
   default-extensions:  OverloadedStrings
   exposed-modules:     Mpl.Parser
                      , Mpl.Interpreter
-                     , Mpl.Object
   build-depends:       base >= 4.7 && < 5
                      , Earley
                      , text
