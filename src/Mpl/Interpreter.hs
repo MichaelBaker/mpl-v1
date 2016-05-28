@@ -24,8 +24,7 @@ run string = do
   return $ show result
 
 exec :: Stack -> AST -> Object
-exec [] (AIdent  a)      = Object TError $ toDyn $ "Invalid identifier: " ++ (show a)
-exec (env:_) (AIdent  a) = case Map.lookup a env of
+exec stack (AIdent  a) = case lookupIdent a stack of
   Nothing -> Object TError $ toDyn $ "Invalid identifier: " ++ (show a)
   Just o  -> o
 exec stack (AFunc   as a) = Object TFunc   $ toDyn ((as, stack, a) :: (AST, Stack, AST))
@@ -60,6 +59,11 @@ type Stack  = [Env]
 
 emptyEnv   = Map.empty :: Env
 emptyStack = [] :: Stack
+
+lookupIdent _ []     = Nothing
+lookupIdent i (env:envs) = case Map.lookup i env of
+  Nothing -> lookupIdent i envs
+  Just a  -> Just a
 
 data Type = TInt
           | TFloat
