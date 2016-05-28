@@ -20,22 +20,34 @@ run :: String -> Either String String
 run string = do
   parsedAST <- Right $ parse (pack string)
   ast       <- handleParseFail parsedAST
-  result    <- Right $ exec ast
+  result    <- Right $ exec emptyStack ast
   return $ show result
 
-exec :: AST -> Object
-exec (AIdent  a)    = Object TIdent  $ toDyn a
-exec (AFunc   as a) = Object TFunc   $ toDyn ((exec as, a) :: (Object, AST))
-exec (AInt    a)    = Object TInt    $ toDyn (read $ unpack a :: Integer)
-exec (AFloat  a)    = Object TFloat  $ toDyn (read $ unpack a :: Float)
-exec (AList   as)   = Object TList   $ toDyn $ map exec as
-exec (AMap    as)   = Object TMap    $ toDyn $ Map.fromList $ map (\(a, b) -> (exec a, exec b)) as
-exec (AText   a)    = Object TText   $ toDyn a
-exec (AApp    a b)  = applyFunction a b
+exec :: Stack -> AST -> Object
+exec [] (AIdent  a)      = Object TError $ toDyn $ "Invalid identifier: " ++ (show a)
+exec (env:_) (AIdent  a) = case Map.lookup a env of
+  Nothing -> Object TError $ toDyn $ "Invalid identifier: " ++ (show a)
+  Just o  -> o
+exec stack (AFunc   as a) = Object TFunc   $ toDyn ((as, stack, a) :: (AST, Stack, AST))
+exec stack (AInt    a)    = Object TInt    $ toDyn (read $ unpack a :: Integer)
+exec stack (AFloat  a)    = Object TFloat  $ toDyn (read $ unpack a :: Float)
+exec stack (AList   as)   = Object TList   $ toDyn $ map (exec stack) as
+exec stack (AMap    as)   = Object TMap    $ toDyn $ Map.fromList $ map (\(a, b) -> (exec stack a, exec stack b)) as
+exec stack (AText   a)    = Object TText   $ toDyn a
+exec stack (AApp    a b)  = applyFunction stack a b
 
-applyFunction f as = case exec f of
-                       Object TFunc val -> let (params, body) = coerce val :: (Object, AST) in exec body
-                       _ -> Object TError $ toDyn (show f ++ " is not a function" :: String)
+applyFunction stack f as = case exec stack f of
+  Object TFunc val -> let (AList params, closureStack, body) = coerce val :: (AST, Stack, AST)
+                          numParams = length params
+                          numArgs   = length as
+                          in if numParams /= numArgs
+                            then Object TError $ toDyn ("Function " ++ show f ++ " takes " ++ show numParams ++ " parameters, but " ++ show numArgs ++ " arguments were provided" :: String)
+                            else let newStack = Map.fromList $ zip (paramNames params) (execArgs stack as)
+                              in exec (newStack:closureStack) body
+  _ -> Object TError $ toDyn (show f ++ " is not a function" :: String)
+
+paramNames = map (\(AIdent a) -> a)
+execArgs stack = map (exec stack)
 
 handleParseFail :: ([AST], Report Text Text) -> Either String AST
 handleParseFail (a:[], _)   = Right a
@@ -43,6 +55,11 @@ handleParseFail (a:rest, _) = Left $ "Error: The grammar is ambiguous and produc
 handleParseFail (_, r)      = Left $ show r
 
 data Object = Object Type Dynamic
+type Env    = Map.Map Text Object
+type Stack  = [Env]
+
+emptyEnv   = Map.empty :: Env
+emptyStack = [] :: Stack
 
 data Type = TInt
           | TFloat
@@ -50,7 +67,6 @@ data Type = TInt
           | TList
           | TFun
           | TText
-          | TIdent
           | TError
           | TFunc
 
@@ -70,8 +86,7 @@ instance Show Object where
   show (Object TFun v)    = show "<Function>"
   show (Object TText v)   = "\"" ++ (unpack $ coerce v) ++ "\""
   show (Object TError v)  = "Error: " ++ (coerce v)
-  show (Object TFunc v)   = let (params, body) = coerce v in "#(" ++ show (params :: Object) ++ " " ++ show (body :: AST) ++ ")"
-  show (Object TIdent v)  = unpack $ coerce v
+  show (Object TFunc v)   = let (params, _, body) = coerce v  :: (AST, Stack, AST) in "#(" ++ show params ++ " " ++ show body ++ ")"
 
 instance Eq Object where
   (Object TInt v1)    == (Object TInt v2)    = (coerce v1 :: Integer)               == (coerce v2 :: Integer)
