@@ -6,6 +6,13 @@ This is the project I use to play around with programming language theory and im
 
 * Support for immutable data
 * Stratified features. The language an ecosystem should have a low floor, a hight ceiling, and a straightforward path between them.
+* Allow programmers to carry what they've learned with them for their entire career. Learning an incremental idea should only require an incremental time investment.
+  * Implication: Every language should share as much as possible.
+    * Share syntax
+    * Share language constructs
+    * Share toolchain
+    * Convert mechanically between languages
+    * Allow use of code written in some languages to be used in others
 
 ## Topics in programming language design
 
