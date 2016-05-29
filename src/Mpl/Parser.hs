@@ -9,14 +9,14 @@ import Text.Earley         ((<?>), Grammar, Report, Prod, list, satisfy, rule, f
 
 import qualified Text.Earley as E
 
-data AST = AApp    AST [AST]
+data AST = AInt    Text
+         | AFloat  Text
+         | AText   Text
+         | AIdent  Text
+         | AList   [AST]
          | AMap    [(AST, AST)]
          | AFunc   AST AST
-         | AList   [AST]
-         | AIdent  Text
-         | AText   Text
-         | AFloat  Text
-         | AInt    Text
+         | AApp    AST [AST]
          deriving (Show, Eq)
 
 parse :: Text -> ([AST], Report Text Text)
