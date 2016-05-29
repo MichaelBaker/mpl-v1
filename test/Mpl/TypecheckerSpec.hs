@@ -44,3 +44,11 @@ spec = do
     hasType "identity function"
       (AFunc (AList [AIdent "a"]) (AIdent "a"))
       (FuncType [Unknown] Unknown)
+
+    hasType "const function"
+      (AFunc (AList [AIdent "a"]) (AInt "8"))
+      (FuncType [Unknown] IntType)
+
+    hasType "applied identity function"
+      (AApp (AFunc (AList [AIdent "a"]) (AIdent "a")) [(AInt "8")])
+      IntType

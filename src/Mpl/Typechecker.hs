@@ -25,23 +25,24 @@ data TAST = TInt   Integer
           | TList  [Typed]
           | TMap   [(Typed, Typed)]
           | TFunc  Typed Typed
-          -- | TApp    TAST [TAST]
+          | TApp   Typed [Typed]
          deriving (Show, Eq)
 
 type Typed   = (Type, TAST)
 type Context = Map.Map Text Type
 
-typecheck = fst . typecheckWithContext
+typecheck = fst . (typecheckWithContext emptyContext)
 
-typecheckWithContext (AInt a)             = ((IntType, TInt   $ forceRead (signed decimal) a), emptyContext)
-typecheckWithContext (AFloat a)           = ((FloatType, TFloat $ forceRead double a), emptyContext)
-typecheckWithContext (AText a)            = ((TextType, TText  a), emptyContext)
-typecheckWithContext (AIdent a)           = ((Unknown, TIdent a), emptyContext)
-typecheckWithContext (AList as)           = (typecheckList as, emptyContext)
-typecheckWithContext (AMap  as)           = (typecheckMap as, emptyContext)
-typecheckWithContext (AFunc (AList as) a) = typecheckFunc as a
-typecheckWithContext (AFunc as a)         = error $ "Invalid function AST: " ++ show (AFunc as a)
-typecheckWithContext _ = undefined
+typecheckWithContext ctx (AInt a)             = ((IntType, TInt   $ forceRead (signed decimal) a), ctx)
+typecheckWithContext ctx (AFloat a)           = ((FloatType, TFloat $ forceRead double a), ctx)
+typecheckWithContext ctx (AText a)            = ((TextType, TText  a), ctx)
+typecheckWithContext ctx (AIdent a)           = ((typeOfIdent a ctx, TIdent a), ctx)
+typecheckWithContext ctx (AList as)           = (typecheckList as, ctx)
+typecheckWithContext ctx (AMap  as)           = (typecheckMap as, ctx)
+typecheckWithContext ctx (AFunc (AList as) a) = typecheckFunc ctx as a
+typecheckWithContext ctx (AApp (AFunc (AList ps) b) as) = typecheckApp ctx ps b as
+typecheckWithContext ctx (AFunc ps b)         = error $ "Invalid function AST: " ++ show (AFunc ps b)
+typecheckWithContext ctx (AApp f as)          = error $ "Invalid application AST: " ++ show (AApp f as)
 
 forceRead reader a = case reader a of
   Left e  -> error e
@@ -55,10 +56,23 @@ typeOfIdent i context = case Map.lookup i context of
   Nothing -> Unknown
   Just a  -> a
 
-typecheckFunc params body = ((t, tast), newContext)
+typecheckApp ctx params body args = if numParams == numArgs
+  then case typecheckFunc (Map.union argctx ctx) params body of
+    ((FuncType pts bt, f), newCtx) -> ((bt, (TApp (FuncType pts bt, f) targs)), newCtx)
+    _ -> error $ "Failed to typecheck application: " ++ show (params, body, args)
+  else error $ "Function expects " ++ show numParams ++ " parameters, but " ++ show numArgs ++ " arguments are supplied"
+  where numParams     = length params
+        numArgs       = length args
+        (targs, ctxs) = unzip $ map (typecheckWithContext ctx) args
+        argctx        = foldl' addArg emptyContext $ zip params $ map fst targs
+        addArg ctx (AIdent p, Unknown) = ctx
+        addArg ctx (AIdent p, t)       = Map.insert p t ctx
+        addArg _ _ = error $ "Invalid application AST: " ++ show (AApp (AFunc (AList params) body) args)
+
+typecheckFunc ctx params body = ((t, tast), newContext)
   where t                = FuncType (reverse paramTypes) (typeOf tbody)
         tast             = TFunc (ListType IdentType, TList (reverse tparams)) tbody
-        (tbody, context) = typecheckWithContext body
+        (tbody, context) = typecheckWithContext ctx body
         (paramTypes, tparams, newContext) = foldl' typeOfParam ([], [], context) params
         typeOfParam (pts, tps, ctx) (AIdent a) = (newPt:pts, newTp:tps, newCtx)
           where newPt  = typeOfIdent a ctx
