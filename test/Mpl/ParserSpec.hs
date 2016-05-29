@@ -11,7 +11,7 @@ parses name string result = it name $ do
 spec :: Spec
 spec = do
   describe "grammar" $ do
-    describe "integers" $ do
+    describe "integer" $ do
       parses "a single digit"  "1"         (AInt "1")
       parses "a single number" "12"        (AInt "12")
       parses "long integer"    "987654321" (AInt "987654321")
@@ -29,7 +29,7 @@ spec = do
       parses "camel cased word"    "uUadkjADkdfsjljD" (AIdent "uUadkjADkdfsjljD")
       parses "symbolic identifier" "<$>"              (AIdent "<$>")
 
-    describe "lists" $ do
+    describe "list" $ do
       parses "empty"                     "[]"                         (AList [])
       parses "an int"                    "[12]"                       (AList [AInt "12"])
       parses "two ints"                  "[12 13]"                    (AList [AInt "12", AInt "13"])
@@ -40,9 +40,11 @@ spec = do
       parses "surrounding whitespace"    " [ 12 13]"                  (AList [AInt "12", AInt "13"])
       parses "crazy"                     " [   1,53, 23, 8 12,13  ,]" (AList [AInt "1", AInt "53", AInt "23", AInt "8", AInt "12", AInt "13"])
 
-    -- TODO: Map literals
+    describe "map" $ do
+      parses "empty"         "{}"         (AMap [])
+      parses "string -> int" "{\"a\": 1}" (AMap [(AText "a", AInt "1")])
 
-    describe "functions" $ do
+    describe "function" $ do
       parses "no arguments" "#([] 5)" (AFunc (AList []) (AInt "5"))
 
     describe "application" $ do
