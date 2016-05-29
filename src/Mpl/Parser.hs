@@ -9,7 +9,6 @@ import Text.Earley         ((<?>), Grammar, Report, Prod, list, satisfy, rule, f
 
 import qualified Text.Earley as E
 
-
 data AST = AApp    AST [AST]
          | AMap    [(AST, AST)]
          | AFunc   AST AST

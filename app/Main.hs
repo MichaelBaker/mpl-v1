@@ -1,6 +1,6 @@
 module Main where
 
-import Mpl.Interpreter (eval)
+import Mpl.Interpreter (interpret)
 import System.Console.Haskeline (runInputT, defaultSettings, getInputLine, outputStrLn)
 
 main :: IO ()
@@ -12,4 +12,4 @@ loop = do
     Nothing     -> return ()
     Just "exit" -> return ()
     Just "quit" -> return ()
-    Just a      -> outputStrLn (eval a) >> outputStrLn "" >> loop
+    Just a      -> outputStrLn (interpret a) >> outputStrLn "" >> loop

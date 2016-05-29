@@ -2,9 +2,9 @@ module Mpl.InterpreterSpec where
 
 import Test.Hspec
 
-import Mpl.Interpreter (eval)
+import Mpl.Interpreter (interpret)
 
-test name string result = it name $ eval string `shouldBe` result
+test name string result = it name $ interpret string `shouldBe` result
 
 spec :: Spec
 spec = do

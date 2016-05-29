@@ -11,10 +11,10 @@ import Data.Maybe    (fromJust)
 import Numeric       (showFFloatAlt)
 import qualified Data.Map.Strict as Map
 
-eval :: String -> String
-eval string = case run string of
-                Left  s -> s
-                Right s -> s
+interpret :: String -> String
+interpret string = case run string of
+  Left  s -> s
+  Right s -> s
 
 run :: String -> Either String String
 run string = do
