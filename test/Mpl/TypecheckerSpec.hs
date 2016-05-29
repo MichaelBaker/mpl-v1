@@ -40,3 +40,7 @@ spec = do
     hasType "heterogeneous map keys and values"
       (AMap [(AText "a", AInt "8"), (AInt "2", AText "a")])
       (MapType Unknown Unknown)
+
+    hasType "identity function"
+      (AFunc (AList [AIdent "a"]) (AIdent "a"))
+      (FuncType [Unknown] Unknown)
