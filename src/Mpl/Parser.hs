@@ -51,7 +51,7 @@ grammar = mdo
     <* token ')'
     <?> "application"
 
-  func <- rule $ pure (AFunc ())
+  func <- rule $ pure (\(AList _ vals) -> AFunc () vals)
     <* floating (listLike ("#(" :: Text))
     <*> floating list
     <*> floatingExp

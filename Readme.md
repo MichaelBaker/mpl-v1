@@ -4,6 +4,7 @@ This is the project I use to play around with programming language theory and im
 
 ## TODO
 
+[ ] Curry all functions for simple partial application
 [ ] Warn on type contradictions
 [ ] Give typechecker a once over and look into correctness
 [ ] Start level 1.0

@@ -17,7 +17,7 @@ exec :: Stack -> AST Type -> Object
 exec stack (AIdent _ a) = case lookupIdent a stack of
   Nothing -> Object OTError $ toDyn $ "Invalid identifier: " ++ (show a)
   Just o  -> o
-exec stack (AFunc  _ as a) = Object OTFunc   $ toDyn ((as, stack, a) :: (AST Type, Stack, AST Type))
+exec stack (AFunc  _ as a) = Object OTFunc   $ toDyn ((as, stack, a) :: ([AST Type], Stack, AST Type))
 exec stack (AInt   _ a)    = Object OTInt    $ toDyn (a :: Integer)
 exec stack (AFloat _ a)    = Object OTFloat  $ toDyn (a :: Double)
 exec stack (AList  _ as)   = Object OTList   $ toDyn $ map (exec stack) as
@@ -27,7 +27,7 @@ exec stack (AApp   _ a b)  = applyFunction stack a b
 
 applyFunction stack f as = case exec stack f of
   Object OTFunc val ->
-    let (AList _ params, closureStack, body) = coerce val :: (AST Type, Stack, AST Type)
+    let (params, closureStack, body) = coerce val :: ([AST Type], Stack, AST Type)
         numParams = length params
         numArgs   = length as
         in if numParams /= numArgs
@@ -76,7 +76,7 @@ instance Show Object where
   show (Object OTFun v)    = show "<Function>"
   show (Object OTText v)   = "\"" ++ (unpack $ coerce v) ++ "\""
   show (Object OTError v)  = "Error: " ++ (coerce v)
-  show (Object OTFunc v)   = let (params, _, body) = coerce v  :: (AST Type, Stack, AST Type) in "#(" ++ show params ++ " " ++ show body ++ ")"
+  show (Object OTFunc v)   = let (params, _, body) = coerce v  :: ([AST Type], Stack, AST Type) in "#(" ++ show params ++ " " ++ show body ++ ")"
 
 instance Eq Object where
   (Object OTInt v1)    == (Object OTInt v2)    = (coerce v1 :: Integer)               == (coerce v2 :: Integer)

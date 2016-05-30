@@ -8,7 +8,7 @@ data AST a = AInt    a Integer
            | AIdent  a Text
            | AList   a [AST a]
            | AMap    a [(AST a, AST a)]
-           | AFunc   a (AST a) (AST a)
+           | AFunc   a [AST a] (AST a)
            | AApp    a (AST a) [AST a]
            deriving (Show, Eq)
 

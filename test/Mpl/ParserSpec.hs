@@ -46,7 +46,7 @@ spec = do
       parses "string -> int" "{\"a\": 1}" (AMap () [(AText () "a", AInt () 1)])
 
     describe "function" $ do
-      parses "no arguments" "#([] 5)" (AFunc () (AList () []) (AInt () 5))
+      parses "no arguments" "#([] 5)" (AFunc () [] (AInt () 5))
 
     describe "application" $ do
       parses "simple application" "(a 5)" (AApp () (AIdent () "a") [(AInt () 5)])
