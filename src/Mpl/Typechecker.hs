@@ -1,6 +1,7 @@
 module Mpl.Typechecker where
 
-import Mpl.Parser     (AST(..), meta)
+import Mpl.AST (AST(..), meta)
+
 import Data.Text      (Text)
 import Data.List      (foldl')
 

@@ -2,7 +2,8 @@ module Mpl.ParserSpec where
 
 import Test.Hspec
 
-import Mpl.Parser (AST(..), parse)
+import Mpl.AST    (AST(..))
+import Mpl.Parser (parse)
 
 parses name string result = it name $ do
   let (parses, _) = parse string

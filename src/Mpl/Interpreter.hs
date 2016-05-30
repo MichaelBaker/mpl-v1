@@ -1,6 +1,8 @@
 module Mpl.Interpreter where
 
-import Mpl.Parser    (AST(..), parse)
+import Mpl.Parser (parse)
+import Mpl.AST    (AST(..), meta)
+
 import Data.Text     (Text, pack, unpack)
 import Data.Typeable (Typeable)
 import Text.Earley   (Report)

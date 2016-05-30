@@ -2,8 +2,8 @@ module Mpl.TypecheckerSpec where
 
 import Test.Hspec
 
-import Mpl.Parser      (AST(..), meta)
-import Mpl.Typechecker (TAST(..), Type(..), typecheck)
+import Mpl.AST         (AST(..), meta)
+import Mpl.Typechecker (Type(..), typecheck)
 
 hasType message ast t = it message $ do
   meta (typecheck ast) `shouldBe` t

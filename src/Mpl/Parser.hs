@@ -2,6 +2,8 @@
 
 module Mpl.Parser where
 
+import Mpl.AST (AST(..))
+
 import Control.Applicative ((<|>), many, some, optional)
 import Data.Char           (isSpace, isDigit, isAscii, isLetter, isAsciiUpper, isAsciiLower)
 import Data.Text           (Text, pack)
@@ -10,25 +12,6 @@ import Text.Earley         ((<?>), Grammar, Report, Prod, list, satisfy, rule, f
 
 import qualified Text.Earley as E
 import qualified Data.Text   as T
-
-data AST a = AInt    a Integer
-           | AFloat  a Double
-           | AText   a Text
-           | AIdent  a Text
-           | AList   a [AST a]
-           | AMap    a [(AST a, AST a)]
-           | AFunc   a (AST a) (AST a)
-           | AApp    a (AST a) [AST a]
-           deriving (Show, Eq)
-
-meta (AInt    a _)   = a
-meta (AFloat  a _)   = a
-meta (AText   a _)   = a
-meta (AIdent  a _)   = a
-meta (AList   a _)   = a
-meta (AMap    a _)   = a
-meta (AFunc   a _ _) = a
-meta (AApp    a _ _) = a
 
 parse :: Text -> ([AST ()], Report Text Text)
 parse = fullParses (E.parser grammar)
