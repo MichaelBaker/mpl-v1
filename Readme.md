@@ -2,6 +2,15 @@
 
 This is the project I use to play around with programming language theory and implementation when the mood strikes me.
 
+## TODO
+
+[ ] Warn on type contradictions
+[ ] Give typechecker a once over and look into correctness
+[ ] Start level 1.0
+[ ] Convert level 0.0 <-> 1.0
+[ ] Start level 2.0
+[ ] Convert level 1.0 <-> 2.0
+
 ## Things I want
 
 * Support for immutable data
