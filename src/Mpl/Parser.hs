@@ -5,12 +5,14 @@ module Mpl.Parser where
 import Control.Applicative ((<|>), many, some, optional)
 import Data.Char           (isSpace, isDigit, isAscii, isLetter, isAsciiUpper, isAsciiLower)
 import Data.Text           (Text, pack)
+import Data.Text.Read      (signed, decimal, double)
 import Text.Earley         ((<?>), Grammar, Report, Prod, list, satisfy, rule, fullParses, token, listLike)
 
 import qualified Text.Earley as E
+import qualified Data.Text   as T
 
-data AST a = AInt    a Text
-           | AFloat  a Text
+data AST a = AInt    a Integer
+           | AFloat  a Double
            | AText   a Text
            | AIdent  a Text
            | AList   a [AST a]
@@ -18,6 +20,15 @@ data AST a = AInt    a Text
            | AFunc   a (AST a) (AST a)
            | AApp    a (AST a) [AST a]
            deriving (Show, Eq)
+
+meta (AInt    a _)   = a
+meta (AFloat  a _)   = a
+meta (AText   a _)   = a
+meta (AIdent  a _)   = a
+meta (AList   a _)   = a
+meta (AMap    a _)   = a
+meta (AFunc   a _ _) = a
+meta (AApp    a _ _) = a
 
 parse :: Text -> ([AST ()], Report Text Text)
 parse = fullParses (E.parser grammar)
@@ -82,7 +93,7 @@ grammar = mdo
     <*  token '"'
     <?> "text"
 
-  float <- rule $ (\whole dot fraction -> AFloat () $ pack $ whole ++ [dot] ++ fraction)
+  float <- rule $ (\whole dot fraction -> AFloat () $ forceRead double $ pack $ whole ++ [dot] ++ fraction)
     <$> (
       some (token '0') <|>
       (\firstDigit rest -> firstDigit:rest)
@@ -93,9 +104,15 @@ grammar = mdo
     <*> some (satisfy isDigit)
     <?> "float"
 
-  int <- rule $ (\firstDigit rest -> AInt () $ pack $ firstDigit:rest)
+  int <- rule $ (\firstDigit rest -> AInt () $ forceRead (signed decimal) $ pack $ firstDigit:rest)
     <$> satisfy (`elem` naturalDigits)
     <*> many (satisfy isDigit)
     <?> "integer"
 
   return $ spaceBefore floatingExp <|> floatingExp
+
+forceRead reader a = case reader a of
+  Left e  -> error e
+  Right b -> if T.null (snd b)
+    then fst b
+    else error ("Unconsumed input: " ++ (show $ snd b))

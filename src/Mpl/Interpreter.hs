@@ -28,8 +28,8 @@ exec stack (AIdent _ a) = case lookupIdent a stack of
   Nothing -> Object TError $ toDyn $ "Invalid identifier: " ++ (show a)
   Just o  -> o
 exec stack (AFunc  _ as a) = Object TFunc   $ toDyn ((as, stack, a) :: (AST (), Stack, AST ()))
-exec stack (AInt   _ a)    = Object TInt    $ toDyn (read $ unpack a :: Integer)
-exec stack (AFloat _ a)    = Object TFloat  $ toDyn (read $ unpack a :: Float)
+exec stack (AInt   _ a)    = Object TInt    $ toDyn (a :: Integer)
+exec stack (AFloat _ a)    = Object TFloat  $ toDyn (a :: Double)
 exec stack (AList  _ as)   = Object TList   $ toDyn $ map (exec stack) as
 exec stack (AMap   _ as)   = Object TMap    $ toDyn $ Map.fromList $ map (\(a, b) -> (exec stack a, exec stack b)) as
 exec stack (AText  _ a)    = Object TText   $ toDyn a
@@ -79,7 +79,7 @@ coerce = fromJust . fromDynamic
 
 instance Show Object where
   show (Object TInt v)    = show (coerce v :: Integer)
-  show (Object TFloat v)  = showFFloatAlt Nothing (coerce v :: Float) ""
+  show (Object TFloat v)  = showFFloatAlt Nothing (coerce v :: Double) ""
   show (Object TMap v)    = "{" ++ (if null fields then fields else init (init fields)) ++ "}"
     where map    = coerce v :: Map.Map Object Object
           fields = Map.foldlWithKey' showField "" map
@@ -94,7 +94,7 @@ instance Show Object where
 
 instance Eq Object where
   (Object TInt v1)    == (Object TInt v2)    = (coerce v1 :: Integer)               == (coerce v2 :: Integer)
-  (Object TFloat v1)  == (Object TFloat v2)  = (coerce v1 :: Float)                 == (coerce v2 :: Float)
+  (Object TFloat v1)  == (Object TFloat v2)  = (coerce v1 :: Double)                == (coerce v2 :: Double)
   (Object TMap v1)    == (Object TMap v2)    = (coerce v1 :: Map.Map Object Object) == (coerce v2 :: Map.Map Object Object)
   (Object TList v1)   == (Object TList v2)   = (coerce v1 :: [Object])              == (coerce v2 :: [Object])
   (Object TText v1)   == (Object TText v2)   = (coerce v1 :: Text)                  == (coerce v2 :: Text)
@@ -102,7 +102,7 @@ instance Eq Object where
 
 instance Ord Object where
   (Object TInt v1)    `compare` (Object TInt v2)    = (coerce v1 :: Integer)               `compare` (coerce v2 :: Integer)
-  (Object TFloat v1)  `compare` (Object TFloat v2)  = (coerce v1 :: Float)                 `compare` (coerce v2 :: Float)
+  (Object TFloat v1)  `compare` (Object TFloat v2)  = (coerce v1 :: Double)                `compare` (coerce v2 :: Double)
   (Object TMap v1)    `compare` (Object TMap v2)    = (coerce v1 :: Map.Map Object Object) `compare` (coerce v2 :: Map.Map Object Object)
   (Object TList v1)   `compare` (Object TList v2)   = (coerce v1 :: [Object])              `compare` (coerce v2 :: [Object])
   (Object TText v1)   `compare` (Object TText v2)   = (coerce v1 :: Text)                  `compare` (coerce v2 :: Text)
