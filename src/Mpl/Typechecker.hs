@@ -33,16 +33,16 @@ type Context = Map.Map Text Type
 
 typecheck = fst . (typecheckWithContext emptyContext)
 
-typecheckWithContext ctx (AInt a)             = ((IntType, TInt   $ forceRead (signed decimal) a), ctx)
-typecheckWithContext ctx (AFloat a)           = ((FloatType, TFloat $ forceRead double a), ctx)
-typecheckWithContext ctx (AText a)            = ((TextType, TText  a), ctx)
-typecheckWithContext ctx (AIdent a)           = ((typeOfIdent a ctx, TIdent a), ctx)
-typecheckWithContext ctx (AList as)           = (typecheckList as, ctx)
-typecheckWithContext ctx (AMap  as)           = (typecheckMap as, ctx)
-typecheckWithContext ctx (AFunc (AList as) a) = typecheckFunc ctx as a
-typecheckWithContext ctx (AApp (AFunc (AList ps) b) as) = typecheckApp ctx ps b as
-typecheckWithContext ctx (AFunc ps b)         = error $ "Invalid function AST: " ++ show (AFunc ps b)
-typecheckWithContext ctx (AApp f as)          = error $ "Invalid application AST: " ++ show (AApp f as)
+typecheckWithContext ctx (AInt _ a)             = ((IntType, TInt   $ forceRead (signed decimal) a), ctx)
+typecheckWithContext ctx (AFloat _ a)           = ((FloatType, TFloat $ forceRead double a), ctx)
+typecheckWithContext ctx (AText _ a)            = ((TextType, TText  a), ctx)
+typecheckWithContext ctx (AIdent _ a)           = ((typeOfIdent a ctx, TIdent a), ctx)
+typecheckWithContext ctx (AList _ as)           = (typecheckList as, ctx)
+typecheckWithContext ctx (AMap  _ as)           = (typecheckMap as, ctx)
+typecheckWithContext ctx (AFunc _ (AList _ as) a) = typecheckFunc ctx as a
+typecheckWithContext ctx (AApp _ (AFunc _ (AList _ ps) b) as) = typecheckApp ctx ps b as
+typecheckWithContext ctx (AFunc _ ps b)         = error $ "Invalid function AST: " ++ show (AFunc () ps b)
+typecheckWithContext ctx (AApp _ f as)          = error $ "Invalid application AST: " ++ show (AApp () f as)
 
 forceRead reader a = case reader a of
   Left e  -> error e
@@ -65,20 +65,20 @@ typecheckApp ctx params body args = if numParams == numArgs
         numArgs       = length args
         (targs, ctxs) = unzip $ map (typecheckWithContext ctx) args
         argctx        = foldl' addArg emptyContext $ zip params $ map fst targs
-        addArg ctx (AIdent p, Unknown) = ctx
-        addArg ctx (AIdent p, t)       = Map.insert p t ctx
-        addArg _ _ = error $ "Invalid application AST: " ++ show (AApp (AFunc (AList params) body) args)
+        addArg ctx (AIdent _ p, Unknown) = ctx
+        addArg ctx (AIdent _ p, t)       = Map.insert p t ctx
+        addArg _ _ = error $ "Invalid application AST: " ++ show (AApp () (AFunc () (AList () params) body) args)
 
 typecheckFunc ctx params body = ((t, tast), newContext)
   where t                = FuncType (reverse paramTypes) (typeOf tbody)
         tast             = TFunc (ListType IdentType, TList (reverse tparams)) tbody
         (tbody, context) = typecheckWithContext ctx body
         (paramTypes, tparams, newContext) = foldl' typeOfParam ([], [], context) params
-        typeOfParam (pts, tps, ctx) (AIdent a) = (newPt:pts, newTp:tps, newCtx)
+        typeOfParam (pts, tps, ctx) (AIdent _ a) = (newPt:pts, newTp:tps, newCtx)
           where newPt  = typeOfIdent a ctx
                 newTp  = (IdentType, TIdent a)
                 newCtx = Map.delete a ctx
-        typeOfParam _ _ = error $ "Invalid function AST: " ++ show (AFunc (AList params) body)
+        typeOfParam _ _ = error $ "Invalid function AST: " ++ show (AFunc () (AList () params) body)
 
 typecheckMap as = (t, TMap tas)
   where tas = map (\(a, b) -> (typecheck a, typecheck b)) as

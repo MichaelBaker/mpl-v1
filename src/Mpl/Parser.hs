@@ -9,20 +9,20 @@ import Text.Earley         ((<?>), Grammar, Report, Prod, list, satisfy, rule, f
 
 import qualified Text.Earley as E
 
-data AST = AInt    Text
-         | AFloat  Text
-         | AText   Text
-         | AIdent  Text
-         | AList   [AST]
-         | AMap    [(AST, AST)]
-         | AFunc   AST AST
-         | AApp    AST [AST]
-         deriving (Show, Eq)
+data AST a = AInt    a Text
+           | AFloat  a Text
+           | AText   a Text
+           | AIdent  a Text
+           | AList   a [AST a]
+           | AMap    a [(AST a, AST a)]
+           | AFunc   a (AST a) (AST a)
+           | AApp    a (AST a) [AST a]
+           deriving (Show, Eq)
 
-parse :: Text -> ([AST], Report Text Text)
+parse :: Text -> ([AST ()], Report Text Text)
 parse = fullParses (E.parser grammar)
 
-grammar :: Grammar r (Prod r Text Char AST)
+grammar :: Grammar r (Prod r Text Char (AST ()))
 grammar = mdo
   let exp           = int <|> float <|> text <|> ident <|> list <|> func <|> application <|> map
       whitespace    = isSpace
@@ -37,7 +37,7 @@ grammar = mdo
       separated cons es Nothing  = cons es
       separated cons es (Just l) = cons (es ++ [l])
 
-  map <- rule $ pure (\es last -> case last of Nothing -> AMap es; Just l -> AMap (es ++ [l]))
+  map <- rule $ pure (\es last -> case last of Nothing -> AMap () es; Just l -> AMap () (es ++ [l]))
     <*  floating (token '{')
     <*> many (maybeFollowing mapPair (token ','))
     <*> optional mapPair
@@ -49,7 +49,7 @@ grammar = mdo
     <*> floating exp
     <?> "mapPair"
 
-  application <- rule $ pure (separated . AApp)
+  application <- rule $ pure (separated . (AApp ()))
     <* floating (token '(')
     <*> spaceAfter exp
     <*> many (spaceAfter exp)
@@ -57,32 +57,32 @@ grammar = mdo
     <* token ')'
     <?> "application"
 
-  func <- rule $ pure AFunc
+  func <- rule $ pure (AFunc ())
     <* floating (listLike ("#(" :: Text))
     <*> floating list
     <*> floatingExp
     <* token ')'
     <?> "function"
 
-  list <- rule $ pure (separated AList)
+  list <- rule $ pure (separated $ AList ())
     <*  floating (token '[')
     <*> many (maybeFollowing exp (token ','))
     <*> optional exp
     <*  token ']'
     <?> "list"
 
-  ident <- rule $ (\a as -> AIdent $ pack (a:as))
+  ident <- rule $ (\a as -> AIdent () $ pack (a:as))
     <$> satisfy (\c -> any ($ c) [isAsciiLower, (`elem` identSymbols)])
     <*> many (satisfy (\c -> any ($ c) [isDigit, isAsciiLower, isAsciiUpper, (`elem` identSymbols)]))
     <?> "identifier"
 
-  text <- rule $ pure (AText . pack)
+  text <- rule $ pure (AText () . pack)
     <*  token '"'
     <*> many (satisfy (/= '"'))
     <*  token '"'
     <?> "text"
 
-  float <- rule $ (\whole dot fraction -> AFloat $ pack $ whole ++ [dot] ++ fraction)
+  float <- rule $ (\whole dot fraction -> AFloat () $ pack $ whole ++ [dot] ++ fraction)
     <$> (
       some (token '0') <|>
       (\firstDigit rest -> firstDigit:rest)
@@ -93,7 +93,7 @@ grammar = mdo
     <*> some (satisfy isDigit)
     <?> "float"
 
-  int <- rule $ (\firstDigit rest -> AInt $ pack $ firstDigit:rest)
+  int <- rule $ (\firstDigit rest -> AInt () $ pack $ firstDigit:rest)
     <$> satisfy (`elem` naturalDigits)
     <*> many (satisfy isDigit)
     <?> "integer"
