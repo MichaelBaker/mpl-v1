@@ -1,10 +1,10 @@
-module Mpl.InterpreterSpec where
+module Mpl.CompilerSpec where
 
 import Test.Hspec
 
-import Mpl.Interpreter (interpret)
+import Mpl.Compiler (compile)
 
-test name string result = it name $ interpret string `shouldBe` result
+test name string result = it name $ compile string `shouldBe` result
 
 spec :: Spec
 spec = do

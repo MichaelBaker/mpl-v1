@@ -12,6 +12,16 @@ data AST a = AInt    a Integer
            | AApp    a (AST a) [AST a]
            deriving (Show, Eq)
 
+data Type = IntType
+          | FloatType
+          | TextType
+          | IdentType
+          | ListType Type
+          | MapType  Type Type
+          | FuncType [Type] Type
+          | Unknown
+          deriving (Show, Eq)
+
 meta (AInt    a _)   = a
 meta (AFloat  a _)   = a
 meta (AText   a _)   = a

@@ -21,6 +21,7 @@ library
 
   exposed-modules:
     Mpl.AST,
+    Mpl.Compiler,
     Mpl.Parser,
     Mpl.Interpreter,
     Mpl.Typechecker

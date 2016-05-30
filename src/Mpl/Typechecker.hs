@@ -1,21 +1,11 @@
 module Mpl.Typechecker where
 
-import Mpl.AST (AST(..), meta)
+import Mpl.AST (AST(..), Type(..), meta)
 
-import Data.Text      (Text)
-import Data.List      (foldl')
+import Data.Text (Text)
+import Data.List (foldl')
 
 import qualified Data.Map.Strict as Map
-
-data Type = IntType
-          | FloatType
-          | TextType
-          | IdentType
-          | ListType Type
-          | MapType  Type Type
-          | FuncType [Type] Type
-          | Unknown
-          deriving (Show, Eq)
 
 type TAST    = AST Type
 type Context = Map.Map Text Type

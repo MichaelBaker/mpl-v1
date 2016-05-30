@@ -1,61 +1,45 @@
 module Mpl.Interpreter where
 
-import Mpl.Parser (parse)
-import Mpl.AST    (AST(..), meta)
+import Mpl.AST    (AST(..), Type, meta)
 
-import Data.Text     (Text, pack, unpack)
+import Data.Text     (Text, unpack)
 import Data.Typeable (Typeable)
-import Text.Earley   (Report)
 import Data.Dynamic  (Dynamic, toDyn, fromDynamic)
 import Data.List     (foldl')
-import Data.List     (intercalate)
 import Data.Maybe    (fromJust)
 import Numeric       (showFFloatAlt)
 import qualified Data.Map.Strict as Map
 
-interpret :: String -> String
-interpret string = case run string of
-  Left  s -> s
-  Right s -> s
+interpret :: AST Type -> Object
+interpret ast = exec emptyStack ast
 
-run :: String -> Either String String
-run string = do
-  parsedAST <- Right $ parse (pack string)
-  ast       <- handleParseFail parsedAST
-  result    <- Right $ exec emptyStack ast
-  return $ show result
-
-exec :: Stack -> AST () -> Object
+exec :: Stack -> AST Type -> Object
 exec stack (AIdent _ a) = case lookupIdent a stack of
-  Nothing -> Object TError $ toDyn $ "Invalid identifier: " ++ (show a)
+  Nothing -> Object OTError $ toDyn $ "Invalid identifier: " ++ (show a)
   Just o  -> o
-exec stack (AFunc  _ as a) = Object TFunc   $ toDyn ((as, stack, a) :: (AST (), Stack, AST ()))
-exec stack (AInt   _ a)    = Object TInt    $ toDyn (a :: Integer)
-exec stack (AFloat _ a)    = Object TFloat  $ toDyn (a :: Double)
-exec stack (AList  _ as)   = Object TList   $ toDyn $ map (exec stack) as
-exec stack (AMap   _ as)   = Object TMap    $ toDyn $ Map.fromList $ map (\(a, b) -> (exec stack a, exec stack b)) as
-exec stack (AText  _ a)    = Object TText   $ toDyn a
+exec stack (AFunc  _ as a) = Object OTFunc   $ toDyn ((as, stack, a) :: (AST Type, Stack, AST Type))
+exec stack (AInt   _ a)    = Object OTInt    $ toDyn (a :: Integer)
+exec stack (AFloat _ a)    = Object OTFloat  $ toDyn (a :: Double)
+exec stack (AList  _ as)   = Object OTList   $ toDyn $ map (exec stack) as
+exec stack (AMap   _ as)   = Object OTMap    $ toDyn $ Map.fromList $ map (\(a, b) -> (exec stack a, exec stack b)) as
+exec stack (AText  _ a)    = Object OTText   $ toDyn a
 exec stack (AApp   _ a b)  = applyFunction stack a b
 
 applyFunction stack f as = case exec stack f of
-  Object TFunc val -> let (AList _ params, closureStack, body) = coerce val :: (AST (), Stack, AST ())
-                          numParams = length params
-                          numArgs   = length as
-                          in if numParams /= numArgs
-                            then Object TError $ toDyn ("Function " ++ show f ++ " takes " ++ show numParams ++ " parameters, but " ++ show numArgs ++ " arguments were provided" :: String)
-                            else let newStack = Map.fromList $ zip (paramNames params) (execArgs stack as)
-                              in exec (newStack:closureStack) body
-  _ -> Object TError $ toDyn (show f ++ " is not a function" :: String)
+  Object OTFunc val ->
+    let (AList _ params, closureStack, body) = coerce val :: (AST Type, Stack, AST Type)
+        numParams = length params
+        numArgs   = length as
+        in if numParams /= numArgs
+          then Object OTError $ toDyn ("Function " ++ show f ++ " takes " ++ show numParams ++ " parameters, but " ++ show numArgs ++ " arguments were provided" :: String)
+          else let newStack = Map.fromList $ zip (paramNames params) (execArgs stack as)
+            in exec (newStack:closureStack) body
+  _ -> Object OTError $ toDyn (show f ++ " is not a function" :: String)
 
 paramNames = map (\(AIdent _ a) -> a)
 execArgs stack = map (exec stack)
 
-handleParseFail :: ([AST ()], Report Text Text) -> Either String (AST ())
-handleParseFail (a:[], _)   = Right a
-handleParseFail (a:rest, _) = Left $ "Error: The grammar is ambiguous and produced " ++ show (1 + length rest) ++ " parses.\n" ++ (intercalate "\n" $ map show (a:rest))
-handleParseFail (_, r)      = Left $ show r
-
-data Object = Object Type Dynamic
+data Object = Object ObjectType Dynamic
 type Env    = Map.Map Text Object
 type Stack  = [Env]
 
@@ -67,45 +51,45 @@ lookupIdent i (env:envs) = case Map.lookup i env of
   Nothing -> lookupIdent i envs
   Just a  -> Just a
 
-data Type = TInt
-          | TFloat
-          | TMap
-          | TList
-          | TFun
-          | TText
-          | TError
-          | TFunc
+data ObjectType = OTInt
+                | OTFloat
+                | OTMap
+                | OTList
+                | OTFun
+                | OTText
+                | OTError
+                | OTFunc
 
 coerce :: (Typeable a) => Dynamic -> a
 coerce = fromJust . fromDynamic
 
 instance Show Object where
-  show (Object TInt v)    = show (coerce v :: Integer)
-  show (Object TFloat v)  = showFFloatAlt Nothing (coerce v :: Double) ""
-  show (Object TMap v)    = "{" ++ (if null fields then fields else init (init fields)) ++ "}"
+  show (Object OTInt v)    = show (coerce v :: Integer)
+  show (Object OTFloat v)  = showFFloatAlt Nothing (coerce v :: Double) ""
+  show (Object OTMap v)    = "{" ++ (if null fields then fields else init (init fields)) ++ "}"
     where map    = coerce v :: Map.Map Object Object
           fields = Map.foldlWithKey' showField "" map
           showField acc k v = acc ++ show k ++ ": " ++ show v ++ ", "
-  show (Object TList v)   = "[" ++ if null values then values else init (init values)  ++ "]"
+  show (Object OTList v)   = "[" ++ if null values then values else init (init values)  ++ "]"
     where list   = coerce v :: [Object]
           values = foldl' (\acc v -> acc ++ show v ++ ", ") "" list
-  show (Object TFun v)    = show "<Function>"
-  show (Object TText v)   = "\"" ++ (unpack $ coerce v) ++ "\""
-  show (Object TError v)  = "Error: " ++ (coerce v)
-  show (Object TFunc v)   = let (params, _, body) = coerce v  :: (AST (), Stack, AST ()) in "#(" ++ show params ++ " " ++ show body ++ ")"
+  show (Object OTFun v)    = show "<Function>"
+  show (Object OTText v)   = "\"" ++ (unpack $ coerce v) ++ "\""
+  show (Object OTError v)  = "Error: " ++ (coerce v)
+  show (Object OTFunc v)   = let (params, _, body) = coerce v  :: (AST Type, Stack, AST Type) in "#(" ++ show params ++ " " ++ show body ++ ")"
 
 instance Eq Object where
-  (Object TInt v1)    == (Object TInt v2)    = (coerce v1 :: Integer)               == (coerce v2 :: Integer)
-  (Object TFloat v1)  == (Object TFloat v2)  = (coerce v1 :: Double)                == (coerce v2 :: Double)
-  (Object TMap v1)    == (Object TMap v2)    = (coerce v1 :: Map.Map Object Object) == (coerce v2 :: Map.Map Object Object)
-  (Object TList v1)   == (Object TList v2)   = (coerce v1 :: [Object])              == (coerce v2 :: [Object])
-  (Object TText v1)   == (Object TText v2)   = (coerce v1 :: Text)                  == (coerce v2 :: Text)
+  (Object OTInt v1)    == (Object OTInt v2)    = (coerce v1 :: Integer)               == (coerce v2 :: Integer)
+  (Object OTFloat v1)  == (Object OTFloat v2)  = (coerce v1 :: Double)                == (coerce v2 :: Double)
+  (Object OTMap v1)    == (Object OTMap v2)    = (coerce v1 :: Map.Map Object Object) == (coerce v2 :: Map.Map Object Object)
+  (Object OTList v1)   == (Object OTList v2)   = (coerce v1 :: [Object])              == (coerce v2 :: [Object])
+  (Object OTText v1)   == (Object OTText v2)   = (coerce v1 :: Text)                  == (coerce v2 :: Text)
   _                   == _                   = False
 
 instance Ord Object where
-  (Object TInt v1)    `compare` (Object TInt v2)    = (coerce v1 :: Integer)               `compare` (coerce v2 :: Integer)
-  (Object TFloat v1)  `compare` (Object TFloat v2)  = (coerce v1 :: Double)                `compare` (coerce v2 :: Double)
-  (Object TMap v1)    `compare` (Object TMap v2)    = (coerce v1 :: Map.Map Object Object) `compare` (coerce v2 :: Map.Map Object Object)
-  (Object TList v1)   `compare` (Object TList v2)   = (coerce v1 :: [Object])              `compare` (coerce v2 :: [Object])
-  (Object TText v1)   `compare` (Object TText v2)   = (coerce v1 :: Text)                  `compare` (coerce v2 :: Text)
+  (Object OTInt v1)    `compare` (Object OTInt v2)    = (coerce v1 :: Integer)               `compare` (coerce v2 :: Integer)
+  (Object OTFloat v1)  `compare` (Object OTFloat v2)  = (coerce v1 :: Double)                `compare` (coerce v2 :: Double)
+  (Object OTMap v1)    `compare` (Object OTMap v2)    = (coerce v1 :: Map.Map Object Object) `compare` (coerce v2 :: Map.Map Object Object)
+  (Object OTList v1)   `compare` (Object OTList v2)   = (coerce v1 :: [Object])              `compare` (coerce v2 :: [Object])
+  (Object OTText v1)   `compare` (Object OTText v2)   = (coerce v1 :: Text)                  `compare` (coerce v2 :: Text)
   _                   `compare` _                   = EQ
