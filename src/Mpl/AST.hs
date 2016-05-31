@@ -6,16 +6,21 @@ class Meta a where
   meta :: a b -> b
 
 
-data Core a = CInt   a Integer
+data Core a = CUnit  a
+            | CInt   a Integer
             | CReal  a Double
             | CText  a Text
-            | CFunc  a Text (Core a)
+            | CIdent a Text
+            | CList  a [Core a]
+            | CMap   a [(Core a, Core a)]
             | CThunk a (Core a)
+            | CForce a (Core a)
+            | CFunc  a Text (Core a)
             | CApp   a (Core a) (Core a)
-            | CExec  a (Core a)
             deriving (Show, Eq)
 
-data CoreType = CIntTy
+data CoreType = CUnitTy
+              | CIntTy
               | CRealTy
               | CTextTy
               | CFuncTy Type Type
@@ -23,15 +28,20 @@ data CoreType = CIntTy
               deriving (Show, Eq)
 
 instance Meta Core where
+  meta (CUnit   a)     = a
   meta (CInt    a _)   = a
   meta (CReal   a _)   = a
   meta (CText   a _)   = a
-  meta (CFunc   a _ _) = a
+  meta (CIdent  a _)   = a
+  meta (CList   a _)   = a
+  meta (CMap    a _)   = a
   meta (CThunk  a _)   = a
+  meta (CForce  a _)   = a
+  meta (CFunc   a _ _) = a
   meta (CApp    a _ _) = a
-  meta (CExec   a _)   = a
 
-data AST a = AInt    a Integer
+data AST a = AUnit   a
+           | AInt    a Integer
            | AFloat  a Double
            | AText   a Text
            | AIdent  a Text
@@ -41,7 +51,8 @@ data AST a = AInt    a Integer
            | AApp    a (AST a) [AST a]
            deriving (Show, Eq)
 
-data Type = IntType
+data Type = UnitType
+          | IntType
           | FloatType
           | TextType
           | IdentType
@@ -52,6 +63,7 @@ data Type = IntType
           deriving (Show, Eq)
 
 instance Meta AST where
+  meta (AUnit   a)     = a
   meta (AInt    a _)   = a
   meta (AFloat  a _)   = a
   meta (AText   a _)   = a

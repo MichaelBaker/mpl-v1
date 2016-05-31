@@ -21,7 +21,7 @@ library
 
   exposed-modules:
     Mpl.AST,
-    Mpl.Curry,
+    Mpl.Desugar,
     Mpl.Parser
 
   build-depends:
