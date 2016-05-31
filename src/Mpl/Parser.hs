@@ -2,7 +2,7 @@
 
 module Mpl.Parser where
 
-import Mpl.AST (AST(..))
+import Mpl.AST (AST(..), ASTType(..))
 
 import Control.Applicative ((<|>), many, some, optional)
 import Data.Char           (isSpace, isDigit, isAscii, isLetter, isAsciiUpper, isAsciiLower)
@@ -30,6 +30,10 @@ grammar = mdo
       maybeFollowing r separator = spaceAfter r <|> (r <* skipManySpace <* separator <* skipManySpace)
       separated cons es Nothing  = cons es
       separated cons es (Just l) = cons (es ++ [l])
+      paramList = pure (separated id) <* floating (token '[') <*> many (spaceAfter paramPair) <*> optional paramPair <*  token ']'
+      paramPair = (\(AIdent _ a) -> (,) a) <$> spaceAfter ident <*> typeAnn
+      typeAnn = mkTy AUnitTy "unit" <|> mkTy AIntTy "int" <|> mkTy AFloatTy "float" <|> mkTy ATextTy "text" <|> mkTy AListTy "list" <|> mkTy AMapTy "map"
+      mkTy cons name = pure cons <* listLike (name :: Text)
 
   amap <- rule $ pure (\es last -> case last of Nothing -> AMap () es; Just l -> AMap () (es ++ [l]))
     <*  floating (token '{')
@@ -51,11 +55,11 @@ grammar = mdo
     <* token ')'
     <?> "application"
 
-  func <- rule $ pure (\(AList _ vals) -> AFunc () $ map (\(AIdent _ a) -> a) vals)
-    <* floating (listLike ("#(" :: Text))
-    <*> floating list
+  func <- rule $ pure (AFunc ())
+    <*  floating (listLike ("#(" :: Text))
+    <*> floating paramList
     <*> floatingExp
-    <* token ')'
+    <*  token ')'
     <?> "function"
 
   list <- rule $ pure (separated $ AList ())

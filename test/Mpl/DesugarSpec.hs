@@ -2,7 +2,7 @@ module Mpl.DesugarSpec where
 
 import Test.Hspec
 
-import Mpl.AST     (AST(..), Core(..))
+import Mpl.AST     (AST(..), ASTType(..), Core(..), CoreType(..))
 import Mpl.Desugar (desugar)
 
 test message ast core = it message (desugar ast `shouldBe` core)
@@ -26,12 +26,12 @@ spec = do
     (CForce () (CUnit ()))
 
   test "a function of one argument"
-    (AFunc () ["a"] (AUnit ()))
-    (CFunc () "a" (CUnit ()))
+    (AFunc () [("a", AIntTy)] (AUnit ()))
+    (CFunc () ("a", CIntTy) (CUnit ()))
 
   test "curries a function of multiple arguments"
-    (AFunc () ["a", "b"] (AUnit ()))
-    (CFunc () "a" (CFunc () "b" (CUnit ())))
+    (AFunc () [("a", AIntTy), ("b", AIntTy)] (AUnit ()))
+    (CFunc () ("a", CIntTy) (CFunc () ("b", CIntTy) (CUnit ())))
 
   test "application of a single argument"
     (AApp () (AUnit ()) [AUnit ()])

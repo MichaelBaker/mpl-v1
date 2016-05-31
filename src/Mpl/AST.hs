@@ -15,7 +15,7 @@ data Core a = CUnit  a
             | CMap   a [(Core a, Core a)]
             | CThunk a (Core a)
             | CForce a (Core a)
-            | CFunc  a Text (Core a)
+            | CFunc  a (Text, CoreType) (Core a)
             | CApp   a (Core a) (Core a)
             deriving (Show, Eq)
 
@@ -23,8 +23,10 @@ data CoreType = CUnitTy
               | CIntTy
               | CRealTy
               | CTextTy
-              | CFuncTy Type Type
-              | CUnknown
+              | CListTy
+              | CMapTy
+              | CThunkTy CoreType
+              | CFuncTy CoreType CoreType
               deriving (Show, Eq)
 
 instance Meta Core where
@@ -47,20 +49,17 @@ data AST a = AUnit   a
            | AIdent  a Text
            | AList   a [AST a]
            | AMap    a [(AST a, AST a)]
-           | AFunc   a [Text] (AST a)
+           | AFunc   a [(Text, ASTType)] (AST a)
            | AApp    a (AST a) [AST a]
            deriving (Show, Eq)
 
-data Type = UnitType
-          | IntType
-          | FloatType
-          | TextType
-          | IdentType
-          | ListType Type
-          | MapType  Type Type
-          | FuncType Type Type
-          | Unknown
-          deriving (Show, Eq)
+data ASTType = AUnitTy
+             | AIntTy
+             | AFloatTy
+             | ATextTy
+             | AListTy
+             | AMapTy
+             deriving (Show, Eq)
 
 instance Meta AST where
   meta (AUnit   a)     = a

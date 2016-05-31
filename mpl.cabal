@@ -22,7 +22,8 @@ library
   exposed-modules:
     Mpl.AST,
     Mpl.Desugar,
-    Mpl.Parser
+    Mpl.Parser,
+    Mpl.TypeAnnotation
 
   build-depends:
     base >= 4.7 && < 5,
