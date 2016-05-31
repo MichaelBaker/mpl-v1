@@ -18,7 +18,7 @@ parse = fullParses (E.parser grammar)
 
 grammar :: Grammar r (Prod r Text Char (AST ()))
 grammar = mdo
-  let exp           = int <|> float <|> text <|> ident <|> list <|> func <|> application <|> map
+  let exp           = int <|> float <|> text <|> ident <|> list <|> func <|> application <|> amap
       whitespace    = isSpace
       skipManySpace = many (satisfy whitespace)
       spaceBefore a = some (satisfy whitespace) *> a
@@ -31,7 +31,7 @@ grammar = mdo
       separated cons es Nothing  = cons es
       separated cons es (Just l) = cons (es ++ [l])
 
-  map <- rule $ pure (\es last -> case last of Nothing -> AMap () es; Just l -> AMap () (es ++ [l]))
+  amap <- rule $ pure (\es last -> case last of Nothing -> AMap () es; Just l -> AMap () (es ++ [l]))
     <*  floating (token '{')
     <*> many (maybeFollowing mapPair (token ','))
     <*> optional mapPair
@@ -51,7 +51,7 @@ grammar = mdo
     <* token ')'
     <?> "application"
 
-  func <- rule $ pure (\(AList _ vals) -> AFunc () vals)
+  func <- rule $ pure (\(AList _ vals) -> AFunc () $ map (\(AIdent _ a) -> a) vals)
     <* floating (listLike ("#(" :: Text))
     <*> floating list
     <*> floatingExp

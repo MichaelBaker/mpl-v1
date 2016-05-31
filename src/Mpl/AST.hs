@@ -8,8 +8,10 @@ data AST a = AInt    a Integer
            | AIdent  a Text
            | AList   a [AST a]
            | AMap    a [(AST a, AST a)]
-           | AFunc   a [AST a] (AST a)
+           | AFunc   a [Text] (AST a)
+           | ACFunc  a (Maybe Text) (AST a)
            | AApp    a (AST a) [AST a]
+           | ACApp   a (AST a) (Maybe (AST a))
            deriving (Show, Eq)
 
 data Type = IntType
@@ -18,7 +20,7 @@ data Type = IntType
           | IdentType
           | ListType Type
           | MapType  Type Type
-          | FuncType [Type] Type
+          | FuncType Type Type
           | Unknown
           deriving (Show, Eq)
 
@@ -29,4 +31,6 @@ meta (AIdent  a _)   = a
 meta (AList   a _)   = a
 meta (AMap    a _)   = a
 meta (AFunc   a _ _) = a
+meta (ACFunc  a _ _) = a
 meta (AApp    a _ _) = a
+meta (ACApp   a _ _) = a

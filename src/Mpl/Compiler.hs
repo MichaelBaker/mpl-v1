@@ -1,6 +1,7 @@
 module Mpl.Compiler where
 
 import Mpl.AST         (AST)
+import Mpl.Curry       (curry)
 import Mpl.Parser      (parse)
 import Mpl.Typechecker (typecheck)
 import Mpl.Interpreter (interpret)
@@ -8,6 +9,8 @@ import Mpl.Interpreter (interpret)
 import Text.Earley   (Report)
 import Data.Text     (Text, pack)
 import Data.List     (intercalate)
+
+import Prelude hiding (curry)
 
 compile :: String -> String
 compile string = case run string of
@@ -18,7 +21,7 @@ run :: String -> Either String String
 run string = do
   parsedAST <- Right $ parse (pack string)
   ast       <- handleParseFail parsedAST
-  result    <- Right $ interpret (typecheck ast)
+  result    <- Right $ interpret $ typecheck $ curry ast
   return $ show result
 
 handleParseFail :: ([AST ()], Report Text Text) -> Either String (AST ())

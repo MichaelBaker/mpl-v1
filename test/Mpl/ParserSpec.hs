@@ -49,4 +49,6 @@ spec = do
       parses "no arguments" "#([] 5)" (AFunc () [] (AInt () 5))
 
     describe "application" $ do
-      parses "simple application" "(a 5)" (AApp () (AIdent () "a") [(AInt () 5)])
+      parses "simple application"        "(a 5)"        (AApp () (AIdent () "a") [(AInt () 5)])
+      parses "application of a function" "(#([a] a) 5)" (AApp () (AFunc () ["a"] (AIdent () "a")) [(AInt () 5)])
+

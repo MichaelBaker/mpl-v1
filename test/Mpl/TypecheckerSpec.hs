@@ -2,53 +2,67 @@ module Mpl.TypecheckerSpec where
 
 import Test.Hspec
 
-import Mpl.AST         (AST(..), Type(..), meta)
-import Mpl.Typechecker (typecheck)
+import Mpl.AST           (AST(..), Type(..), meta)
+import Mpl.Typechecker   (typecheck)
+import Control.Exception (evaluate)
 
 hasType message ast t = it message $ do
   meta (typecheck ast) `shouldBe` t
 
+aint      = AInt   ()
+atext     = AText  ()
+aident    = AIdent ()
+afunc     = AFunc  ()
+acfunc    = ACFunc () . Just
+afloat    = AFloat ()
+amap      = AMap   ()
+alist     = AList  ()
+acapp f a = ACApp  () f (Just a)
+
 spec :: Spec
 spec = do
   describe "typechecking" $ do
-    hasType "an integer" (AInt () 8)      IntType
-    hasType "a float"    (AFloat () 8.0)  FloatType
-    hasType "text"       (AText () "a")   TextType
-    hasType "empty list" (AList () [])    (ListType Unknown)
-    hasType "empty map"  (AMap () [])     (MapType  Unknown Unknown)
+    hasType "an integer" (aint 8)      IntType
+    hasType "a float"    (afloat 8.0)  FloatType
+    hasType "text"       (atext "a")   TextType
+    hasType "empty list" (alist [])    (ListType Unknown)
+    hasType "empty map"  (amap [])     (MapType  Unknown Unknown)
 
     hasType "homogenous list"
-      (AList () [AInt () 8, AInt () 9])
+      (alist [aint 8, aint 9])
       (ListType IntType)
 
     hasType "heterogeneous list"
-      (AList () [AInt () 8, AText () "a"])
+      (alist [aint 8, atext "a"])
       (ListType Unknown)
 
     hasType "homogenous map"
-      (AMap () [(AText () "a", AInt () 8), (AText () "b", AInt () 9)])
+      (amap [(atext "a", aint 8), (atext "b", aint 9)])
       (MapType TextType IntType)
 
     hasType "heterogeneous map values"
-      (AMap () [(AText () "a", AInt () 8), (AText () "c", AText () "b")])
+      (amap [(atext "a", aint 8), (atext "c", atext "b")])
       (MapType TextType Unknown)
 
     hasType "heterogeneous map keys"
-      (AMap () [(AText () "a", AInt () 8), (AInt () 2, AInt () 9)])
+      (amap [(atext "a", aint 8), (aint 2, aint 9)])
       (MapType Unknown IntType)
 
     hasType "heterogeneous map keys and values"
-      (AMap () [(AText () "a", AInt () 8), (AInt () 2, AText () "a")])
+      (amap [(atext "a", aint 8), (aint 2, atext "a")])
       (MapType Unknown Unknown)
 
     hasType "identity function"
-      (AFunc () [AIdent () "a"] (AIdent () "a"))
-      (FuncType [Unknown] Unknown)
+      (acfunc "a" (aident "a"))
+      (FuncType Unknown Unknown)
 
     hasType "const function"
-      (AFunc () [AIdent () "a"] (AInt () 8))
-      (FuncType [Unknown] IntType)
+      (acfunc "a" (aint 8))
+      (FuncType Unknown IntType)
 
     hasType "applied identity function"
-      (AApp () (AFunc () [AIdent () "a"] (AIdent () "a")) [(AInt () 8)])
+      (acapp (acfunc "a" (aident "a")) (aint 8))
       IntType
+
+    it "assumes there are no un-curried functions" $ do
+      evaluate (typecheck (afunc ["a"] (aint 8))) `shouldThrow` anyException

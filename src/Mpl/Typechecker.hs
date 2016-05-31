@@ -7,20 +7,21 @@ import Data.List (foldl')
 
 import qualified Data.Map.Strict as Map
 
-type TAST    = AST Type
 type Context = Map.Map Text Type
 
-typecheck = fst . (typecheckWithContext emptyContext)
+typecheck = fst . typecheckWithContext emptyContext
 
-typecheckWithContext ctx (AInt _ a)                 = (AInt IntType a, ctx)
-typecheckWithContext ctx (AFloat _ a)               = (AFloat FloatType a, ctx)
-typecheckWithContext ctx (AText _ a)                = (AText TextType a, ctx)
-typecheckWithContext ctx (AIdent _ a)               = (AIdent (typeOfIdent a ctx) a, ctx)
-typecheckWithContext ctx (AList _ as)               = (typecheckList as, ctx)
-typecheckWithContext ctx (AMap  _ as)               = (typecheckMap as, ctx)
-typecheckWithContext ctx (AFunc _ as a)             = typecheckFunc ctx as a
-typecheckWithContext ctx (AApp _ (AFunc _ ps b) as) = typecheckApp ctx ps b as
-typecheckWithContext ctx (AApp _ f as)              = error $ "Invalid application AST: " ++ show (AApp () f as)
+typecheckWithContext :: Context -> AST () -> (AST Type, Context)
+typecheckWithContext ctx (AInt _ a)       = (AInt IntType a, ctx)
+typecheckWithContext ctx (AFloat _ a)     = (AFloat FloatType a, ctx)
+typecheckWithContext ctx (AText _ a)      = (AText TextType a, ctx)
+typecheckWithContext ctx (AIdent _ a)     = (AIdent (typeOfIdent a ctx) a, ctx)
+typecheckWithContext ctx (AList _ as)     = (typecheckList as, ctx)
+typecheckWithContext ctx (AMap  _ as)     = (typecheckMap as, ctx)
+typecheckWithContext ctx f@(ACFunc _ p a) = typecheckCFunc ctx Nothing f
+typecheckWithContext ctx (ACApp _ f a)    = typecheckApp ctx f a
+typecheckWithContext ctx f@(AFunc _ _ _)  = error $ "Invalid uncurried function: " ++ show f
+typecheckWithContext ctx a@(AApp _ _ _)   = error $ "Invalid application AST: " ++ show a
 
 emptyContext = Map.empty :: Context
 
@@ -28,29 +29,28 @@ typeOfIdent i context = case Map.lookup i context of
   Nothing -> Unknown
   Just a  -> a
 
-typecheckApp ctx params body args = if numParams == numArgs
-  then case typecheckFunc (Map.union argctx ctx) params body of
-    (AFunc (FuncType pts bt) ps b, newCtx) -> (AApp bt (AFunc (FuncType pts bt) ps b) targs, newCtx)
-    _ -> error $ "Failed to typecheck application: " ++ show (params, body, args)
-  else error $ "Function expects " ++ show numParams ++ " parameters, but " ++ show numArgs ++ " arguments are supplied"
-  where numParams     = length params
-        numArgs       = length args
-        (targs, ctxs) = unzip $ map (typecheckWithContext ctx) args
-        argctx        = foldl' addArg emptyContext $ zip params $ map meta targs
-        addArg ctx (AIdent _ p, Unknown) = ctx
-        addArg ctx (AIdent _ p, t)       = Map.insert p t ctx
-        addArg _ _ = error $ "Invalid application AST: " ++ show (AApp () (AFunc () params body) args)
+typecheckApp ctx f arg = case arg of
+  Nothing -> let (tf, newCtx) = typecheckCFunc ctx Nothing f in (ACApp (meta tf) tf Nothing, newCtx)
+  Just a  -> let (targ, argCtx) = typecheckWithContext ctx a
+                 (tast, newCtx) = typecheckCFunc argCtx (Just (meta targ)) f
+               in case meta tast of
+                 FuncType a b -> if meta targ == a
+                                   then (ACApp b tast (Just targ), newCtx)
+                                   else (ACApp Unknown tast (Just targ), newCtx)
+                 _            -> (ACApp Unknown tast (Just targ), newCtx)
 
-typecheckFunc ctx params body = (tast, newContext)
-  where t                = FuncType (reverse paramTypes) (meta tbody)
-        tast             = AFunc t (reverse tparams) tbody
-        (tbody, context) = typecheckWithContext ctx body
-        (paramTypes, tparams, newContext) = foldl' typeOfParam ([], [], context) params
-        typeOfParam (pts, tps, ctx) (AIdent _ a) = (newPt:pts, newTp:tps, newCtx)
-          where newPt  = typeOfIdent a ctx
-                newTp  = AIdent IdentType a
-                newCtx = Map.delete a ctx
-        typeOfParam _ _ = error $ "Invalid function AST: " ++ show (AFunc () params body)
+typecheckCFunc ctx (Just a) (ACFunc _ (Just p) body) =
+  let (tbody, newContext) = typecheckWithContext (Map.insert p a ctx) body
+    in (ACFunc (FuncType a (meta tbody)) (Just p) tbody, newContext)
+typecheckCFunc ctx _ (ACFunc _ Nothing body) =
+  let (tbody, newContext) = typecheckWithContext ctx body
+    in (ACFunc (meta tbody) Nothing tbody, newContext)
+typecheckCFunc ctx _ (ACFunc _ (Just p) body) =
+  let (tbody, newContext) = typecheckWithContext ctx body
+    in (ACFunc (FuncType (typeOfIdent p newContext) (meta tbody)) (Just p) tbody, newContext)
+typecheckCFunc ctx a (ACApp _ f Nothing) =
+  typecheckCFunc ctx a f
+typecheckCFunc ctx _ a = typecheckWithContext ctx a
 
 typecheckMap as = AMap t tas
   where tas = map (\(a, b) -> (typecheck a, typecheck b)) as

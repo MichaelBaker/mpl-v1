@@ -20,3 +20,5 @@ spec = do
     test "deep closure"                "(#([a] (#([_] (#([_] (#([_] (#([_] a) 1)) 2)) 3)) 4)) 5)" "5"
     test "construct pair"              "(#([a b] [a b]) 1 2)" "[1, 2]"
     test "construct list of maps"      "(#([a b c] [{\"a\": a}, {b: b}, {c: \"3\"}]) 1 2 3)" "[{\"a\": 1}, {2: 2}, {3: \"3\"}]"
+    test "partial application"         "(#([a b] [a b]) 1)" "#([b] [a, b])"
+    test "curried application"         "((#([a b] [a b]) 1) 2)" "[1, 2]"
