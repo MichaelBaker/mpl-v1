@@ -27,6 +27,7 @@ data CoreType = CUnitTy
               | CMapTy
               | CThunkTy CoreType
               | CFuncTy CoreType CoreType
+              | CUnknownTy
               deriving (Show, Eq)
 
 instance Meta Core where
