@@ -18,7 +18,7 @@ parse = fullParses (E.parser grammar)
 
 grammar :: Grammar r (Prod r Text Char (AST ()))
 grammar = mdo
-  let exp           = int <|> float <|> text <|> ident <|> list <|> func <|> application <|> amap
+  let exp           = unit <|> int <|> float <|> text <|> ident <|> list <|> func <|> application <|> amap
       whitespace    = isSpace
       skipManySpace = many (satisfy whitespace)
       spaceBefore a = some (satisfy whitespace) *> a
@@ -47,12 +47,11 @@ grammar = mdo
     <*> floating exp
     <?> "mapPair"
 
-  application <- rule $ pure (separated . (AApp ()))
-    <* floating (token '(')
-    <*> spaceAfter exp
+  application <- rule $ pure (\as a -> let things = as ++ [a] in AApp () (head things) (tail things))
+    <*  floating (token '(')
     <*> many (spaceAfter exp)
-    <*> optional exp
-    <* token ')'
+    <*> floating exp
+    <*  token ')'
     <?> "application"
 
   func <- rule $ pure (AFunc ())
@@ -95,6 +94,8 @@ grammar = mdo
     <$> satisfy (`elem` naturalDigits)
     <*> many (satisfy isDigit)
     <?> "integer"
+
+  unit <- rule $ pure (AUnit ()) <* listLike ("()" :: Text)
 
   return $ spaceBefore floatingExp <|> floatingExp
 

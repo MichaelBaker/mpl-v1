@@ -21,7 +21,9 @@ library
 
   exposed-modules:
     Mpl.AST,
+    Mpl.Compiler,
     Mpl.Desugar,
+    Mpl.Interpreter,
     Mpl.Parser,
     Mpl.TypeAnnotation
 
