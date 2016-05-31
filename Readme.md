@@ -4,6 +4,7 @@ This is the project I use to play around with programming language theory and im
 
 ## TODO
 
+[ ] Implement the simply typed lambda calculus as a core language
 [ ] Warn on type contradictions
 [ ] Give typechecker a once over and look into correctness
 [ ] Start level 1.0

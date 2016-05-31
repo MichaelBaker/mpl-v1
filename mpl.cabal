@@ -21,11 +21,8 @@ library
 
   exposed-modules:
     Mpl.AST,
-    Mpl.Compiler,
     Mpl.Curry,
-    Mpl.Parser,
-    Mpl.Interpreter,
-    Mpl.Typechecker
+    Mpl.Parser
 
   build-depends:
     base >= 4.7 && < 5,
