@@ -6,7 +6,7 @@ import qualified Data.Map as Map
 class Meta a where
   meta :: a b -> b
 
-type Env = Map.Map Text (Core CoreType)
+type Env = Map.Map Text (Core [Int])
 emptyEnv = Map.empty :: Env
 
 data Core a = CUnit  a

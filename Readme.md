@@ -4,10 +4,11 @@ This is the project I use to play around with programming language theory and im
 
 ## TODO
 
-[ ] Implement the simply typed lambda calculus as a core language
-[ ] Warn on type contradictions
-[ ] Give typechecker a once over and look into correctness
 [ ] Start level 1.0
+[ ] Give typechecker a once over and look into correctness
+[ ] Warn on type contradictions at level 0.0
+[ ] Error on type contradictions and lack of proof at level 1.0
+[ ] Add type inference (for type elision at level 0.0)
 [ ] Convert level 0.0 <-> 1.0
 [ ] Start level 2.0
 [ ] Convert level 1.0 <-> 2.0
@@ -20,7 +21,7 @@ This is the project I use to play around with programming language theory and im
   * Implication: Every language should share as much as possible.
     * Share syntax
     * Share language constructs
-    * Share toolchain
+    * Share tool chain
     * Convert mechanically between languages
     * Allow use of code written in some languages to be used in others
 
@@ -32,7 +33,7 @@ Programmers working in teams need to communicate with each other through the cod
 
 * Comments provide a non-rigorous, but completely general tool for communicating with future programmers. You can use the full power of human language to express yourself, but none of it can be checked. It can all be a lie.
   * To build on this, a good tool chain for a language would be able to support much richer commenting facilities. Images, video, structured text, and hyperlinks enhance the expressiveness of natural language.
-* Runnable examples can provide a machine verified method of communicating how to use some code. This is less expressive, but has the benefit of being verifiably correct. The downside to this approach is that you have to run the code in order to verify it, which has performance implications as well as making the verification step potentially side effectful and dangerous.
+* Runnable examples can provide a machine verified method of communicating how to use some code. This is less expressive, but has the benefit of being veritably correct. The downside to this approach is that you have to run the code in order to verify it, which has performance implications as well as making the verification step potentially side effectful and dangerous.
 * Automated tests are effectively the same as runnable examples except that they include code which checks the correctness of the examples and they tend to be focused more on verification than communication.
 * Type systems express constraints of the program that can be checked without running the code that they describe. The advantages of this are efficiency, as well as totality. Examples can only check specific cases for correctness, but types can guarantee properties of all ways that a piece of code might be run. The downside is expressiveness. A type system must be rigid enough for an algorithm to check it. It should probably also be incapable of performing side effects to that the types can be checked safely.
 * Why don't we use reverse polish notation for functions so that they read left to right (evaluation order)?

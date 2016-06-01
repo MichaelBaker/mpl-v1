@@ -24,7 +24,7 @@ run :: String -> Either String String
 run string = do
   parsedAST <- Right $ parse (pack string)
   ast       <- handleParseFail parsedAST
-  result    <- Right $ prettyPrint $ interpret $ annotate $ desugar ast
+  result    <- Right $ prettyPrint $ interpret $ fst $ annotate $ desugar ast
   return result
 
 handleParseFail :: ([AST ()], Report Text Text) -> Either String (AST ())

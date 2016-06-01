@@ -14,7 +14,7 @@ spec = do
     test "a single float"              "234.522" "234.522"
     test "a list of ints and floats"   "  [ 123,234.5423, 2 3 6 234.322] \n\n" "[123, 234.5423, 2, 3, 6, 234.322]"
     test "an int -> int map"           "{1 2 3 4}" "{1: 2, 3: 4}"
-    test "a float -> int map"          "{1.0 23 0.3 134}" "{0.3: 134, 1.0: 23}"
+    test "a float -> int map"          "{1.0 23 0.3 134}" "{1.0: 23, 0.3: 134}"
     test "a string -> float/int map"   "{\"hello\": 1.0, \"there\" : 1234,}" "{\"hello\": 1.0, \"there\": 1234}"
     test "forcing a thunk"             "(#([] 5))" "5"
     test "simple function application" "(#([a int] a) 5)" "5"
