@@ -15,17 +15,33 @@ import qualified Data.Map.Strict as Map
 
 import Prelude hiding (curry)
 
-compile :: String -> String
-compile string = case run string of
-  Left  s -> s
+data Options = Options {
+  typeContradictions :: ErrorLevel,
+  lackOfProof        :: ErrorLevel
+  } deriving (Show)
+
+data ErrorLevel = Ignore | Warn | Fail deriving (Show)
+
+opts = Options {
+  typeContradictions = Ignore,
+  lackOfProof        = Ignore
+  }
+
+type Output   = String
+type Warnings = [String]
+type Errors   = [String]
+
+compile :: Options -> String -> (Output, Warnings, Errors)
+compile options string = case run options string of
+  Left  s -> ("", [], [s])
   Right s -> s
 
-run :: String -> Either String String
-run string = do
+run :: Options -> String -> Either String (Output, Warnings, Errors)
+run options string = do
   parsedAST <- Right $ parse (pack string)
   ast       <- handleParseFail parsedAST
   result    <- Right $ prettyPrint $ interpret $ fst $ annotate $ astToCore ast
-  return result
+  return (result, [], [])
 
 handleParseFail :: ([AST ()], Report Text Text) -> Either String (AST ())
 handleParseFail (a:[], _)   = Right a

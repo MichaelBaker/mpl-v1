@@ -1,7 +1,7 @@
 module Main where
 
 import System.Console.Haskeline (runInputT, defaultSettings, getInputLine, outputStrLn)
-import Mpl.Compiler             (compile)
+import Mpl.Compiler             (compile, opts)
 
 main :: IO ()
 main = runInputT defaultSettings loop
@@ -12,4 +12,10 @@ loop = do
     Nothing     -> return ()
     Just "exit" -> return ()
     Just "quit" -> return ()
-    Just a      -> outputStrLn (compile a) >> outputStrLn "" >> loop
+    Just a      -> do
+      let (result, warnings, errors) = compile opts a
+      mapM_ outputStrLn errors
+      mapM_ outputStrLn warnings
+      outputStrLn result
+      outputStrLn ""
+      loop
