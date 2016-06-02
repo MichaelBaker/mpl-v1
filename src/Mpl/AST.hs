@@ -48,32 +48,16 @@ instance Meta Core where
   meta (CFunc   a _ _ _) = a
   meta (CApp    a _ _)   = a
 
-data AST a = AUnit   a
-           | AInt    a Integer
-           | AFloat  a Double
-           | AText   a Text
-           | AIdent  a Text
-           | AList   a [AST a]
-           | AMap    a [(AST a, AST a)]
-           | AFunc   a [(Text, ASTType)] (AST a)
-           | AApp    a (AST a) [AST a]
+data AST a = AInt   a Integer
+           | AFloat a Double
+           | AText  a Text
+           | ASym   a Text
+           | ASexp  a Text Text [AST a]
            deriving (Show, Eq)
 
-data ASTType = AUnitTy
-             | AIntTy
-             | AFloatTy
-             | ATextTy
-             | AListTy
-             | AMapTy
-             deriving (Show, Eq)
-
 instance Meta AST where
-  meta (AUnit   a)     = a
-  meta (AInt    a _)   = a
-  meta (AFloat  a _)   = a
-  meta (AText   a _)   = a
-  meta (AIdent  a _)   = a
-  meta (AList   a _)   = a
-  meta (AMap    a _)   = a
-  meta (AFunc   a _ _) = a
-  meta (AApp    a _ _) = a
+  meta (AInt   a _)     = a
+  meta (AFloat a _)     = a
+  meta (AText  a _)     = a
+  meta (ASym a _)       = a
+  meta (ASexp  a _ _ _) = a

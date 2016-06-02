@@ -2,7 +2,7 @@
 
 module Mpl.Parser where
 
-import Mpl.AST (AST(..), ASTType(..))
+import Mpl.AST (AST(..))
 
 import Control.Applicative ((<|>), many, some, optional)
 import Data.Char           (isSpace, isDigit, isAscii, isLetter, isAsciiUpper, isAsciiLower)
@@ -13,65 +13,56 @@ import Text.Earley         ((<?>), Grammar, Report, Prod, list, satisfy, rule, f
 import qualified Text.Earley as E
 import qualified Data.Text   as T
 
+aint    = AInt   ()
+afloat  = AFloat ()
+atext   = AText  ()
+asym    = ASym   ()
+aparen  = ASexp  () "(" ")"
+asquare = ASexp  () "[" "]"
+acurly  = ASexp  () "{" "}"
+
 parse :: Text -> ([AST ()], Report Text Text)
 parse = fullParses (E.parser grammar)
 
 grammar :: Grammar r (Prod r Text Char (AST ()))
 grammar = mdo
-  let exp           = unit <|> int <|> float <|> text <|> ident <|> list <|> func <|> application <|> amap
+  let exp           = int <|> float <|> text <|> sym <|> sexp
       whitespace    = isSpace
-      skipManySpace = many (satisfy whitespace)
       spaceBefore a = some (satisfy whitespace) *> a
       spaceAfter  a = a <* some (satisfy whitespace)
       floating    a = spaceAfter a <|> a
-      floatingExp   = floating exp
-      identSymbols  = ['<', '>', '?', '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '_', '+', '|', '\\', '/', '.']
+      symChars      = ['<', '>', '?', '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '_', '+', '|', '\\', '/', '.']
       naturalDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
-      maybeFollowing r separator = spaceAfter r <|> (r <* skipManySpace <* separator <* skipManySpace)
       separated cons es Nothing  = cons es
       separated cons es (Just l) = cons (es ++ [l])
-      paramList = pure (separated id) <* floating (token '[') <*> many (spaceAfter paramPair) <*> optional paramPair <*  token ']'
-      paramPair = (\(AIdent _ a) -> (,) a) <$> spaceAfter ident <*> typeAnn
-      typeAnn = mkTy AUnitTy "unit" <|> mkTy AIntTy "int" <|> mkTy AFloatTy "float" <|> mkTy ATextTy "text" <|> mkTy AListTy "list" <|> mkTy AMapTy "map"
-      mkTy cons name = pure cons <* listLike (name :: Text)
 
-  amap <- rule $ pure (\es last -> case last of Nothing -> AMap () es; Just l -> AMap () (es ++ [l]))
-    <*  floating (token '{')
-    <*> many (maybeFollowing mapPair (token ','))
-    <*> optional mapPair
-    <*  token '}'
-    <?> "map"
+  sexp <- rule $ paren <|> square <|> curly <?> "sexp"
 
-  mapPair <- rule $ (,)
-    <$> maybeFollowing exp (token ':')
-    <*> floating exp
-    <?> "mapPair"
-
-  application <- rule $ pure (\as a -> let things = as ++ [a] in AApp () (head things) (tail things))
+  paren <- rule $ pure (separated $ ASexp () "(" ")")
     <*  floating (token '(')
     <*> many (spaceAfter exp)
-    <*> floating exp
+    <*> optional exp
     <*  token ')'
-    <?> "application"
+    <?> "paren-brackets"
 
-  func <- rule $ pure (AFunc ())
-    <*  floating (listLike ("#(" :: Text))
-    <*> floating paramList
-    <*> floatingExp
-    <*  token ')'
-    <?> "function"
-
-  list <- rule $ pure (separated $ AList ())
+  square <- rule $ pure (separated $ ASexp () "[" "]")
     <*  floating (token '[')
-    <*> many (maybeFollowing exp (token ','))
+    <*> many (spaceAfter exp)
     <*> optional exp
     <*  token ']'
-    <?> "list"
+    <?> "square-brackets"
 
-  ident <- rule $ (\a as -> AIdent () $ pack (a:as))
-    <$> satisfy (\c -> any ($ c) [isAsciiLower, (`elem` identSymbols)])
-    <*> many (satisfy (\c -> any ($ c) [isDigit, isAsciiLower, isAsciiUpper, (`elem` identSymbols)]))
-    <?> "identifier"
+  curly <- rule $ pure (separated $ ASexp () "{" "}")
+    <*  floating (token '{')
+    <*> many (spaceAfter exp)
+    <*> optional exp
+    <*  token '}'
+    <?> "square-brackets"
+
+  sym <- rule $ (\a as -> ASym () $ pack (a:as))
+    <$> satisfy (\c -> any ($ c) [isAsciiLower, (`elem` symChars)])
+    <*> many (satisfy (\c -> any ($ c) [isDigit, isAsciiLower, isAsciiUpper, (`elem` symChars)]))
+    <?> "symbol"
 
   text <- rule $ pure (AText () . pack)
     <*  token '"'
@@ -95,9 +86,7 @@ grammar = mdo
     <*> many (satisfy isDigit)
     <?> "integer"
 
-  unit <- rule $ pure (AUnit ()) <* listLike ("()" :: Text)
-
-  return $ spaceBefore floatingExp <|> floatingExp
+  return $ spaceBefore (floating exp) <|> (floating exp)
 
 forceRead reader a = case reader a of
   Left e  -> error e
