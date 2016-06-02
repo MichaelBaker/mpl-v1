@@ -2,7 +2,7 @@ module Mpl.CompilerSpec where
 
 import Test.Hspec
 
-import Mpl.Compiler (ErrorType(..), errorType, compile, opts)
+import Mpl.Compiler (Options(..), ErrorType(..), ErrorLevel(..), errorType, compile, opts)
 
 hasResult expectedResult (result, _, _)     = result `shouldBe` expectedResult
 hasErrors expectedErrorTypes (_, _, errors) = map errorType errors `shouldBe` expectedErrorTypes
@@ -12,7 +12,7 @@ test_0_0 name string test = it name $ do
   test $ compile options string
 
 test_1_0 name string test = it name $ do
-  let options = opts
+  let options = opts { typeContradictions = Fail }
   test $ compile options string
 
 spec :: Spec
@@ -79,5 +79,5 @@ spec = do
       (hasResult "[1 2]")
 
     test_1_0 "parameter argument type mismatch"
-      "((# [a int] a) 5)"
+      "((# [a int] a) \"hello\")"
       (hasErrors [TypeError])

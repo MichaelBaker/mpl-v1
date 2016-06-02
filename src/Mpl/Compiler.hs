@@ -1,6 +1,6 @@
 module Mpl.Compiler where
 
-import Mpl.AST            (AST, Core(..))
+import Mpl.AST            (AST, Core(..), CoreType(..))
 import Mpl.ASTToCore      (astToCore)
 import Mpl.TypeAnnotation (annotate)
 import Mpl.Parser         (parse)
@@ -47,8 +47,23 @@ run :: Options -> String -> Either String (Output, Warnings, Errors)
 run options string = do
   parsedAST <- Right $ parse (pack string)
   ast       <- handleParseFail parsedAST
-  result    <- Right $ prettyPrint $ interpret $ fst $ annotate $ astToCore ast
-  return (result, [], [])
+
+  let (core, typeMap) = annotate $ astToCore ast
+      contradictions  = Map.filter (== CUnknownTy) typeMap
+
+  if Map.null contradictions
+    then do
+      result <- Right $ prettyPrint $ interpret $ core
+      return (result, [], [])
+    else case typeContradictions options of
+           Ignore -> do
+             result <- Right $ prettyPrint $ interpret $ core
+             return (result, [], [])
+           Warn -> do
+             result <- Right $ prettyPrint $ interpret $ core
+             return (result, typeErrorMessages core contradictions, [])
+           Fail -> do
+             return ("", [], map (Error TypeError) $ typeErrorMessages core contradictions)
 
 handleParseFail :: ([AST ()], Report Text Text) -> Either String (AST ())
 handleParseFail (a:[], _)   = Right a
@@ -70,3 +85,4 @@ prettyPrint (CApp   _ f a)        = "(" ++ prettyPrint f ++ " " ++ prettyPrint a
 
 prettyPrintPair (a, b) = prettyPrint a ++ " " ++ prettyPrint b
 
+typeErrorMessages core contradictions = map show $ Map.toList contradictions
