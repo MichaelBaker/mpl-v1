@@ -13,14 +13,6 @@ import Text.Earley         ((<?>), Grammar, Report, Prod, list, satisfy, rule, f
 import qualified Text.Earley as E
 import qualified Data.Text   as T
 
-aint    = AInt   ()
-afloat  = AFloat ()
-atext   = AText  ()
-asym    = ASym   ()
-aparen  = ASexp  () "(" ")"
-asquare = ASexp  () "[" "]"
-acurly  = ASexp  () "{" "}"
-
 parse :: Text -> ([AST ()], Report Text Text)
 parse = fullParses (E.parser grammar)
 

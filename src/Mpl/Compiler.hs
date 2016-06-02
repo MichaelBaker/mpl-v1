@@ -1,7 +1,7 @@
 module Mpl.Compiler where
 
 import Mpl.AST            (AST, Core(..))
-import Mpl.Desugar        (desugar)
+import Mpl.ASTToCore      (astToCore)
 import Mpl.TypeAnnotation (annotate)
 import Mpl.Parser         (parse)
 import Mpl.Interpreter    (interpret)
@@ -24,7 +24,7 @@ run :: String -> Either String String
 run string = do
   parsedAST <- Right $ parse (pack string)
   ast       <- handleParseFail parsedAST
-  result    <- Right $ prettyPrint $ interpret $ fst $ annotate $ desugar ast
+  result    <- Right $ prettyPrint $ interpret $ fst $ annotate $ astToCore ast
   return result
 
 handleParseFail :: ([AST ()], Report Text Text) -> Either String (AST ())
