@@ -1,8 +1,9 @@
 module Mpl.ParserSpec where
 
 import Test.Hspec
+import ASTHelpers (aparen, asquare, acurly, aint, afloat, atext, asym)
 
-import Mpl.AST    (AST(..), ASTType(..))
+import Mpl.AST    (AST(..))
 import Mpl.Parser (parse)
 
 test name string result = it name $ do
@@ -12,47 +13,48 @@ test name string result = it name $ do
 spec :: Spec
 spec = do
   describe "unit" $ do
-    test "unit" "()" (AUnit ())
+    test "unit" "()" (aparen [])
 
   describe "integer" $ do
-    test "a single digit"  "1"         (AInt () 1)
-    test "a single number" "12"        (AInt () 12)
-    test "long integer"    "987654321" (AInt () 987654321)
+    test "a single digit"  "1"         (aint 1)
+    test "a single number" "12"        (aint 12)
+    test "long integer"    "987654321" (aint 987654321)
 
   describe "float" $ do
-    test "leading zero" "0.0"                   (AFloat () 0.0)
-    test "all digits"   "1234567890.0987654321" (AFloat () 1234567890.0987654321)
+    test "leading zero" "0.0"                   (afloat 0.0)
+    test "all digits"   "1234567890.0987654321" (afloat 1234567890.0987654321)
 
   describe "text" $ do
-    test "empty text" "\"\""      (AText () "")
-    test "plain text" "\"hello\"" (AText () "hello")
+    test "empty text" "\"\""      (atext "")
+    test "plain text" "\"hello\"" (atext "hello")
 
   describe "identifier" $ do
-    test "single letter"       "a"                (AIdent () "a")
-    test "camel cased word"    "uUadkjADkdfsjljD" (AIdent () "uUadkjADkdfsjljD")
-    test "symbolic identifier" "<$>"              (AIdent () "<$>")
+    test "single letter"       "a"                (asym "a")
+    test "camel cased word"    "uUadkjADkdfsjljD" (asym "uUadkjADkdfsjljD")
+    test "symbolic identifier" "<$>"              (asym "<$>")
+    test "octothorp"           "#"                (asym "#")
 
   describe "list" $ do
-    test "empty"                     "[]"                         (AList () [])
-    test "an int"                    "[12]"                       (AList () [AInt () 12])
-    test "two ints"                  "[12 13]"                    (AList () [AInt () 12, AInt () 13])
-    test "leading inner whitespace"  "[ 12 13]"                   (AList () [AInt () 12, AInt () 13])
-    test "leading outer whitespace"  " [12 13]"                   (AList () [AInt () 12, AInt () 13])
-    test "trailing outer whitespace" "[12 13]  "                  (AList () [AInt () 12, AInt () 13])
-    test "trailing inner whitespace" "[12 13 ]"                   (AList () [AInt () 12, AInt () 13])
-    test "surrounding whitespace"    " [ 12 13]"                  (AList () [AInt () 12, AInt () 13])
-    test "crazy"                     " [   1,53, 23, 8 12,13  ,]" (AList () [AInt () 1,  AInt () 53, AInt () 23, AInt () 8, AInt () 12, AInt () 13])
+    test "empty"                     "[]"                         (asquare [])
+    test "an int"                    "[12]"                       (asquare [aint 12])
+    test "two ints"                  "[12 13]"                    (asquare [aint 12, aint 13])
+    test "leading inner whitespace"  "[ 12 13]"                   (asquare [aint 12, aint 13])
+    test "leading outer whitespace"  " [12 13]"                   (asquare [aint 12, aint 13])
+    test "trailing outer whitespace" "[12 13]  "                  (asquare [aint 12, aint 13])
+    test "trailing inner whitespace" "[12 13 ]"                   (asquare [aint 12, aint 13])
+    test "surrounding whitespace"    " [ 12 13]"                  (asquare [aint 12, aint 13])
+    test "crazy"                     " [   1 53  23  8 12 13   ]" (asquare [aint 1,  aint 53, aint 23, aint 8, aint 12, aint 13])
 
   describe "map" $ do
-    test "empty"         "{}"         (AMap () [])
-    test "string -> int" "{\"a\": 1}" (AMap () [(AText () "a", AInt () 1)])
+    test "empty"         "{}"        (acurly [])
+    test "string -> int" "{\"a\" 1}" (acurly [atext "a", aint 1])
 
   describe "function" $ do
-    test "no arguments"       "#([] 5)"             (AFunc () [] (AInt () 5))
-    test "one argument"       "#([a int] 5)"        (AFunc () [("a", AIntTy)] (AInt () 5))
-    test "multiple arguments" "#([a int b unit] 5)" (AFunc () [("a", AIntTy), ("b", AUnitTy)] (AInt () 5))
+    test "no arguments"       "(# [] 5)"             (aparen [asym "#", asquare [], aint 5])
+    test "one argument"       "(# [a int] 5)"        (aparen [asym "#", asquare [asym "a", asym "int"], aint 5])
+    test "multiple arguments" "(# [a int b unit] 5)" (aparen [asym "#", asquare [asym "a", asym "int", asym "b", asym "unit"], aint 5])
 
   describe "application" $ do
-    test "simple application"        "(a 5)"            (AApp () (AIdent () "a") [(AInt () 5)])
-    test "application of a function" "(#([a int] a) 5)" (AApp () (AFunc () [("a", AIntTy)] (AIdent () "a")) [(AInt () 5)])
-    test "forcing a thunk"           "(#([] 5))"        (AApp () (AFunc () [] (AInt () 5)) [])
+    test "simple application"        "(a 5)"             (aparen [asym "a", aint 5])
+    test "application of a function" "((# [a int] a) 5)" (aparen [aparen [asym "#", asquare [asym "a", asym "int"], asym "a"], aint 5])
+    test "forcing a thunk"           "((# [] 5))"        (aparen [aparen [asym "#", asquare [], aint 5]])

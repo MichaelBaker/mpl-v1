@@ -20,7 +20,7 @@ library
   exposed-modules:
     Mpl.AST,
     Mpl.Compiler,
-    Mpl.Desugar,
+    Mpl.ASTToCore,
     Mpl.Interpreter,
     Mpl.Parser,
     Mpl.TypeAnnotation
@@ -59,6 +59,8 @@ test-suite mpl-test
     test
   main-is:
     Spec.hs
+  other-modules:
+    ASTHelpers
   default-extensions:
     OverloadedStrings
   build-depends:
