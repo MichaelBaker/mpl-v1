@@ -37,12 +37,13 @@ prettyPrint (CInt   _ i)          = show i
 prettyPrint (CReal  _ r)          = showFFloatAlt Nothing r ""
 prettyPrint (CText  _ t)          = show t
 prettyPrint (CIdent _ t)          = unpack t
-prettyPrint (CList  _ as)         = "[" ++ intercalate ", " (map prettyPrint as) ++ "]"
-prettyPrint (CAssoc _ ps)         = "{" ++ intercalate ", " (map prettyPrintPair ps) ++ "}"
-prettyPrint (CMap   _ m)          = "{" ++ intercalate ", " (map prettyPrintPair $ Map.toList m) ++ "}"
+prettyPrint (CList  _ as)         = "[" ++ intercalate " " (map prettyPrint as) ++ "]"
+prettyPrint (CAssoc _ ps)         = "{" ++ intercalate " " (map prettyPrintPair ps) ++ "}"
+prettyPrint (CMap   _ m)          = "{" ++ intercalate " " (map prettyPrintPair $ Map.toList m) ++ "}"
 prettyPrint (CThunk _ _ b)        = "(# []" ++ prettyPrint b ++ ")"
 prettyPrint (CForce _ t)          = "(" ++ prettyPrint t ++ ")"
 prettyPrint (CFunc  _ _ (p, _) b) = "(# [" ++ unpack p ++ "] " ++ prettyPrint b ++ ")"
 prettyPrint (CApp   _ f a)        = "(" ++ prettyPrint f ++ " " ++ prettyPrint a ++ ")"
 
-prettyPrintPair (a, b) = prettyPrint a ++ ": " ++ prettyPrint b
+prettyPrintPair (a, b) = prettyPrint a ++ " " ++ prettyPrint b
+
