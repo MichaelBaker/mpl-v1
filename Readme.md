@@ -4,10 +4,9 @@ This is the project I use to play around with programming language theory and im
 
 ## TODO
 
+[ ] Warn on type contradictions at level 0.0
 [ ] Start level 1.0
 [ ] Give typechecker a once over and look into correctness
-[ ] Warn on type contradictions at level 0.0
-[ ] Error on type contradictions and lack of proof at level 1.0
 [ ] Add type inference (for type elision at level 0.0)
 [ ] Convert level 0.0 <-> 1.0
 [ ] Start level 2.0
