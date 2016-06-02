@@ -2,14 +2,18 @@ module Mpl.CompilerSpec where
 
 import Test.Hspec
 
-import Mpl.Compiler (compile, opts)
+import Mpl.Compiler (ErrorType(..), errorType, compile, opts)
 
-withOpts options name string result = it
+hasResult expectedResult (result, _, _)     = result `shouldBe` expectedResult
+hasErrors expectedErrorTypes (_, _, errors) = map errorType errors `shouldBe` expectedErrorTypes
 
-hasResult expectedResult (result, _, _) = result `shouldBe` expectedResult
+test_0_0 name string test = it name $ do
+  let options = opts
+  test $ compile options string
 
-test_0_0 name string test = it name $ test $ compile opts string
-test_1_0 name string test = it name $ test $ compile opts string
+test_1_0 name string test = it name $ do
+  let options = opts
+  test $ compile options string
 
 spec :: Spec
 spec = do
@@ -73,3 +77,7 @@ spec = do
     test_0_0 "curried application"
       "(((# [a int b int] [a b]) 1) 2)"
       (hasResult "[1 2]")
+
+    test_1_0 "parameter argument type mismatch"
+      "((# [a int] a) 5)"
+      (hasErrors [TypeError])

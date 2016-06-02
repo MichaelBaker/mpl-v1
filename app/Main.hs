@@ -14,7 +14,7 @@ loop = do
     Just "quit" -> return ()
     Just a      -> do
       let (result, warnings, errors) = compile opts a
-      mapM_ outputStrLn errors
+      mapM_ (outputStrLn . show) errors
       mapM_ outputStrLn warnings
       outputStrLn result
       outputStrLn ""

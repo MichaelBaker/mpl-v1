@@ -22,6 +22,13 @@ data Options = Options {
 
 data ErrorLevel = Ignore | Warn | Fail deriving (Show)
 
+data Error = Error {
+  errorType :: ErrorType,
+  message   :: String
+  } deriving (Show)
+
+data ErrorType = TypeError | ParseError deriving (Show, Eq)
+
 opts = Options {
   typeContradictions = Ignore,
   lackOfProof        = Ignore
@@ -29,11 +36,11 @@ opts = Options {
 
 type Output   = String
 type Warnings = [String]
-type Errors   = [String]
+type Errors   = [Error]
 
 compile :: Options -> String -> (Output, Warnings, Errors)
 compile options string = case run options string of
-  Left  s -> ("", [], [s])
+  Left  s -> ("", [], [Error ParseError s])
   Right s -> s
 
 run :: Options -> String -> Either String (Output, Warnings, Errors)
