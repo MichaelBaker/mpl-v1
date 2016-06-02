@@ -1,7 +1,7 @@
 module Main where
 
-import Mpl.Compiler (compile)
 import System.Console.Haskeline (runInputT, defaultSettings, getInputLine, outputStrLn)
+import Mpl.Compiler             (compile)
 
 main :: IO ()
 main = runInputT defaultSettings loop

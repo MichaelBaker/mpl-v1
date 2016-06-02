@@ -2,7 +2,7 @@
 
 module Mpl.Parser where
 
-import Mpl.AST (AST(..))
+import Mpl.AST (AST(..), ASTType(..))
 
 import Control.Applicative ((<|>), many, some, optional)
 import Data.Char           (isSpace, isDigit, isAscii, isLetter, isAsciiUpper, isAsciiLower)
@@ -18,7 +18,7 @@ parse = fullParses (E.parser grammar)
 
 grammar :: Grammar r (Prod r Text Char (AST ()))
 grammar = mdo
-  let exp           = int <|> float <|> text <|> ident <|> list <|> func <|> application <|> amap
+  let exp           = unit <|> int <|> float <|> text <|> ident <|> list <|> func <|> application <|> amap
       whitespace    = isSpace
       skipManySpace = many (satisfy whitespace)
       spaceBefore a = some (satisfy whitespace) *> a
@@ -30,6 +30,10 @@ grammar = mdo
       maybeFollowing r separator = spaceAfter r <|> (r <* skipManySpace <* separator <* skipManySpace)
       separated cons es Nothing  = cons es
       separated cons es (Just l) = cons (es ++ [l])
+      paramList = pure (separated id) <* floating (token '[') <*> many (spaceAfter paramPair) <*> optional paramPair <*  token ']'
+      paramPair = (\(AIdent _ a) -> (,) a) <$> spaceAfter ident <*> typeAnn
+      typeAnn = mkTy AUnitTy "unit" <|> mkTy AIntTy "int" <|> mkTy AFloatTy "float" <|> mkTy ATextTy "text" <|> mkTy AListTy "list" <|> mkTy AMapTy "map"
+      mkTy cons name = pure cons <* listLike (name :: Text)
 
   amap <- rule $ pure (\es last -> case last of Nothing -> AMap () es; Just l -> AMap () (es ++ [l]))
     <*  floating (token '{')
@@ -43,19 +47,18 @@ grammar = mdo
     <*> floating exp
     <?> "mapPair"
 
-  application <- rule $ pure (separated . (AApp ()))
-    <* floating (token '(')
-    <*> spaceAfter exp
+  application <- rule $ pure (\as a -> let things = as ++ [a] in AApp () (head things) (tail things))
+    <*  floating (token '(')
     <*> many (spaceAfter exp)
-    <*> optional exp
-    <* token ')'
+    <*> floating exp
+    <*  token ')'
     <?> "application"
 
-  func <- rule $ pure (\(AList _ vals) -> AFunc () $ map (\(AIdent _ a) -> a) vals)
-    <* floating (listLike ("#(" :: Text))
-    <*> floating list
+  func <- rule $ pure (AFunc ())
+    <*  floating (listLike ("#(" :: Text))
+    <*> floating paramList
     <*> floatingExp
-    <* token ')'
+    <*  token ')'
     <?> "function"
 
   list <- rule $ pure (separated $ AList ())
@@ -91,6 +94,8 @@ grammar = mdo
     <$> satisfy (`elem` naturalDigits)
     <*> many (satisfy isDigit)
     <?> "integer"
+
+  unit <- rule $ pure (AUnit ()) <* listLike ("()" :: Text)
 
   return $ spaceBefore floatingExp <|> floatingExp
 
