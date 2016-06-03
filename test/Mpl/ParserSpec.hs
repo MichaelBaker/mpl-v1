@@ -10,6 +10,8 @@ test name string result = it name $ do
   let (parses, _) = parse string
   parses `shouldBe` [result]
 
+param name ty = aparen [asym ":", asym name, asym ty]
+
 spec :: Spec
 spec = do
   describe "unit" $ do
@@ -50,11 +52,27 @@ spec = do
     test "string -> int" "{\"a\" 1}" (acurly [atext "a", aint 1])
 
   describe "function" $ do
-    test "no arguments"       "(# [] 5)"                  (aparen [asym "#", asquare [], aint 5])
-    test "one argument"       "(: [t] (# [a t] 5))"       (aparen [asym ":", asquare [asym "t"], (aparen [asym "#", asquare [asym "a", asym "t"], aint 5])])
-    test "multiple arguments" "(: [t s] (# [a t b s] 5))" (aparen [asym ":", asquare [asym "t", asym "s"], (aparen [asym "#", asquare [asym "a", asym "t", asym "b", asym "s"], aint 5])])
+    test "no arguments"
+      "(# [] 5)"
+      (aparen [asym "#", asquare [], aint 5])
+
+    test "one argument"
+      "(: [t] (# [(: a t)] 5))"
+      (aparen [asym ":", asquare [asym "t"], (aparen [asym "#", asquare [param "a" "t"], aint 5])])
+
+    test "multiple arguments"
+      "(: [t s] (# [(: a t) (: b s)] 5))"
+      (aparen [asym ":", asquare [asym "t", asym "s"], (aparen [asym "#", asquare [param "a" "t", param "b" "s"], aint 5])])
 
   describe "application" $ do
-    test "simple application"        "(a 5)"                         (aparen [asym "a", aint 5])
-    test "application of a function" "(((: [t] (# [a t] a)) int) 5)" (aparen [aparen [aparen [asym ":", asquare [asym "t"], aparen [asym "#", asquare [asym "a", asym "t"], asym "a"]], asym "int"], aint 5])
-    test "forcing a thunk"           "((# [] 5))"                    (aparen [aparen [asym "#", asquare [], aint 5]])
+    test "simple application"
+      "(a 5)"
+      (aparen [asym "a", aint 5])
+
+    test "application of a function"
+      "(((: [t] (# [(: a t)] a)) int) 5)"
+      (aparen [aparen [aparen [asym ":", asquare [asym "t"], aparen [asym "#", asquare [param "a" "t"], asym "a"]], asym "int"], aint 5])
+
+    test "forcing a thunk"
+      "((# [] 5))"
+      (aparen [aparen [asym "#", asquare [], aint 5]])

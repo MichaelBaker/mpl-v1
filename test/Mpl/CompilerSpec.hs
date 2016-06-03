@@ -51,7 +51,7 @@ spec = do
       (hasResult "5")
 
     test_0_0 "simple function application"
-      "(((: [t] (# [a t] a)) int) 5)"
+      "(((: [t] (# [(: a t)] a)) int) 5)"
       (hasResult "5")
 
     -- TODO: Remove undefineds

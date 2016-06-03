@@ -8,6 +8,8 @@ import Mpl.ASTToCore (astToCore)
 
 test message ast core = it message (astToCore () ast `shouldBe` core)
 
+param name ty = aparen [asym ":", asym name, asym ty]
+
 spec :: Spec
 spec = do
   test "int   -> int"   (aint 8)   (CInt [0] 8)
@@ -36,23 +38,23 @@ spec = do
     (CThunk [0] () (CUnit [0, 0]))
 
   test "a function of one argument"
-    (aparen [asym "#", asquare [asym "a", asym "t"], aparen []])
+    (aparen [asym "#", asquare [param "a" "t"], aparen []])
     (CFunc [0] () ("a", "t") (CUnit [0, 0]))
 
   test "curries a function of multiple arguments"
-    (aparen [asym "#", asquare [asym "a", asym "t", asym "b", asym "s"], aparen []])
+    (aparen [asym "#", asquare [param "a" "t", param "b" "s"], aparen []])
     (CFunc [0] () ("a", "t")
       (CFunc [0, 0] () ("b", "s")
         (CUnit [0, 0, 0])))
 
   test "one type argument"
-    (aparen [asym ":", asquare [asym "t"], (aparen [asym "#", asquare [asym "a", asym "t"], aint 5])])
+    (aparen [asym ":", asquare [asym "t"], (aparen [asym "#", asquare [param "a" "t"], aint 5])])
     (CTyFunc [0] () "t"
       (CFunc [0, 0] () ("a", "t")
         (CInt [0, 0, 0] 5)))
 
   test "curries multiple type arguments"
-    (aparen [asym ":", asquare [asym "t", asym "s"], (aparen [asym "#", asquare [asym "a", asym "t", asym "b", asym "s"], aint 5])])
+    (aparen [asym ":", asquare [asym "t", asym "s"], (aparen [asym "#", asquare [param "a" "t", param "b" "s"], aint 5])])
     (CTyFunc [0] () "t"
       (CTyFunc [0, 0] () "s"
         (CFunc [0, 0, 0] () ("a", "t")
