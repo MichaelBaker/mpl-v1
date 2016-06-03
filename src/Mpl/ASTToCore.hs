@@ -1,34 +1,34 @@
 module Mpl.ASTToCore where
 
-import Mpl.AST (AST(..), Core(..), CoreType(..), emptyEnv, emptyContext)
+import Mpl.AST (AST(..), Core(..), CoreType(..))
 
 
-astToCore = elaborate [0]
+astToCore e ast = elaborate e [0] ast
 
-elaborate :: [Int] -> AST () -> Core [Int]
-elaborate path (AInt   _ value)          = CInt path value
-elaborate path (AFloat _ value)          = CReal path value
-elaborate path (AText  _ value)          = CText path value
-elaborate path (ASym   _ value)          = CIdent path value
-elaborate path (ASexp  _ "[" "]" values) = CList  path (map (\(i, v) -> elaborate (i:path) v) $ zip [0..] values)
-elaborate path (ASexp  _ "{" "}" values) = CAssoc path (map (\(i, (k, v)) -> (elaborate (i:path) k, elaborate ((i + 1):path) v)) $ zip [0,2..] $ listToPairs "map" values)
-elaborate path (ASexp  _ "(" ")" [])     = CUnit  path
-elaborate path (ASexp  _ "(" ")" [ASym _ "#", ASexp _ "[" "]" params, body]) = elaborateFunc   path (listToPairs "parameter list" params) body
-elaborate path (ASexp  _ "(" ")" [ASym _ ":", ASexp _ "[" "]" params, body]) = elaborateTyFunc path params body
-elaborate path (ASexp  _ "(" ")" (f:args)) = curryApplication path f $ reverse args
-elaborate _ a = error $ "Invalid s-expression: " ++ show a
+elaborate :: e -> [Int] -> AST () -> Core [Int] e
+elaborate _ path (AInt   _ value)          = CInt   path value
+elaborate _ path (AFloat _ value)          = CReal  path value
+elaborate _ path (AText  _ value)          = CText  path value
+elaborate _ path (ASym   _ value)          = CIdent path value
+elaborate e path (ASexp  _ "[" "]" values) = CList  path (map (\(i, v) -> elaborate e (i:path) v) $ zip [0..] values)
+elaborate e path (ASexp  _ "{" "}" values) = CAssoc path (map (\(i, (k, v)) -> (elaborate e (i:path) k, elaborate e ((i + 1):path) v)) $ zip [0,2..] $ listToPairs "map" values)
+elaborate e path (ASexp  _ "(" ")" [])     = CUnit  path
+elaborate e path (ASexp  _ "(" ")" [ASym _ "#", ASexp _ "[" "]" params, body]) = elaborateFunc   e path (listToPairs "parameter list" params) body
+elaborate e path (ASexp  _ "(" ")" [ASym _ ":", ASexp _ "[" "]" params, body]) = elaborateTyFunc e path params body
+elaborate e path (ASexp  _ "(" ")" (f:args)) = curryApplication e path f $ reverse args
+elaborate _ _ a = error $ "Invalid s-expression: " ++ show a
 
-elaborateFunc path [] body               = CThunk path emptyEnv emptyContext (elaborate (0:path) body)
-elaborateFunc path ((sym, ty):[]) body   = CFunc path emptyEnv emptyContext (symName sym, symName ty) (elaborate (0:path) body)
-elaborateFunc path ((sym, ty):rest) body = CFunc path emptyEnv emptyContext (symName sym, symName ty) $ elaborateFunc (0:path) rest body
+elaborateFunc e path [] body               = CThunk path e (elaborate e (0:path) body)
+elaborateFunc e path ((sym, ty):[]) body   = CFunc  path e (symName sym, symName ty) (elaborate e (0:path) body)
+elaborateFunc e path ((sym, ty):rest) body = CFunc  path e (symName sym, symName ty) $ elaborateFunc e (0:path) rest body
 
-elaborateTyFunc path []         body = CThunk  path emptyEnv emptyContext (elaborate (0:path) body)
-elaborateTyFunc path (sym:[])   body = CTyFunc path emptyEnv emptyContext (symName sym) (elaborate (0:path) body)
-elaborateTyFunc path (sym:rest) body = CTyFunc path emptyEnv emptyContext (symName sym) $ elaborateTyFunc (0:path) rest body
+elaborateTyFunc e path []         body = CThunk  path e (elaborate e (0:path) body)
+elaborateTyFunc e path (sym:[])   body = CTyFunc path e (symName sym) (elaborate e (0:path) body)
+elaborateTyFunc e path (sym:rest) body = CTyFunc path e (symName sym) $ elaborateTyFunc e (0:path) rest body
 
-curryApplication path f []     = CForce path (elaborate (0:path) f)
-curryApplication path f (a:[]) = CApp path (elaborate (0:path) f) (elaborate (1:path) a)
-curryApplication path f (a:as) = CApp path (curryApplication (0:path) f as) (elaborate (1:path) a)
+curryApplication e path f []     = CForce path (elaborate e (0:path) f)
+curryApplication e path f (a:[]) = CApp   path (elaborate e (0:path) f) (elaborate e (1:path) a)
+curryApplication e path f (a:as) = CApp   path (curryApplication e (0:path) f as) (elaborate e (1:path) a)
 
 listToPairs _    []         = []
 listToPairs item (a:[])     = error $ "Odd number of items in " ++ item
@@ -36,11 +36,3 @@ listToPairs item (a:b:rest) = (a, b) : listToPairs item rest
 
 symName (ASym _ name) = name
 symName a             = error $ "Invalid parameter name: " ++ show a
-
-symToType (ASym _ "unit")  = CUnitTy
-symToType (ASym _ "int")   = CIntTy
-symToType (ASym _ "float") = CRealTy
-symToType (ASym _ "text")  = CTextTy
-symToType (ASym _ "list")  = CListTy
-symToType (ASym _ "map")   = CMapTy
-symToType a                = error $ "Invalid type name: " ++ show a

@@ -3,29 +3,20 @@ module Mpl.AST where
 import Data.Text (Text)
 import qualified Data.Map as Map
 
-class Meta a where
-  meta :: a b -> b
-
-type Env = Map.Map Text (Core [Int])
-emptyEnv = Map.empty :: Env
-
-type Context = Map.Map Text  CoreType
-emptyContext = Map.empty :: Context
-
-data Core a = CUnit   a
-            | CInt    a Integer
-            | CReal   a Double
-            | CText   a Text
-            | CIdent  a Text
-            | CList   a [Core a]
-            | CAssoc  a [(Core a, Core a)]
-            | CMap    a (Map.Map (Core a) (Core a))
-            | CThunk  a Env Context (Core a)
-            | CFunc   a Env Context (Text, Text) (Core a)
-            | CTyFunc a Env Context Text (Core a)
-            | CForce  a (Core a)
-            | CApp    a (Core a) (Core a)
-            deriving (Show, Eq, Ord)
+data Core m a = CUnit   m
+              | CInt    m Integer
+              | CReal   m Double
+              | CText   m Text
+              | CIdent  m Text
+              | CList   m [Core m a]
+              | CAssoc  m [(Core m a, Core m a)]
+              | CMap    m (Map.Map (Core m a) (Core m a))
+              | CThunk  m a (Core m a)
+              | CFunc   m a (Text, Text) (Core m a)
+              | CTyFunc m a Text (Core m a)
+              | CForce  m (Core m a)
+              | CApp    m (Core m a) (Core m a)
+              deriving (Show, Eq, Ord)
 
 data CoreType = CUnitTy
               | CIntTy
@@ -38,20 +29,19 @@ data CoreType = CUnitTy
               | CUnknownTy
               deriving (Show, Eq, Ord)
 
-instance Meta Core where
-  meta (CUnit   a)         = a
-  meta (CInt    a _)       = a
-  meta (CReal   a _)       = a
-  meta (CText   a _)       = a
-  meta (CIdent  a _)       = a
-  meta (CList   a _)       = a
-  meta (CAssoc  a _)       = a
-  meta (CMap    a _)       = a
-  meta (CThunk  a _ _ _)   = a
-  meta (CFunc   a _ _ _ _) = a
-  meta (CTyFunc a _ _ _ _) = a
-  meta (CForce  a _)       = a
-  meta (CApp    a _ _)     = a
+metaC (CUnit   m)       = m
+metaC (CInt    m _)     = m
+metaC (CReal   m _)     = m
+metaC (CText   m _)     = m
+metaC (CIdent  m _)     = m
+metaC (CList   m _)     = m
+metaC (CAssoc  m _)     = m
+metaC (CMap    m _)     = m
+metaC (CThunk  m _ _)   = m
+metaC (CFunc   m _ _ _) = m
+metaC (CTyFunc m _ _ _) = m
+metaC (CForce  m _)     = m
+metaC (CApp    m _ _)   = m
 
 data AST a = AInt   a Integer
            | AFloat a Double
@@ -60,9 +50,8 @@ data AST a = AInt   a Integer
            | ASexp  a Text Text [AST a]
            deriving (Show, Eq)
 
-instance Meta AST where
-  meta (AInt   a _)     = a
-  meta (AFloat a _)     = a
-  meta (AText  a _)     = a
-  meta (ASym a _)       = a
-  meta (ASexp  a _ _ _) = a
+metaA (AInt   a _)     = a
+metaA (AFloat a _)     = a
+metaA (AText  a _)     = a
+metaA (ASym a _)       = a
+metaA (ASexp  a _ _ _) = a

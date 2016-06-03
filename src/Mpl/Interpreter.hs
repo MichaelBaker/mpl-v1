@@ -1,37 +1,34 @@
 module Mpl.Interpreter where
 
-import Mpl.AST   (Core(..), CoreType(..), Env, Context, emptyEnv, emptyContext, meta)
-import Data.Text (pack)
+import Mpl.AST   (Core(..), metaC)
+import Data.Text (Text, pack)
 
 import qualified Data.Map.Strict as Map
 
-interpret :: Core [Int] -> Core [Int]
-interpret ast = exec emptyEnv emptyContext ast
+data Env = Env (Map.Map Text (Core [Int] Env)) deriving (Show, Eq, Ord)
+emptyEnv = Env $ Map.empty
 
-exec :: Env -> Context -> Core [Int] -> Core [Int]
-exec env _ (CIdent path a) = case Map.lookup a env of
-  Nothing -> CText path $ pack $ "Invalid identifier: " ++ (show a)
-  Just o  -> o
-exec env ctx (CList   t as)      = CList t (map (exec env ctx) as)
-exec env ctx (CAssoc  t as)      = CMap t $ Map.fromList $ map (\(k, v) -> (exec env ctx k, exec env ctx v)) as
-exec env ctx (CThunk  t _ _ a)   = CThunk  t env ctx a
-exec env ctx (CFunc   t _ _ a b) = CFunc   t env ctx a b
-exec env ctx (CTyFunc t _ _ a b) = CTyFunc t env ctx a b
-exec env ctx (CForce  _ a)       = forceThunk $ exec env ctx a
-exec env ctx (CApp    _ f a)     = evalFunction (exec env ctx f) (exec env ctx a)
-exec env ctx a                   = a
+interpret :: Core [Int] Env -> Core [Int] Env
+interpret ast = exec emptyEnv ast
 
-forceThunk (CThunk _ closedEnv closedCtx body) = exec closedEnv closedCtx body
-forceThunk ast = CText (meta ast) (pack $ "Tried to force something that isn't a thunk: " ++ show ast)
+exec :: Env -> Core [Int] Env -> Core [Int] Env
+exec (Env env) (CIdent path a) = case Map.lookup a env of
+                                   Nothing -> CText path $ pack $ "Invalid identifier: " ++ (show a)
+                                   Just o  -> o
+exec env (CList   m as)    = CList   m (map (exec env) as)
+exec env (CAssoc  m as)    = CMap    m $ Map.fromList $ map (\(k, v) -> (exec env k, exec env v)) as
+exec env (CThunk  m _ a)   = CThunk  m env a
+exec env (CFunc   m _ a b) = CFunc   m env a b
+exec env (CTyFunc m _ a b) = CTyFunc m env a b
+exec env (CForce  _ a)     = forceThunk $ exec env a
+exec env (CApp    _ f a)   = evalFunction (exec env f) (exec env a)
+exec env a                 = a
 
-evalFunction (CFunc   _ closedEnv closedCtx (param, _) body) arg = exec (Map.insert param arg closedEnv) closedCtx body
-evalFunction (CTyFunc _ closedEnv closedCtx tyParam body) arg = exec closedEnv (Map.insert tyParam (identToTy arg) closedCtx)  body
-evalFunction ast _ = CText (meta ast) (pack $ "Tried to apply something that isn't a function: " ++ show ast)
+forceThunk (CThunk _ closedEnv body) = exec closedEnv body
+forceThunk ast = CText (metaC ast) (pack $ "Tried to force something that isn't a thunk: " ++ show ast)
 
-identToTy (CIdent _ "unit") = CUnitTy
-identToTy (CIdent _ "int")  = CIntTy
-identToTy (CIdent _ "real") = CRealTy
-identToTy (CIdent _ "text") = CTextTy
-identToTy (CIdent _ "list") = CListTy
-identToTy (CIdent _ "map")  = CMapTy
-identToTy a = error $ "Invalid type: " ++ show a
+evalFunction (CFunc   _ closedEnv (param, _) body) arg = exec (binding param arg closedEnv) body
+evalFunction (CTyFunc _ closedEnv tyParam body)    arg = exec closedEnv body
+evalFunction ast _ = CText (metaC ast) (pack $ "Tried to apply something that isn't a function: " ++ show ast)
+
+binding ident val (Env env) = Env $ Map.insert ident val env

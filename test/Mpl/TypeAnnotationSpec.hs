@@ -2,7 +2,7 @@ module Mpl.TypeAnnotationSpec where
 
 import Test.Hspec
 
-import Mpl.AST            (Core(..), CoreType(..), emptyEnv, emptyContext)
+import Mpl.AST            (Core(..), CoreType(..))
 import Mpl.TypeAnnotation (annotate)
 
 import qualified Data.Map.Strict as Map
@@ -21,5 +21,5 @@ spec = do
   test "assoc" (CAssoc [0] [])        [([0], CMapTy)]
 
   test "thunk"
-    (CThunk [0] emptyEnv emptyContext (CUnit [1]))
+    (CThunk [0] () (CUnit [1]))
     [([0], CThunkTy CUnitTy), ([1], CUnitTy)]

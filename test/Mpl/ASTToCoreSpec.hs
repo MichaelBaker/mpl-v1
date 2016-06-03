@@ -3,10 +3,10 @@ module Mpl.ASTToCoreSpec where
 import Test.Hspec
 import ASTHelpers (aparen, asquare, acurly, aint, afloat, atext, asym)
 
-import Mpl.AST       (AST(..), Core(..), CoreType(..), emptyEnv, emptyContext)
+import Mpl.AST       (AST(..), Core(..), CoreType(..))
 import Mpl.ASTToCore (astToCore)
 
-test message ast core = it message (astToCore ast `shouldBe` core)
+test message ast core = it message (astToCore () ast `shouldBe` core)
 
 spec :: Spec
 spec = do
@@ -29,34 +29,34 @@ spec = do
 
   test "a function with no arguments to a thunk"
     (aparen [asym "#", asquare [], aparen []])
-    (CThunk [0] emptyEnv emptyContext (CUnit [0, 0]))
+    (CThunk [0] () (CUnit [0, 0]))
 
   test "a type function with no arguments to a thunk"
     (aparen [asym ":", asquare [], aparen []])
-    (CThunk [0] emptyEnv emptyContext (CUnit [0, 0]))
+    (CThunk [0] () (CUnit [0, 0]))
 
   test "a function of one argument"
     (aparen [asym "#", asquare [asym "a", asym "t"], aparen []])
-    (CFunc [0] emptyEnv emptyContext ("a", "t") (CUnit [0, 0]))
+    (CFunc [0] () ("a", "t") (CUnit [0, 0]))
 
   test "curries a function of multiple arguments"
     (aparen [asym "#", asquare [asym "a", asym "t", asym "b", asym "s"], aparen []])
-    (CFunc [0] emptyEnv emptyContext ("a", "t")
-      (CFunc [0, 0] emptyEnv emptyContext ("b", "s")
+    (CFunc [0] () ("a", "t")
+      (CFunc [0, 0] () ("b", "s")
         (CUnit [0, 0, 0])))
 
   test "one type argument"
     (aparen [asym ":", asquare [asym "t"], (aparen [asym "#", asquare [asym "a", asym "t"], aint 5])])
-    (CTyFunc [0] emptyEnv emptyContext "t"
-      (CFunc [0, 0] emptyEnv emptyContext ("a", "t")
+    (CTyFunc [0] () "t"
+      (CFunc [0, 0] () ("a", "t")
         (CInt [0, 0, 0] 5)))
 
   test "curries multiple type arguments"
     (aparen [asym ":", asquare [asym "t", asym "s"], (aparen [asym "#", asquare [asym "a", asym "t", asym "b", asym "s"], aint 5])])
-    (CTyFunc [0] emptyEnv emptyContext "t"
-      (CTyFunc [0, 0] emptyEnv emptyContext "s"
-        (CFunc [0, 0, 0] emptyEnv emptyContext ("a", "t")
-          (CFunc [0, 0, 0, 0] emptyEnv emptyContext ("b", "s")
+    (CTyFunc [0] () "t"
+      (CTyFunc [0, 0] () "s"
+        (CFunc [0, 0, 0] () ("a", "t")
+          (CFunc [0, 0, 0, 0] () ("b", "s")
             (CInt [0, 0, 0, 0, 0] 5)))))
 
   test "an application with no arguments as a force"

@@ -54,7 +54,7 @@ spec = do
       "(((: [t] (# [a t] a)) int) 5)"
       (hasResult "5")
 
-    -- TODO
+    -- TODO: Remove undefineds
     -- test_0_0 "simple closure"
     --   "((# [a int] ((# [_ int] a) 1)) 5)"
     --   (hasResult "5")
