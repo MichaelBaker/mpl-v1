@@ -4,6 +4,8 @@ This is the project I use to play around with programming language theory and im
 
 ## TODO
 
+[ ] Generics (parametric polymorphism)
+[ ] Typecheck type functions at compile time
 [ ] Warn on type contradictions at level 0.0
 [ ] Start level 1.0
 [ ] Give typechecker a once over and look into correctness
@@ -11,6 +13,16 @@ This is the project I use to play around with programming language theory and im
 [ ] Convert level 0.0 <-> 1.0
 [ ] Start level 2.0
 [ ] Convert level 1.0 <-> 2.0
+[ ] Specialization (ad hoc polymorphism)
+[ ] Type functions (system f-omega/type operators/row polymorphism)
+
+## Things I've learned
+* Term abstraction (Simply typed lambda calculus/term -> term) allows code to be reused with different values.
+  * You don't need to copy-paste the implementation of "add" all over the place.
+  * You can write a function once and pass in different values at each call site.
+* Type abstraction (System F/type -> term) allows code to be reused with different types of values.
+  * You don't need to copy-paste the implementation of a function for every new type of value (int, bool, etc...).
+  * You can write a function once and pass in a different type at each call site.
 
 ## Things I want
 
