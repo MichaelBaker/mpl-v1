@@ -18,10 +18,10 @@ check env tm (CUnit i)                = Map.insert i CUnitTy tm
 check env tm (CInt i _)               = Map.insert i CIntTy  tm
 check env tm (CReal i _)              = Map.insert i CRealTy tm
 check env tm (CText i _)              = Map.insert i CTextTy tm
-check env tm (CList i values)         = Map.insert i CListTy $ foldl' (\tm' -> check env tm') tm values
-check env tm (CAssoc i pairs)         = Map.insert i CMapTy  $ foldl' (\tm' (k, v) -> check env (check env tm' v) k) tm pairs
-check env tm (CMap i pairs)           = Map.insert i CMapTy  $ Map.foldlWithKey' (\tm' k v -> check env (check env tm' v) k) tm pairs
-check env tm (CTyFunc i _ param body) = Map.insert i CUnknownTy $ check env tm body
+check env tm (CList i values)         = Map.insert i CListTy   $ foldl' (\tm' -> check env tm') tm values
+check env tm (CAssoc i pairs)         = Map.insert i CMapTy    $ foldl' (\tm' (k, v) -> check env (check env tm' v) k) tm pairs
+check env tm (CMap i pairs)           = Map.insert i CMapTy    $ Map.foldlWithKey' (\tm' k v -> check env (check env tm' v) k) tm pairs
+check env tm (CTyFunc i _ param body) = Map.insert i CTyFuncTy $ check env tm body
 
 check env tm (CThunk i _ body) = let tm' = check env tm body
                                      in Map.insert i (CThunkTy $ fromJust $ Map.lookup (metaC body) tm') tm'
@@ -47,4 +47,5 @@ withIdent name ty env = Map.insert name ty env
 typeOfIdent env name = case Map.lookup name env of
                          Nothing -> CUnknownTy
                          Just a  -> a
+
 

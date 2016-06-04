@@ -47,3 +47,7 @@ spec = do
   test "applying not a function"
     (CApp 0 (CInt 1 2) (CUnit 2))
     [(0, CUnknownTy), (1, CIntTy), (2, CUnitTy)]
+
+  test "unapplied type functions"
+    (CTyFunc 0 () "t" (CUnit 1))
+    [(0, CTyFuncTy), (1, CUnitTy)]

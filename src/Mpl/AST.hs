@@ -39,6 +39,7 @@ data CoreType = CUnitTy
               | CMapTy
               | CThunkTy CoreType
               | CFuncTy  CoreType CoreType
+              | CTyFuncTy
               | CUnknownTy
               deriving (Show, Eq, Ord)
 
@@ -51,6 +52,7 @@ nameOf CListTy        = "list"
 nameOf CMapTy         = "map"
 nameOf (CThunkTy _)   = "thunk"
 nameOf (CFuncTy  _ _) = "func"
+nameOf CTyFuncTy      = "forall"
 nameOf CUnknownTy     = "unknown"
 
 typeNames = [
