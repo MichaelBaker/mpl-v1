@@ -18,6 +18,18 @@ data Core m a = CUnit   m
               | CApp    m (Core m a) (Core m a)
               deriving (Show, Eq, Ord)
 
+transform f a = f (defaultTransform f) a
+
+defaultTransform f a@(CList   m values)   = CList   m     $ map (transform f) values
+defaultTransform f a@(CAssoc  m pairs)    = CAssoc  m     $ map (\(k, v) -> (transform f k, transform f v)) pairs
+defaultTransform f a@(CMap    m pairs)    = CMap    m     $ Map.foldlWithKey' (\m k v -> Map.insert (transform f k) (transform f v) m) Map.empty pairs
+defaultTransform f a@(CThunk  m e body)   = CThunk  m e   $ transform f body
+defaultTransform f a@(CFunc   m e p body) = CFunc   m e p $ transform f body
+defaultTransform f a@(CTyFunc m e p body) = CTyFunc m e p $ transform f body
+defaultTransform f a@(CForce  m thunk)    = CForce  m     $ transform f thunk
+defaultTransform f a@(CApp    m func arg) = CApp    m (transform f func) (transform f arg)
+defaultTransform _ a                      = a
+
 data CoreType = CUnitTy
               | CIntTy
               | CRealTy
