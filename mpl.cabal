@@ -22,6 +22,7 @@ library
     Mpl.Compiler,
     Mpl.ASTToCore,
     Mpl.Interpreter,
+    Mpl.TypeInterpreter,
     Mpl.Parser,
     Mpl.TypeAnnotation
   build-depends:

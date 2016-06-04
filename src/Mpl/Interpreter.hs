@@ -1,27 +1,34 @@
 module Mpl.Interpreter where
 
-import Mpl.AST   (Core(..), Env, emptyEnv, meta)
-import Data.Text (pack)
+import Mpl.AST   (Core(..), metaC)
+import Data.Text (Text, pack)
 
 import qualified Data.Map.Strict as Map
 
-interpret :: Core [Int] -> Core [Int]
+data Env = Env (Map.Map Text (Core [Int] Env)) deriving (Show, Eq, Ord)
+emptyEnv = Env $ Map.empty
+
+interpret :: Core [Int] Env -> Core [Int] Env
 interpret ast = exec emptyEnv ast
 
-exec :: Env -> Core [Int] -> Core [Int]
-exec env (CIdent path a) = case Map.lookup a env of
-  Nothing -> CText path $ pack $ "Invalid identifier: " ++ (show a)
-  Just o  -> o
-exec env (CList  t as)    = CList t (map (exec env) as)
-exec env (CAssoc t as)    = CMap t $ Map.fromList $ map (\(k, v) -> (exec env k, exec env v)) as
-exec env (CThunk t _ a)   = CThunk t env a
-exec env (CFunc  t _ a b) = CFunc  t env a b
-exec env (CForce _ a)     = forceThunk $ exec env a
-exec env (CApp   _ f a)   = evalFunction (exec env f) (exec env a)
-exec env a                = a
+exec :: Env -> Core [Int] Env -> Core [Int] Env
+exec (Env env) (CIdent path a) = case Map.lookup a env of
+                                   Nothing -> CText path $ pack $ "Invalid identifier: " ++ (show a)
+                                   Just o  -> o
+exec env (CList   m as)    = CList   m (map (exec env) as)
+exec env (CAssoc  m as)    = CMap    m $ Map.fromList $ map (\(k, v) -> (exec env k, exec env v)) as
+exec env (CThunk  m _ a)   = CThunk  m env a
+exec env (CFunc   m _ a b) = CFunc   m env a b
+exec env (CTyFunc m _ a b) = CTyFunc m env a b
+exec env (CForce  _ a)     = forceThunk $ exec env a
+exec env (CApp    _ f a)   = evalFunction (exec env f) (exec env a)
+exec env a                 = a
 
 forceThunk (CThunk _ closedEnv body) = exec closedEnv body
-forceThunk ast = CText (meta ast) (pack $ "Tried to force something that isn't a thunk: " ++ show ast)
+forceThunk ast = CText (metaC ast) (pack $ "Tried to force something that isn't a thunk: " ++ show ast)
 
-evalFunction (CFunc _ closedEnv (param, _) body) arg = exec (Map.insert param arg closedEnv) body
-evalFunction ast _ = CText (meta ast) (pack $ "Tried to apply something that isn't a function: " ++ show ast)
+evalFunction (CFunc   _ closedEnv (param, _) body) arg = exec (binding param arg closedEnv) body
+evalFunction (CTyFunc _ closedEnv tyParam body)    arg = exec closedEnv body
+evalFunction ast _ = CText (metaC ast) (pack $ "Tried to apply something that isn't a function: " ++ show ast)
+
+binding ident val (Env env) = Env $ Map.insert ident val env
