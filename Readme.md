@@ -4,7 +4,8 @@ This is the project I use to play around with programming language theory and im
 
 ## TODO
 
-[ ] Generics (parametric polymorphism)
+[ ] Combinators (parametric polymorphism of functions)
+[ ] Generics (parametric polymorphism of types)
 [ ] Typecheck type functions at compile time
 [ ] Warn on type contradictions at level 0.0
 [ ] Start level 1.0
@@ -22,6 +23,7 @@ This is the project I use to play around with programming language theory and im
   * You can write a function once and pass in different values at each call site.
 
 * Type abstraction (System F/type -> term) allows code to be reused with different types of values.
+  * I think this only gives you combinators (f a b = b, f a g = g a, etc...). You need System F-omega for generic data structures.
   * You don't need to copy-paste the implementation of a function for every new type of value (int, bool, etc...).
   * You can write a function once and pass in a different type at each call site.
 
