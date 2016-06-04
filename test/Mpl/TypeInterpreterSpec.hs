@@ -4,11 +4,11 @@ import Test.Hspec
 import qualified Data.Map as Map
 
 import Mpl.AST             (AST(..), Core(..), CoreType(..))
-import Mpl.TypeInterpreter (interpret)
+import Mpl.TypeInterpreter (interpretTypes)
 
 test :: String -> Core () () -> Core () () -> Spec
 test message core expectedCore = it message $ do
-  interpret core `shouldBe` expectedCore
+  interpretTypes core `shouldBe` expectedCore
 
 spec :: Spec
 spec = do

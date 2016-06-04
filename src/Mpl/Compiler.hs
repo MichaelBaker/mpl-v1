@@ -1,10 +1,11 @@
 module Mpl.Compiler where
 
-import Mpl.AST            (AST, Core(..), CoreType(..))
-import Mpl.ASTToCore      (astToCore)
-import Mpl.TypeAnnotation (annotate)
-import Mpl.Parser         (parse)
-import Mpl.Interpreter    (interpret, emptyEnv)
+import Mpl.AST             (AST, Core(..), CoreType(..))
+import Mpl.ASTToCore       (astToCore)
+import Mpl.TypeAnnotation  (annotate)
+import Mpl.Parser          (parse)
+import Mpl.Interpreter     (interpret, emptyEnv)
+import Mpl.TypeInterpreter (interpretTypes)
 
 import Text.Earley   (Report)
 import Data.Text     (Text, unpack, pack)
@@ -48,7 +49,7 @@ run options string = do
   parsedAST <- Right $ parse (pack string)
   ast       <- handleParseFail parsedAST
 
-  let (core, typeMap) = annotate $ astToCore emptyEnv ast
+  let (core, typeMap) = annotate $ interpretTypes $ astToCore emptyEnv ast
       contradictions  = Map.filter (== CUnknownTy) typeMap
 
   if Map.null contradictions
@@ -70,20 +71,21 @@ handleParseFail (a:[], _)   = Right a
 handleParseFail (a:rest, _) = Left $ "Error: The grammar is ambiguous and produced " ++ show (1 + length rest) ++ " parses.\n\n" ++ (intercalate "\n" $ map show (a:rest))
 handleParseFail (_, r)      = Left $ show r
 
-prettyPrint (CUnit   _)            = "()"
-prettyPrint (CInt    _ i)          = show i
-prettyPrint (CReal   _ r)          = showFFloatAlt Nothing r ""
-prettyPrint (CText   _ t)          = show t
-prettyPrint (CIdent  _ t)          = unpack t
-prettyPrint (CList   _ as)         = "[" ++ intercalate " " (map prettyPrint as) ++ "]"
-prettyPrint (CAssoc  _ ps)         = "{" ++ intercalate " " (map prettyPrintPair ps) ++ "}"
-prettyPrint (CMap    _ m)          = "{" ++ intercalate " " (map prettyPrintPair $ Map.toList m) ++ "}"
-prettyPrint (CThunk  _ _ b)        = "(# []" ++ prettyPrint b ++ ")"
-prettyPrint (CFunc   _ _ (p, _) b) = "(# [" ++ unpack p ++ "] " ++ prettyPrint b ++ ")"
-prettyPrint (CTyFunc _ _ p b)      = "(: [" ++ unpack p ++ "] " ++ prettyPrint b ++ ")"
-prettyPrint (CForce  _ t)          = "(" ++ prettyPrint t ++ ")"
-prettyPrint (CApp    _ f a)        = "(" ++ prettyPrint f ++ " " ++ prettyPrint a ++ ")"
+prettyPrint (CUnit   _)             = "()"
+prettyPrint (CInt    _ i)           = show i
+prettyPrint (CReal   _ r)           = showFFloatAlt Nothing r ""
+prettyPrint (CText   _ t)           = show t
+prettyPrint (CIdent  _ t)           = unpack t
+prettyPrint (CList   _ as)          = "[" ++ intercalate " " (map prettyPrint as) ++ "]"
+prettyPrint (CAssoc  _ ps)          = "{" ++ intercalate " " (map prettyPrintPair ps) ++ "}"
+prettyPrint (CMap    _ m)           = "{" ++ intercalate " " (map prettyPrintPair $ Map.toList m) ++ "}"
+prettyPrint (CThunk  _ _ b)         = "(# []" ++ prettyPrint b ++ ")"
+prettyPrint (CFunc   _ _ (p, ty) b) = "(# [(: " ++ unpack p  ++ " " ++ unpack ty ++ ")] " ++ prettyPrint b ++ ")"
+prettyPrint (CTyFunc _ _ p b)       = "(: [" ++ unpack p ++ "] " ++ prettyPrint b ++ ")"
+prettyPrint (CForce  _ t)           = "(" ++ prettyPrint t ++ ")"
+prettyPrint (CApp    _ f a)         = "(" ++ prettyPrint f ++ " " ++ prettyPrint a ++ ")"
 
 prettyPrintPair (a, b) = prettyPrint a ++ " " ++ prettyPrint b
 
 typeErrorMessages core contradictions = map show $ Map.toList contradictions
+
