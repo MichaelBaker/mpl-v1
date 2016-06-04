@@ -1,6 +1,7 @@
 module Mpl.AST where
 
 import Data.Text (Text)
+import Data.List (find)
 import qualified Data.Map as Map
 
 data Core m a = CUnit   m
@@ -40,6 +41,31 @@ data CoreType = CUnitTy
               | CFuncTy  CoreType CoreType
               | CUnknownTy
               deriving (Show, Eq, Ord)
+
+nameOf :: CoreType -> Text
+nameOf CUnitTy        = "unit"
+nameOf CIntTy         = "int"
+nameOf CRealTy        = "real"
+nameOf CTextTy        = "text"
+nameOf CListTy        = "list"
+nameOf CMapTy         = "map"
+nameOf (CThunkTy _)   = "thunk"
+nameOf (CFuncTy  _ _) = "func"
+nameOf CUnknownTy     = "unknown"
+
+typeNames = [
+  (nameOf CUnitTy,    CUnitTy),
+  (nameOf CIntTy,     CIntTy),
+  (nameOf CRealTy,    CRealTy),
+  (nameOf CTextTy,    CTextTy),
+  (nameOf CListTy,    CListTy),
+  (nameOf CMapTy,     CMapTy),
+  (nameOf CUnknownTy, CUnknownTy)
+  ]
+
+typeOf name = case find ((== name) . fst) typeNames of
+                Nothing -> Nothing
+                Just a  -> Just $ snd a
 
 metaC (CUnit   m)       = m
 metaC (CInt    m _)     = m

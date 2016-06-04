@@ -1,8 +1,7 @@
 module Mpl.TypeInterpreter where
 
 import Data.Text (Text)
-import Data.List (find)
-import Mpl.AST   (Core(..), CoreType(..), transform)
+import Mpl.AST   (Core(..), CoreType(CUnknownTy), transform, typeOf, nameOf)
 import qualified Data.Map.Strict as Map
 
 type Env = Map.Map Text CoreType
@@ -13,26 +12,12 @@ apply ctx _ (CApp _ (CTyFunc _ _ param body) tyArg) = transform (apply $ binding
 apply ctx _ (CFunc m e (p, t) body) = CFunc m e (p, typeName t ctx) $ transform (apply ctx) body
 apply _ f a = f a
 
-binding param typeName ctx = Map.insert param (typeOf typeName) ctx
-
-mapping = [
-  ("unit", CUnitTy),
-  ("int",  CIntTy),
-  ("real", CRealTy),
-  ("text", CTextTy),
-  ("list", CListTy),
-  ("map",  CMapTy)
-  ]
+binding param (CIdent _ typeName) ctx = case typeOf typeName of
+                                          Nothing -> Map.insert param CUnknownTy ctx
+                                          Just a  -> Map.insert param a ctx
+binding _ a _ = error $ "Invalid type identifier: " ++ show a
 
 typeName name ctx = case Map.lookup name ctx of
-                      Nothing -> "unknown"
+                      Nothing -> nameOf CUnknownTy
                       Just a  -> nameOf a
 
-nameOf ty = case find ((== ty) . snd) mapping of
-              Nothing -> error $ "No name for type: " ++ show ty
-              Just a  -> fst a
-
-typeOf (CIdent _ name) = case find ((== name) . fst) mapping of
-                           Nothing -> error $ "Invalid type name: " ++ show name
-                           Just a  -> snd a
-typeOf a = error $ "Invalid type name: " ++ show a
