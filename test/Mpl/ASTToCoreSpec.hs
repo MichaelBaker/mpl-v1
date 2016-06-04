@@ -33,32 +33,32 @@ spec = do
     (aparen [asym "#", asquare [], aparen []])
     (CThunk [0] () (CUnit [0, 0]))
 
-  test "a type function with no arguments to a thunk"
+  test "a type function with no arguments is removed"
     (aparen [asym ":", asquare [], aparen []])
-    (CThunk [0] () (CUnit [0, 0]))
+    (CUnit [0])
 
   test "a function of one argument"
     (aparen [asym "#", asquare [param "a" "t"], aparen []])
-    (CFunc [0] () ("a", "t") (CUnit [0, 0]))
+    (CFunc [0] () ("a", CTSym "t") (CUnit [0, 0]))
 
   test "curries a function of multiple arguments"
     (aparen [asym "#", asquare [param "a" "t", param "b" "s"], aparen []])
-    (CFunc [0] () ("a", "t")
-      (CFunc [0, 0] () ("b", "s")
+    (CFunc [0] () ("a", CTSym "t")
+      (CFunc [0, 0] () ("b", CTSym "s")
         (CUnit [0, 0, 0])))
 
   test "one type argument"
     (aparen [asym ":", asquare [asym "t"], (aparen [asym "#", asquare [param "a" "t"], aint 5])])
     (CTyFunc [0] () "t"
-      (CFunc [0, 0] () ("a", "t")
+      (CFunc [0, 0] () ("a", CTSym "t")
         (CInt [0, 0, 0] 5)))
 
   test "curries multiple type arguments"
     (aparen [asym ":", asquare [asym "t", asym "s"], (aparen [asym "#", asquare [param "a" "t", param "b" "s"], aint 5])])
     (CTyFunc [0] () "t"
       (CTyFunc [0, 0] () "s"
-        (CFunc [0, 0, 0] () ("a", "t")
-          (CFunc [0, 0, 0, 0] () ("b", "s")
+        (CFunc [0, 0, 0] () ("a", CTSym "t")
+          (CFunc [0, 0, 0, 0] () ("b", CTSym "s")
             (CInt [0, 0, 0, 0, 0] 5)))))
 
   test "an application with no arguments as a force"
@@ -76,3 +76,19 @@ spec = do
         (CUnit [0, 0, 0])
         (CInt  [1, 0, 0] 1))
       (CInt [1, 0] 2))
+
+  test "application of a type function"
+    (aparen [(aparen [asym ":", asquare [asym "t"], (aparen [asym "#", asquare [param "a" "t"], aint 5])]), asym "int"])
+    (CTyApp [0]
+      (CTyFunc [0, 0] () "t"
+        (CFunc [0, 0, 0] () ("a", CTSym "t")
+          (CInt [0, 0, 0, 0] 5)))
+      CIntTy)
+
+  test "type operator"
+    (aparen [asym "$", asquare [asym "t"], asym "t"])
+    (CFOmega [0] $ CTFOmega "t" (CTSym "t"))
+
+  test "curries type operators"
+    (aparen [asym "$", asquare [asym "t", asym "s"], asym "t"])
+    (CFOmega [0] $ CTFOmega "t" (CTFOmega "s" (CTSym "t")))

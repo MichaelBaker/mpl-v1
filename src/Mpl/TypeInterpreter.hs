@@ -1,24 +1,31 @@
 module Mpl.TypeInterpreter where
 
 import Data.Text (Text)
-import Mpl.AST   (Core(..), CoreType(CUnknownTy), transform, typeOf, nameOf)
+import Mpl.AST   (Core(..), CoreType(..), transform, typeOf, nameOf)
 import qualified Data.Map.Strict as Map
 
 type Env = Map.Map Text CoreType
 
 interpretTypes core = transform (apply Map.empty) core
 
-apply ctx _ (CApp _ (CTyFunc _ _ param body) tyArg) = transform (apply $ binding param tyArg ctx) body
-apply ctx _ (CFunc m e (p, t) body) = CFunc m e (p, typeName t ctx) $ transform (apply ctx) body
+apply ctx _ (CTyApp _ (CTyFunc _ _ p b) arg) = applyTyFun ctx p b arg
+apply ctx _ a@(CFOmega _ _)                  = error $ "Cannot use type operators at the term level: " ++ show a
+apply ctx _ (CFunc m e (p, t) body)          = CFunc m e (p, applyTy t ctx) $ transform (apply ctx) body
 apply _ f a = f a
 
-binding param (CIdent _ typeName) ctx = case typeOf typeName of
-                                          Nothing -> Map.insert param CUnknownTy ctx
-                                          Just a  -> Map.insert param a ctx
-binding _ a _ = error $ "Invalid type identifier: " ++ show a
+applyTyFun ctx p b tyArg = transform (apply $ binding ctx p $ applyOmega ctx tyArg) b
 
-typeName name ctx = case typeOf name of
-                      Just _  -> name
-                      Nothing -> case Map.lookup name ctx of
-                                   Nothing -> nameOf CUnknownTy
-                                   Just a  -> nameOf a
+applyOmega ctx (CTSym name) = case Map.lookup name ctx of
+                                Nothing -> error $ "Unbound type variable: " ++ show name
+                                Just ty -> ty
+applyOmega ctx (CTApp f a) = case applyOmega ctx f of
+                               (CTFOmega p b) -> applyOmega (binding ctx p (applyOmega ctx a)) b
+                               a              -> error $ "Tried to apply something that isn't a type operator: " ++ show f
+applyOmega _ a = a
+
+binding ctx param ty = Map.insert param ty ctx
+
+applyTy (CTSym name) ctx = case Map.lookup name ctx of
+                              Just ty -> ty
+                              Nothing -> CUnknownTy
+applyTy a _ = a

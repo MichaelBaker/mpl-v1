@@ -13,16 +13,22 @@ test message core expectedCore = it message $ do
 spec :: Spec
 spec = do
   test "applies type functions"
-    (CApp () (CTyFunc () () ("t") (CFunc () () ("a", "t") (CUnit ()))) (CIdent () "unit"))
-    (CFunc () () ("a", "unit") (CUnit ()))
+    (CTyApp () (CTyFunc () () "t" (CFunc () () ("a", CTSym "t") (CUnit ()))) CUnitTy)
+    (CFunc () () ("a", CUnitTy) (CUnit ()))
 
   test "marks unbound types as unknown"
-    (CFunc () () ("a", "b") (CUnit ()))
-    (CFunc () () ("a", "unknown") (CUnit ()))
+    (CFunc () () ("a", CTSym "b") (CUnit ()))
+    (CFunc () () ("a", CUnknownTy) (CUnit ()))
 
   test "marks incorrectly named types as unknown"
-    (CApp () (CTyFunc () () ("t") (CFunc () () ("a", "z") (CUnit ()))) (CIdent () "unit"))
-    (CFunc () () ("a", "unknown") (CUnit ()))
+    (CTyApp () (CTyFunc () () "t" (CFunc () () ("a", CTSym "z") (CUnit ()))) CUnitTy)
+    (CFunc () () ("a", CUnknownTy) (CUnit ()))
+
+  test "applies type operators"
+    (CTyApp ()
+      (CTyFunc () () "t" (CFunc () () ("a", CTSym "t") (CIdent () "a")))
+      (CTApp (CTFOmega "t" (CTSym "t")) CIntTy))
+    (CFunc () () ("a", CIntTy) (CIdent () "a"))
 
   test "leaves unit unaltered"
     (CUnit ())

@@ -1,6 +1,6 @@
 module Mpl.Compiler where
 
-import Mpl.AST             (AST, Core(..), CoreType(..))
+import Mpl.AST             (AST, Core(..), CoreType(..), nameOf)
 import Mpl.ASTToCore       (astToCore)
 import Mpl.TypeAnnotation  (annotate)
 import Mpl.Parser          (parse)
@@ -80,12 +80,18 @@ prettyPrint (CList   _ as)          = "[" ++ intercalate " " (map prettyPrint as
 prettyPrint (CAssoc  _ ps)          = "{" ++ intercalate " " (map prettyPrintPair ps) ++ "}"
 prettyPrint (CMap    _ m)           = "{" ++ intercalate " " (map prettyPrintPair $ Map.toList m) ++ "}"
 prettyPrint (CThunk  _ _ b)         = "(# []" ++ prettyPrint b ++ ")"
-prettyPrint (CFunc   _ _ (p, ty) b) = "(# [(: " ++ unpack p  ++ " " ++ unpack ty ++ ")] " ++ prettyPrint b ++ ")"
+prettyPrint (CFunc   _ _ (p, ty) b) = "(# [(: " ++ unpack p  ++ " " ++ prettyPrintOmega ty ++ ")] " ++ prettyPrint b ++ ")"
 prettyPrint (CTyFunc _ _ p b)       = "(: [" ++ unpack p ++ "] " ++ prettyPrint b ++ ")"
 prettyPrint (CForce  _ t)           = "(" ++ prettyPrint t ++ ")"
 prettyPrint (CApp    _ f a)         = "(" ++ prettyPrint f ++ " " ++ prettyPrint a ++ ")"
+prettyPrint (CFOmega _ a)           = prettyPrintOmega a
+prettyPrint (CTyApp  _ a b)         = "(" ++ prettyPrint a ++ " " ++ prettyPrintOmega b ++ ")"
+
+prettyPrintOmega (CTSym a)      = unpack a
+prettyPrintOmega (CTFOmega p b) = "($ [" ++ unpack p ++ "] " ++ prettyPrintOmega b ++ ")"
+prettyPrintOmega (CTApp a b)    = "(" ++ prettyPrintOmega a ++ " " ++ prettyPrintOmega b ++ ")"
+prettyPrintOmega a              = unpack $ nameOf a
 
 prettyPrintPair (a, b) = prettyPrint a ++ " " ++ prettyPrint b
 
 typeErrorMessages core contradictions = map show $ Map.toList contradictions
-

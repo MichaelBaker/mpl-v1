@@ -4,19 +4,23 @@ import Data.Text (Text)
 import Data.List (find)
 import qualified Data.Map as Map
 
-data Core m a = CUnit   m
+-- |m is any metadata that might be relevant to the node during a particular compilation phase
+-- e represents an "environment". This is where a closure's environment is stored during execution.
+data Core m e = CUnit   m
               | CInt    m Integer
               | CReal   m Double
               | CText   m Text
               | CIdent  m Text
-              | CList   m [Core m a]
-              | CAssoc  m [(Core m a, Core m a)]
-              | CMap    m (Map.Map (Core m a) (Core m a))
-              | CThunk  m a (Core m a)
-              | CFunc   m a (Text, Text) (Core m a)
-              | CTyFunc m a Text (Core m a)
-              | CForce  m (Core m a)
-              | CApp    m (Core m a) (Core m a)
+              | CList   m [Core m e]
+              | CAssoc  m [(Core m e, Core m e)]
+              | CMap    m (Map.Map (Core m e) (Core m e))
+              | CThunk  m e (Core m e)
+              | CFunc   m e (Text, CoreType) (Core m e)
+              | CTyFunc m e Text (Core m e)
+              | CForce  m (Core m e)
+              | CApp    m (Core m e) (Core m e)
+              | CTyApp  m (Core m e) CoreType
+              | CFOmega m CoreType
               deriving (Show, Eq, Ord)
 
 transform f a = f (defaultTransform f) a
@@ -41,10 +45,13 @@ data CoreType = CUnitTy
               | CFuncTy  CoreType CoreType
               | CTyFuncTy
               | CUnknownTy
+              | CTSym Text
+              | CTFOmega Text CoreType
+              | CTApp CoreType CoreType
               deriving (Show, Eq, Ord)
 
 nameOf :: CoreType -> Text
-nameOf CUnitTy        = "unit"
+nameOf CUnitTy        = "()"
 nameOf CIntTy         = "int"
 nameOf CRealTy        = "real"
 nameOf CTextTy        = "text"
@@ -54,6 +61,9 @@ nameOf (CThunkTy _)   = "thunk"
 nameOf (CFuncTy  _ _) = "func"
 nameOf CTyFuncTy      = "forall"
 nameOf CUnknownTy     = "unknown"
+nameOf (CTFOmega _ _) = "ct-f-omega"
+nameOf (CTApp _ _)    = "ct-app"
+nameOf (CTSym _)      = "ct-sym"
 
 typeNames = [
   (nameOf CUnitTy,    CUnitTy),
@@ -82,6 +92,8 @@ metaC (CFunc   m _ _ _) = m
 metaC (CTyFunc m _ _ _) = m
 metaC (CForce  m _)     = m
 metaC (CApp    m _ _)   = m
+metaC (CFOmega m _)     = m
+metaC (CTyApp  m _ _)   = m
 
 data AST a = AInt   a Integer
            | AFloat a Double

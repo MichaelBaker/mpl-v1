@@ -4,8 +4,10 @@ This is the project I use to play around with programming language theory and im
 
 ## TODO
 
-[ ] Combinators (parametric polymorphism of functions)
 [ ] Generics (parametric polymorphism of types)
+[ ] Change CIdent to CSym
+[ ] Change CTyFunc to CF
+[ ] Change prefix of all core type constructors to CT (perhaps move into a module)
 [ ] Typecheck type functions at compile time
 [ ] Warn on type contradictions at level 0.0
 [ ] Start level 1.0

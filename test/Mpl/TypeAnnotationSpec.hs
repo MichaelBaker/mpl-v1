@@ -7,6 +7,7 @@ import Mpl.TypeAnnotation (annotate)
 
 import qualified Data.Map.Strict as Map
 
+test :: String -> Core Int () -> [(Int, CoreType)] -> Spec
 test message core expectedTypes = it message $ do
   snd (annotate core) `shouldBe` Map.fromList expectedTypes
 
@@ -25,7 +26,7 @@ spec = do
     [(0, CThunkTy CUnitTy), (1, CUnitTy)]
 
   test "function"
-    (CFunc 0 () ("a", "unit") (CUnit 1))
+    (CFunc 0 () ("a", CUnitTy) (CUnit 1))
     [(0, CFuncTy CUnitTy CUnitTy), (1, CUnitTy)]
 
   test "forcing a thunk"
@@ -37,17 +38,13 @@ spec = do
     [(0, CUnknownTy), (1, CRealTy)]
 
   test "applying a well typed function"
-    (CApp 0 (CFunc 1 () ("a", "unit") (CInt 2 1)) (CUnit 3))
+    (CApp 0 (CFunc 1 () ("a", CUnitTy) (CInt 2 1)) (CUnit 3))
     [(0, CIntTy), (1, CFuncTy CUnitTy CIntTy), (2, CIntTy), (3, CUnitTy)]
 
   test "applying an ill-typed function"
-    (CApp 0 (CFunc 1 () ("a", "real") (CInt 2 1)) (CUnit 3))
+    (CApp 0 (CFunc 1 () ("a", CRealTy) (CInt 2 1)) (CUnit 3))
     [(0, CUnknownTy), (1, CFuncTy CRealTy CIntTy), (2, CIntTy), (3, CUnitTy)]
 
   test "applying not a function"
     (CApp 0 (CInt 1 2) (CUnit 2))
     [(0, CUnknownTy), (1, CIntTy), (2, CUnitTy)]
-
-  test "unapplied type functions"
-    (CTyFunc 0 () "t" (CUnit 1))
-    [(0, CTyFuncTy), (1, CUnitTy)]
