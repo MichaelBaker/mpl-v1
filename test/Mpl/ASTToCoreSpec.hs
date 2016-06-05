@@ -3,7 +3,8 @@ module Mpl.ASTToCoreSpec where
 import Test.Hspec
 import ASTHelpers (aparen, asquare, acurly, aint, afloat, atext, asym)
 
-import Mpl.AST       (AST(..), Core(..), CoreType(..))
+import Mpl.AST       (AST(..))
+import Mpl.Core      (Core(..), CoreType(..))
 import Mpl.ASTToCore (astToCore)
 
 test message ast core = it message (astToCore () ast `shouldBe` core)

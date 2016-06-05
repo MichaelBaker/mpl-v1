@@ -3,7 +3,7 @@ module Mpl.TypeInterpreterSpec where
 import Test.Hspec
 import qualified Data.Map as Map
 
-import Mpl.AST             (AST(..), Core(..), CoreType(..))
+import Mpl.Core            (Core(..), CoreType(..))
 import Mpl.TypeInterpreter (interpretTypes)
 
 test :: String -> Core () () -> Core () () -> Spec

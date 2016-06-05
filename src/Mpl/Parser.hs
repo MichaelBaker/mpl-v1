@@ -5,10 +5,10 @@ module Mpl.Parser where
 import Mpl.AST (AST(..))
 
 import Control.Applicative ((<|>), many, some, optional)
-import Data.Char           (isSpace, isDigit, isAscii, isLetter, isAsciiUpper, isAsciiLower)
+import Data.Char           (isSpace, isDigit, isAsciiUpper, isAsciiLower)
 import Data.Text           (Text, pack)
 import Data.Text.Read      (signed, decimal, double)
-import Text.Earley         ((<?>), Grammar, Report, Prod, list, satisfy, rule, fullParses, token, listLike)
+import Text.Earley         ((<?>), Grammar, Report, Prod, satisfy, rule, fullParses, token)
 
 import qualified Text.Earley as E
 import qualified Data.Text   as T

@@ -1,6 +1,7 @@
 module Mpl.Compiler where
 
-import Mpl.AST             (AST, Core(..), CoreType(..), nameOf)
+import Mpl.AST             (AST)
+import Mpl.Core            (Core(..), CoreType(..), nameOf)
 import Mpl.ASTToCore       (astToCore)
 import Mpl.TypeAnnotation  (annotate)
 import Mpl.Parser          (parse)

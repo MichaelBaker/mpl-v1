@@ -19,12 +19,13 @@ library
     OverloadedStrings
   exposed-modules:
     Mpl.AST,
-    Mpl.Compiler,
     Mpl.ASTToCore,
+    Mpl.Compiler,
+    Mpl.Core,
     Mpl.Interpreter,
-    Mpl.TypeInterpreter,
     Mpl.Parser,
-    Mpl.TypeAnnotation
+    Mpl.TypeAnnotation,
+    Mpl.TypeInterpreter
   build-depends:
     base >= 4.7 && < 5,
     Earley,
@@ -33,7 +34,9 @@ library
     llvm-general,
     containers
   ghc-options:
-    -fwarn-incomplete-patterns -Werror
+    -fwarn-incomplete-patterns
+    -fwarn-unused-imports
+    -Werror
   default-language:
     Haskell2010
 

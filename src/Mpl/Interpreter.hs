@@ -1,6 +1,6 @@
 module Mpl.Interpreter where
 
-import Mpl.AST   (Core(..), metaC)
+import Mpl.Core  (Core(..), meta)
 import Data.Text (Text, pack)
 
 import qualified Data.Map.Strict as Map
@@ -25,10 +25,10 @@ exec env (CApp    _ f a)   = evalFunction (exec env f) (exec env a)
 exec env a                 = a
 
 forceThunk (CThunk _ closedEnv body) = exec closedEnv body
-forceThunk ast = CText (metaC ast) (pack $ "Tried to force something that isn't a thunk: " ++ show ast)
+forceThunk ast = CText (meta ast) (pack $ "Tried to force something that isn't a thunk: " ++ show ast)
 
 evalFunction (CFunc   _ closedEnv (param, _) body) arg = exec (binding param arg closedEnv) body
 evalFunction (CTyFunc _ closedEnv tyParam body)    arg = exec closedEnv body
-evalFunction ast _ = CText (metaC ast) (pack $ "Tried to apply something that isn't a function: " ++ show ast)
+evalFunction ast _ = CText (meta ast) (pack $ "Tried to apply something that isn't a function: " ++ show ast)
 
 binding ident val (Env env) = Env $ Map.insert ident val env

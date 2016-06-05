@@ -1,7 +1,7 @@
 module Mpl.TypeAnnotation where
 
 import Data.Text (Text)
-import Mpl.AST   (Core(..), CoreType(..), metaC, typeOf)
+import Mpl.Core  (Core(..), CoreType(..), meta)
 
 import Data.List  (foldl')
 import Data.Maybe (fromJust)
@@ -23,20 +23,20 @@ check env tm (CAssoc i pairs)         = Map.insert i CMapTy    $ foldl' (\tm' (k
 check env tm (CMap i pairs)           = Map.insert i CMapTy    $ Map.foldlWithKey' (\tm' k v -> check env (check env tm' v) k) tm pairs
 
 check env tm (CThunk i _ body) = let tm' = check env tm body
-                                     in Map.insert i (CThunkTy $ fromJust $ Map.lookup (metaC body) tm') tm'
+                                     in Map.insert i (CThunkTy $ fromJust $ Map.lookup (meta body) tm') tm'
 
 check env tm (CFunc i _ (param, tyParam) body) = let tm' = check (withIdent param tyParam env) tm body
-                                                     in Map.insert i (CFuncTy tyParam (fromJust $ Map.lookup (metaC body) tm')) tm'
+                                                     in Map.insert i (CFuncTy tyParam (fromJust $ Map.lookup (meta body) tm')) tm'
 
 check env tm (CForce i thunk) = let tm' = check env tm thunk
-                                    in case fromJust $ Map.lookup (metaC thunk) tm' of
+                                    in case fromJust $ Map.lookup (meta thunk) tm' of
                                          (CThunkTy t) -> Map.insert i t tm'
                                          _ -> Map.insert i CUnknownTy tm'
 
 check env tm (CApp i func arg) = let tm'   = check env tm arg
                                      tm''  = check env tm' func
-                                     argTy = fromJust $ Map.lookup (metaC arg)  tm''
-                                     fTy   = fromJust $ Map.lookup (metaC func) tm''
+                                     argTy = fromJust $ Map.lookup (meta arg)  tm''
+                                     fTy   = fromJust $ Map.lookup (meta func) tm''
                                      in case fTy of
                                           (CFuncTy a b) -> Map.insert i (if a == argTy then b else CUnknownTy) tm''
                                           _ -> Map.insert i CUnknownTy tm''

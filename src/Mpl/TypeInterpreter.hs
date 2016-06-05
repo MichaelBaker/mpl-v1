@@ -1,7 +1,7 @@
 module Mpl.TypeInterpreter where
 
 import Data.Text (Text)
-import Mpl.AST   (Core(..), CoreType(..), transform, typeOf, nameOf)
+import Mpl.Core  (Core(..), CoreType(..), transform)
 import qualified Data.Map.Strict as Map
 
 type Env = Map.Map Text CoreType

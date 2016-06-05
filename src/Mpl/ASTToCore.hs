@@ -1,7 +1,7 @@
 module Mpl.ASTToCore where
 
-import Mpl.AST (AST(..), Core(..), CoreType(..), typeOf)
-
+import Mpl.AST  (AST(..))
+import Mpl.Core (Core(..), CoreType(..), typeOf)
 
 astToCore e ast = elaborate e [0] ast
 

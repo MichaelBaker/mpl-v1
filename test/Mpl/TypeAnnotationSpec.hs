@@ -2,7 +2,7 @@ module Mpl.TypeAnnotationSpec where
 
 import Test.Hspec
 
-import Mpl.AST            (Core(..), CoreType(..))
+import Mpl.Core           (Core(..), CoreType(..))
 import Mpl.TypeAnnotation (annotate)
 
 import qualified Data.Map.Strict as Map
