@@ -20,6 +20,20 @@ This is the project I use to play around with programming language theory and im
 [ ] Type functions (system f-omega/type operators/row polymorphism)
 
 ## Things I've learned
+
+Quets are wanted pages. They request problems.
+Types are problems.     They request solutions.
+Terms are solutions.    They satisfy requests.
+
+A quet says "My workers need something to do."
+A type says "Ok, I want some kind of integer".
+A term says "Here is the integer you requested".
+
+A termfun type(funtype) says "I want a machine that can solve B if I can provide a solution to A."
+A term function (termfun) says "Here is your machine you requested."
+A type operator (tyop) says "If you can find demand for A, I can drum up demand for B."
+A dependent type (depty) says "If you can find a solution to A, I can generate problem B."
+
 * Term abstraction (Simply typed lambda calculus/term -> term) allows code to be reused with different values.
   * You don't need to copy-paste the implementation of "add" all over the place.
   * You can write a function once and pass in different values at each call site.
