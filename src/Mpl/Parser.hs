@@ -13,10 +13,10 @@ import Text.Earley         ((<?>), Grammar, Report, Prod, satisfy, rule, fullPar
 import qualified Text.Earley as E
 import qualified Data.Text   as T
 
-parse :: Text -> ([AST ()], Report Text Text)
+parse :: Text -> ([AST], Report Text Text)
 parse = fullParses (E.parser grammar)
 
-grammar :: Grammar r (Prod r Text Char (AST ()))
+grammar :: Grammar r (Prod r Text Char (AST))
 grammar = mdo
   let exp           = int <|> float <|> text <|> sym <|> sexp
       whitespace    = isSpace
@@ -30,39 +30,39 @@ grammar = mdo
 
   sexp <- rule $ paren <|> square <|> curly <?> "sexp"
 
-  paren <- rule $ pure (separated $ ASexp () "(" ")")
+  paren <- rule $ pure (separated $ ASexp "(" ")")
     <*  floating (token '(')
     <*> many (spaceAfter exp)
     <*> optional exp
     <*  token ')'
     <?> "paren-brackets"
 
-  square <- rule $ pure (separated $ ASexp () "[" "]")
+  square <- rule $ pure (separated $ ASexp "[" "]")
     <*  floating (token '[')
     <*> many (spaceAfter exp)
     <*> optional exp
     <*  token ']'
     <?> "square-brackets"
 
-  curly <- rule $ pure (separated $ ASexp () "{" "}")
+  curly <- rule $ pure (separated $ ASexp "{" "}")
     <*  floating (token '{')
     <*> many (spaceAfter exp)
     <*> optional exp
     <*  token '}'
     <?> "square-brackets"
 
-  sym <- rule $ (\a as -> ASym () $ pack (a:as))
+  sym <- rule $ (\a as -> ASym $ pack (a:as))
     <$> satisfy (\c -> any ($ c) [isAsciiLower, (`elem` symChars)])
     <*> many (satisfy (\c -> any ($ c) [isDigit, isAsciiLower, isAsciiUpper, (`elem` symChars)]))
     <?> "symbol"
 
-  text <- rule $ pure (AText () . pack)
+  text <- rule $ pure (AText . pack)
     <*  token '"'
     <*> many (satisfy (/= '"'))
     <*  token '"'
     <?> "text"
 
-  float <- rule $ (\whole dot fraction -> AFloat () $ forceRead double $ pack $ whole ++ [dot] ++ fraction)
+  float <- rule $ (\whole dot fraction -> AFloat $ forceRead double $ pack $ whole ++ [dot] ++ fraction)
     <$> (
       some (token '0') <|>
       (\firstDigit rest -> firstDigit:rest)
@@ -73,7 +73,7 @@ grammar = mdo
     <*> some (satisfy isDigit)
     <?> "float"
 
-  int <- rule $ (\firstDigit rest -> AInt () $ forceRead (signed decimal) $ pack $ firstDigit:rest)
+  int <- rule $ (\firstDigit rest -> AInt $ forceRead (signed decimal) $ pack $ firstDigit:rest)
     <$> satisfy (`elem` naturalDigits)
     <*> many (satisfy isDigit)
     <?> "integer"
