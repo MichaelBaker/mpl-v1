@@ -24,3 +24,11 @@ spec = do
   test "text"
     (AText "a")
     (CText "a")
+
+  test "a lambda"
+    (aparen [asym "#", asquare [asym "a"], asym "a"])
+    (CLam "a" (CSym "a"))
+
+  test "applying a lambda to a term"
+    (aparen [aparen [asym "#", asquare [asym "a"], asym "a"], aint 1])
+    (CTermApp (CLam "a" (CSym "a")) (CInt 1))

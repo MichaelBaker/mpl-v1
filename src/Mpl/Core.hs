@@ -26,8 +26,9 @@ data Core a where
   CInt      :: Integer -> Core Term
   CReal     :: Double  -> Core Term
   CText     :: Text    -> Core Term
+  CSym      :: Text    -> Core Term
 
-  CLamFunc  :: Text -> Core Term -> Core Term
+  CLam      :: Text -> Core Term -> Core Term
   CTyOp     :: Text -> Core Type -> Core TyOp
   CPolyFunc :: (Show a, Eq a) => Text -> Core a -> Core (Poly a)
   CDepFunc  :: (Show a, Eq a) => Text -> Core a -> Core (Dep a)

@@ -9,7 +9,16 @@ astToCore ast = elaborate ast
 elaborate (AInt a)   = CInt a
 elaborate (AFloat a) = CReal a
 elaborate (AText a)  = CText a
+elaborate (ASym a)   = CSym a
+elaborate a@(ASexp "(" ")" ((ASym "#"):rest)) = lambda rest
+elaborate (ASexp "(" ")" as) = application as
 elaborate _ = undefined
+
+lambda [ASexp "[" "]" [ASym a], body] = CLam a $ elaborate body
+lambda a = error $ "Invalid lambda: " ++ show a
+
+application (a:b:[]) = CTermApp (elaborate a) (elaborate b)
+application a = error $ "Invalid application: " ++ show a
 
 -- |e is an empty "environment" to attach to each closure that gets created
 -- [Int] is a unique identifier for the Core node and a path through the tree that tells you how to get to that node
