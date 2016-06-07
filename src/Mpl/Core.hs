@@ -28,10 +28,14 @@ data Core a where
   CText     :: Text    -> Core Term
   CSym      :: Text    -> Core Term
 
+  CTyParam  :: Text -> Core Type
+  CLamTy    :: Core Type -> Core Type -> Core Type
+
   CLam      :: Text -> Core Term -> Core Term
   CTyOp     :: Text -> Core Type -> Core TyOp
   CPolyFunc :: (Show a, Eq a) => Text -> Core a -> Core (Poly a)
   CDepFunc  :: (Show a, Eq a) => Text -> Core a -> Core (Dep a)
+  CTyAnn    :: Core Type -> Core Term -> Core Term
 
   CTermApp  :: Core Term -> Core Term -> Core Term
   CTyOpApp  :: Core TyOp -> Core Type -> Core Type

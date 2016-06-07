@@ -30,5 +30,15 @@ spec = do
     (CLam "a" (CSym "a"))
 
   test "applying a lambda to a term"
-    (aparen [aparen [asym "#", asquare [asym "a"], asym "a"], aint 1])
+    (aparen [
+      aparen [asym "#", asquare [asym "a"], asym "a"],
+      aint 1])
     (CTermApp (CLam "a" (CSym "a")) (CInt 1))
+
+  test "annotating a lambda with a type"
+    (aparen [asym ":",
+      aparen [asym "->", asym "a", asym "a"],
+      aparen [asym "#", asquare [asym "a"], asym "a"]])
+    (CTyAnn
+      (CLamTy (CTyParam "a") (CTyParam "a"))
+      (CLam "a" (CSym "a")))
