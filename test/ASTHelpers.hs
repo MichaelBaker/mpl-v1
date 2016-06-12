@@ -20,7 +20,7 @@ alam var ty body = aparen [asym "#",
   asquare [aparen [asym ":", asym var, asym ty]],
   body]
 
-tyop a b = aparen [asym "$",
+tylam a b = aparen [asym "$",
   asquare [asym a],
   b]
 

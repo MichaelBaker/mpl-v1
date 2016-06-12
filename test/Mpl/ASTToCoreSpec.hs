@@ -1,7 +1,7 @@
 module Mpl.ASTToCoreSpec where
 
 import Test.Hspec
-import ASTHelpers (aparen, asquare, acurly, aint, afloat, atext, asym, alam, tyan, poly, app, tyop, tagcurly)
+import ASTHelpers (aparen, asquare, acurly, aint, afloat, atext, asym, alam, tyan, poly, app, tylam, tagcurly)
 
 import Mpl.AST       (AST(..))
 import Mpl.Core      (Core(..))
@@ -41,7 +41,7 @@ spec = do
       (aparen [asym "->", asym "a", asym "a"])
       (alam "a" "t" $ asym "a"))
     (CTyAnn
-      (CLamTy (CTyParam "a") (CTyParam "a"))
+      (CTyPrim "->" (CTyParam "a") (CTyParam "a"))
       (CLam "a" (CTyParam "t") (CSym "a")))
 
   test "annotating an integer with a type"
@@ -62,12 +62,12 @@ spec = do
     (app
       (poly "t" (alam "a" "t" $ asym "a"))
       (app
-        (tyop "a" (aparen [asym "->", asym "a", asym "a"]))
+        (tylam "a" (aparen [asym "->", asym "a", asym "a"]))
         (asym "int")))
     (CPolyApp
       (CPolyFunc "t" (CLam "a" (CTyParam "t") (CSym "a")))
-      (CTyOpApp
-        (CTyOp "a" (CLamTy (CTyParam "a") (CTyParam "a")))
+      (CTyLamApp
+        (CTyLam "a" (CTyPrim "->" (CTyParam "a") (CTyParam "a")))
         CIntTy))
 
   test "record"
@@ -81,3 +81,21 @@ spec = do
     (CTyAnn
       (CRecordTy $ Map.fromList [("a", CIntTy), ("b", CIntTy)])
       (CRecord   $ Map.fromList [("a", CInt 1), ("b", CInt 2)]))
+
+  test "type primtive"
+    (aparen [
+      asym "#",
+      asquare [
+        aparen [
+          asym ":",
+          asym "a",
+          aparen [
+            asym "|",
+            tagcurly "#" [asym "a", asym "int"],
+            tagcurly "#" [asym "b", asym "int", asym "c", asym "int"]]]],
+      asym "a"])
+    (CLam "a" (CTyPrim
+      "|"
+      (CRecordTy $ Map.fromList [("a", CIntTy)])
+      (CRecordTy $ Map.fromList [("b", CIntTy), ("c", CIntTy)]))
+      (CSym "a"))

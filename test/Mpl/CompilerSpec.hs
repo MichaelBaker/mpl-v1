@@ -27,5 +27,5 @@ spec = do
       "5"
 
     test_0_0 "a polymorphic record"
-      "((@ [t] ((# [(: a (+ {a int b int} t))] a) 5)) {c int})"
+      "((@ [t] ((# [(: a (| {a int b int} t))] a) 5)) {c int})"
       "5"

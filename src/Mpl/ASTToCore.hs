@@ -29,8 +29,8 @@ typeAnnotation a = error $ "Invalid type annotation: " ++ show a
 
 ty (ASym "int") = CIntTy
 ty (ASym a)     = CTyParam a
-ty (ASexp "(" ")" [ASym "->", ASym a, ASym b]) = CLamTy (CTyParam a) (CTyParam b)
-ty (ASexp "(" ")" (f:arg:[])) = CTyOpApp (tyOp f) (ty arg)
+ty (ASexp "(" ")" [ASym sym, a, b]) = CTyPrim sym (ty a) (ty b)
+ty (ASexp "(" ")" (f:arg:[])) = CTyLamApp (tyLam f) (ty arg)
 ty a@(ATagSexp "#" "{" "}" items) = recordTy a items
 ty a = error $ "Invalid type: " ++ show a
 
@@ -50,5 +50,5 @@ lambda a = error $ "Invalid lambda: " ++ show a
 polyFunc [ASexp "[" "]" [ASym param], body] = CPolyFunc param $ elaborate body
 polyFunc a = error $ "Invalid polymorphic function: " ++ show a
 
-tyOp (ASexp "(" ")" [ASym "$", (ASexp "[" "]" [ASym param]), body]) = CTyOp param $ ty body
-tyOp a = error $ "Invalid type operator: " ++ show a
+tyLam (ASexp "(" ")" [ASym "$", (ASexp "[" "]" [ASym param]), body]) = CTyLam param $ ty body
+tyLam a = error $ "Invalid type operator: " ++ show a
