@@ -1,7 +1,7 @@
 module Mpl.ASTToCoreSpec where
 
 import Test.Hspec
-import ASTHelpers (aparen, asquare, acurly, aint, afloat, atext, asym)
+import ASTHelpers (aparen, asquare, acurly, aint, afloat, atext, asym, alam, tyan, poly, app)
 
 import Mpl.AST       (AST(..))
 import Mpl.Core      (Core(..))
@@ -26,19 +26,33 @@ spec = do
     (CText "a")
 
   test "a lambda"
-    (aparen [asym "#", asquare [asym "a"], asym "a"])
-    (CLam "a" (CSym "a"))
+    (alam "a" "int" $ asym "a")
+    (CLam "a" CIntTy (CSym "a"))
 
   test "applying a lambda to a term"
     (aparen [
-      aparen [asym "#", asquare [asym "a"], asym "a"],
+      (alam "a" "t" $ asym "a"),
       aint 1])
-    (CTermApp (CLam "a" (CSym "a")) (CInt 1))
+    (CTermApp (CLam "a" (CTyParam "t") (CSym "a")) (CInt 1))
 
   test "annotating a lambda with a type"
-    (aparen [asym ":",
-      aparen [asym "->", asym "a", asym "a"],
-      aparen [asym "#", asquare [asym "a"], asym "a"]])
+    (tyan
+      (aparen [asym "->", asym "a", asym "a"])
+      (alam "a" "t" $ asym "a"))
     (CTyAnn
       (CLamTy (CTyParam "a") (CTyParam "a"))
-      (CLam "a" (CSym "a")))
+      (CLam "a" (CTyParam "t") (CSym "a")))
+
+  test "annotating an integer with a type"
+    (tyan
+      (asym "int")
+      (aint 5))
+    (CTyAnn
+      CIntTy
+      (CInt 5))
+
+  test "applied polymorphic fuction"
+    (app (poly "t" (alam "a" "t" $ asym "a")) (asym "int"))
+    (CPolyApp
+      (CPolyFunc "t" (CLam "a" (CTyParam "t") (CSym "a")))
+      CIntTy)

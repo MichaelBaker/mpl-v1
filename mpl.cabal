@@ -22,12 +22,11 @@ library
   exposed-modules:
     Mpl.AST,
     Mpl.ASTToCore,
-    -- Mpl.Compiler,
+    Mpl.Compiler,
     Mpl.Core,
-    -- Mpl.Interpreter,
-    Mpl.Parser
-    -- Mpl.TypeAnnotation,
-    -- Mpl.TypeInterpreter
+    Mpl.Interpreter,
+    Mpl.Parser,
+    Mpl.TypeInterpreter
   build-depends:
     base >= 4.7 && < 5,
     Earley,

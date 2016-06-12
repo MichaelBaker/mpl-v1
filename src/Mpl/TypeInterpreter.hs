@@ -1,31 +1,23 @@
 module Mpl.TypeInterpreter where
 
-import Data.Text (Text)
-import Mpl.Core  (Core(..), CoreType(..), transform)
+import Mpl.Core   (Core(..), Type, Term)
+import Data.Text  (Text)
+import Data.Maybe (fromMaybe)
 import qualified Data.Map.Strict as Map
 
-type Env = Map.Map Text CoreType
+type Env = Map.Map Text (Core Type)
 
-interpretTypes core = transform (apply Map.empty) core
+interpret core = eval emptyEnv core
 
-apply ctx _ (CTyApp _ (CTyFunc _ _ p b) arg) = applyTyFun ctx p b arg
-apply ctx _ a@(CFOmega _ _)                  = error $ "Cannot use type operators at the term level: " ++ show a
-apply ctx _ (CFunc m e (p, t) body)          = CFunc m e (p, applyTy t ctx) $ transform (apply ctx) body
-apply _ f a = f a
+eval :: Env -> Core Term -> Core Term
+eval env (CPolyApp (CPolyFunc param body) argType) = eval (bind param (typeEval env argType) env) body
+eval env (CLam param tyParam body) = CLam param (typeEval env tyParam) (eval env body)
+eval _ a = a
 
-applyTyFun ctx p b tyArg = transform (apply $ binding ctx p $ applyOmega ctx tyArg) b
+typeEval :: Env -> Core Type -> Core Type
+typeEval env (CTyParam a) = fromMaybe (error $ "Unbound type variable: " ++ show a) (lookupTyParam a env)
+typeEval _ a = a
 
-applyOmega ctx (CTSym name) = case Map.lookup name ctx of
-                                Nothing -> error $ "Unbound type variable: " ++ show name
-                                Just ty -> ty
-applyOmega ctx (CTApp f a) = case applyOmega ctx f of
-                               (CTFOmega p b) -> applyOmega (binding ctx p (applyOmega ctx a)) b
-                               a              -> error $ "Tried to apply something that isn't a type operator: " ++ show f
-applyOmega _ a = a
-
-binding ctx param ty = Map.insert param ty ctx
-
-applyTy (CTSym name) ctx = case Map.lookup name ctx of
-                              Just ty -> ty
-                              Nothing -> CUnknownTy
-applyTy a _ = a
+emptyEnv      = Map.empty  :: Env
+bind          = Map.insert :: Text -> Core Type -> Env -> Env
+lookupTyParam = Map.lookup :: Text -> Env -> Maybe (Core Type)
