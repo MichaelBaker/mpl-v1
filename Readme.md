@@ -4,12 +4,11 @@ This is the project I use to play around with programming language theory and im
 
 ## TODO
 
-[ ] Type functions (type operators/row polymorphism)
-  * Records exist. Implement a type operator that supports polymorphism.
+[ ] Typecheck terms at compile time
+[ ] Add a type elaboration function
 [ ] Remove special cases for type operators?
   * It seems like they should be curried just like terms.
   * That implies that we need type-level products.
-[ ] Typecheck type functions at compile time
 [ ] Warn on type contradictions at level 0.0
 [ ] Start level 1.0
 [ ] Give typechecker a once over and look into correctness

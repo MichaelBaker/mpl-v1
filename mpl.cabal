@@ -26,6 +26,7 @@ library
     Mpl.Core,
     Mpl.Interpreter,
     Mpl.Parser,
+    Mpl.TypeChecker,
     Mpl.TypeInterpreter
   build-depends:
     base >= 4.7 && < 5,

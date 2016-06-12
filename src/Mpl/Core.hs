@@ -16,10 +16,13 @@ data Core a where
   CSym      :: Text    -> Core Term
   CRecord   :: Map.Map Text (Core Term) -> Core Term
 
-  CIntTy    :: Core Type
-  CTyParam  :: Text -> Core Type
-  CLamTy    :: Core Type -> Core Type -> Core Type
-  CRecordTy :: Map.Map Text (Core Type) -> Core Type
+  CIntTy     :: Core Type
+  CRealTy    :: Core Type
+  CTextTy    :: Core Type
+  CTyParam   :: Text -> Core Type
+  CLamTy     :: Core Type -> Core Type -> Core Type
+  CRecordTy  :: Map.Map Text (Core Type) -> Core Type
+  CUnknownTy :: Core Type
 
   CLam      :: Text -> Core Type -> Core Term -> Core Term
   CTyLam    :: Text -> Core Type -> Core TyLam
