@@ -14,37 +14,56 @@ data Result = Result {
   errors   :: Errors
   } deriving (Show)
 
+data Options = Options {
+  typeContradictionsAreErrors :: Bool
+  } deriving (Show)
+
+defaultOptions = Options {
+  typeContradictionsAreErrors = False
+  }
+
 type Output   = String
 type Warnings = [Warning]
 type Errors   = [Error]
 
-data Warning = TypeContradiction (Core Type) (Core Type) Text deriving (Show, Eq)
+data Warning = TypeContradictionWarning (Core Type) (Core Type) Text deriving (Show, Eq)
 
 data Error = AmbiguousGrammar Int [Text]
            | FailedParse Text
-           deriving (Show)
+           | TypeContradictionError (Core Type) (Core Type) Text
+           deriving (Show, Eq)
 
-compile :: String -> Result
-compile string = case parse (pack string) of
-                   (ast:[], _) -> typeCheck $ interpret $ astToCore ast
-                   (a:rest, _) -> Result {
-                     output   = "",
-                     warnings = [],
-                     errors   = [AmbiguousGrammar (1 + length rest) $ map (pack . show) (a:rest)]
-                     }
-                   (_, r) -> Result {
-                     output   = "",
-                     warnings = [],
-                     errors   = [FailedParse $ pack $ show r]
-                     }
+compile :: Options -> String -> Result
+compile options string = case parse (pack string) of
+                           (ast:[], _) -> typeCheck options $ interpret $ astToCore ast
+                           (a:rest, _) -> Result {
+                             output   = "",
+                             warnings = [],
+                             errors   = [AmbiguousGrammar (1 + length rest) $ map (pack . show) (a:rest)]
+                             }
+                           (_, r) -> Result {
+                             output   = "",
+                             warnings = [],
+                             errors   = [FailedParse $ pack $ show r]
+                             }
 
-typeCheck core = Result {
-  output   = pack $ prettyPrint $ eval $ core,
-  warnings = map convertTypeError (typeContradictions core),
-  errors   = []
-  }
+typeCheck options core = let contradictions = typeContradictions core in
+                             if typeContradictionsAreErrors options && not (null contradictions)
+                               then Result {
+                                 output   = "",
+                                 warnings = [],
+                                 errors   = map convertTypeError contradictions
+                                 }
+                               else Result {
+                                 output   = pack $ prettyPrint $ eval $ core,
+                                 warnings = map convertTypeWarning contradictions,
+                                 errors   = []
+                                 }
 
-convertTypeError (Contradiction expected actual core) = TypeContradiction expected actual (pack $ prettyPrint core)
+
+convertTypeWarning (Contradiction expected actual core) = TypeContradictionWarning expected actual (pack $ prettyPrint core)
+
+convertTypeError (Contradiction expected actual core) = TypeContradictionError expected actual (pack $ prettyPrint core)
 
 prettyPrint (CInt  a) = show a
 prettyPrint (CReal a) = show a
@@ -60,3 +79,4 @@ prettyPrintTy CTextTy = "text"
 prettyPrintTy (CTyParam a) = unpack a
 prettyPrintTy (CLamTy a b) = "(-> " ++ prettyPrintTy a ++ " " ++ prettyPrintTy b ++ ")"
 prettyPrintTy a = show a
+

@@ -4,7 +4,6 @@ This is the project I use to play around with programming language theory and im
 
 ## TODO
 
-[ ] Typecheck terms at compile time
 [ ] Add a type elaboration function
 [ ] Remove special cases for type operators?
   * It seems like they should be curried just like terms.
