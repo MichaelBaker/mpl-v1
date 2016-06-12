@@ -20,3 +20,11 @@ spec = do
   test "removes type annotations"
     (CTyAnn CIntTy (CInt 5))
     (CInt 5)
+
+  test "applies type operators"
+    (CPolyApp
+      (CPolyFunc "t" (CLam "a" (CTyParam "t") (CSym "a")))
+      (CTyOpApp
+        (CTyOp "a" (CLamTy (CTyParam "a") (CTyParam "a")))
+        CIntTy))
+    (CLam "a" (CLamTy CIntTy CIntTy) (CSym "a"))

@@ -19,9 +19,10 @@ elaborate _ = undefined
 typeAnnotation (a:b:[]) = CTyAnn (ty a) (elaborate b)
 typeAnnotation a = error $ "Invalid type annotation: " ++ show a
 
-ty (ASexp "(" ")" [ASym "->", ASym a, ASym b]) = CLamTy (CTyParam a) (CTyParam b)
 ty (ASym "int") = CIntTy
 ty (ASym a)     = CTyParam a
+ty (ASexp "(" ")" [ASym "->", ASym a, ASym b]) = CLamTy (CTyParam a) (CTyParam b)
+ty (ASexp "(" ")" (f:arg:[])) = CTyOpApp (tyOp f) (ty arg)
 ty a = error $ "Invalid type: " ++ show a
 
 application _ (ASexp "(" ")" ((ASym "@"):rest)) arg = CPolyApp (polyFunc rest) (ty arg)
@@ -33,3 +34,6 @@ lambda a = error $ "Invalid lambda: " ++ show a
 
 polyFunc [ASexp "[" "]" [ASym param], body] = CPolyFunc param $ elaborate body
 polyFunc a = error $ "Invalid polymorphic function: " ++ show a
+
+tyOp (ASexp "(" ")" [ASym "$", (ASexp "[" "]" [ASym param]), body]) = CTyOp param $ ty body
+tyOp a = error $ "Invalid type operator: " ++ show a

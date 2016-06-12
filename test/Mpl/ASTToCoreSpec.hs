@@ -1,7 +1,7 @@
 module Mpl.ASTToCoreSpec where
 
 import Test.Hspec
-import ASTHelpers (aparen, asquare, acurly, aint, afloat, atext, asym, alam, tyan, poly, app)
+import ASTHelpers (aparen, asquare, acurly, aint, afloat, atext, asym, alam, tyan, poly, app, tyop)
 
 import Mpl.AST       (AST(..))
 import Mpl.Core      (Core(..))
@@ -56,3 +56,15 @@ spec = do
     (CPolyApp
       (CPolyFunc "t" (CLam "a" (CTyParam "t") (CSym "a")))
       CIntTy)
+
+  test "applied type operator"
+    (app
+      (poly "t" (alam "a" "t" $ asym "a"))
+      (app
+        (tyop "a" (aparen [asym "->", asym "a", asym "a"]))
+        (asym "int")))
+    (CPolyApp
+      (CPolyFunc "t" (CLam "a" (CTyParam "t") (CSym "a")))
+      (CTyOpApp
+        (CTyOp "a" (CLamTy (CTyParam "a") (CTyParam "a")))
+        CIntTy))

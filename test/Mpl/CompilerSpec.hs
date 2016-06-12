@@ -17,3 +17,7 @@ spec = do
     test_0_0 "type annotation"
       "(: int 5)"
       "5"
+
+    test_0_0 "type operator"
+      "((@ [t] ((# [(: a t)] a) 5)) (($ [s] (-> s s)) int))"
+      "5"

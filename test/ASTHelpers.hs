@@ -16,6 +16,10 @@ alam var ty body = aparen [asym "#",
   asquare [aparen [asym ":", asym var, asym ty]],
   body]
 
+tyop a b = aparen [asym "$",
+  asquare [asym a],
+  b]
+
 poly ty term = aparen [asym "@",
   asquare [asym ty],
   term]
