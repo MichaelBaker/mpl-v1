@@ -1,78 +1,101 @@
 module Mpl.ASTToCoreSpec where
 
 import Test.Hspec
-import ASTHelpers (aparen, asquare, acurly, aint, afloat, atext, asym)
+import ASTHelpers (aparen, asquare, acurly, aint, afloat, atext, asym, alam, tyan, poly, app, tylam, tagcurly)
 
-import Mpl.AST       (AST(..), Core(..), CoreType(..))
+import Mpl.AST       (AST(..))
+import Mpl.Core      (Core(..))
 import Mpl.ASTToCore (astToCore)
+import qualified Data.Map.Strict as Map
 
-test message ast core = it message (astToCore () ast `shouldBe` core)
+test message ast core = it message (astToCore ast `shouldBe` core)
 
 param name ty = aparen [asym ":", asym name, asym ty]
 
 spec :: Spec
 spec = do
-  test "int   -> int"   (aint 8)   (CInt [0] 8)
-  test "float -> real"  (afloat 8.0) (CReal  [0] 8.0)
-  test "text  -> text"  (atext "a") (CText  [0] "a")
-  test "ident -> ident" (asym "a") (CIdent [0] "a")
+  test "int"
+    (AInt 1)
+    (CInt 1)
 
-  test "empty parens -> unit"
-    (aparen [])
-    (CUnit [0])
+  test "real"
+    (AFloat 1.0)
+    (CReal  1.0)
 
-  test "square brackets -> list"
-    (asquare [])
-    (CList [0] [])
+  test "text"
+    (AText "a")
+    (CText "a")
 
-  test "curly brackets -> assoc"
-    (acurly [])
-    (CAssoc [0] [])
+  test "a lambda"
+    (alam "a" "int" $ asym "a")
+    (CLam "a" CIntTy (CSym "a"))
 
-  test "a function with no arguments to a thunk"
-    (aparen [asym "#", asquare [], aparen []])
-    (CThunk [0] () (CUnit [0, 0]))
+  test "applying a lambda to a term"
+    (aparen [
+      (alam "a" "t" $ asym "a"),
+      aint 1])
+    (CTermApp (CLam "a" (CTyParam "t") (CSym "a")) (CInt 1))
 
-  test "a type function with no arguments to a thunk"
-    (aparen [asym ":", asquare [], aparen []])
-    (CThunk [0] () (CUnit [0, 0]))
+  test "annotating a lambda with a type"
+    (tyan
+      (aparen [asym "->", asym "a", asym "a"])
+      (alam "a" "t" $ asym "a"))
+    (CTyAnn
+      (CTyPrim "->" (CTyParam "a") (CTyParam "a"))
+      (CLam "a" (CTyParam "t") (CSym "a")))
 
-  test "a function of one argument"
-    (aparen [asym "#", asquare [param "a" "t"], aparen []])
-    (CFunc [0] () ("a", "t") (CUnit [0, 0]))
+  test "annotating an integer with a type"
+    (tyan
+      (asym "int")
+      (aint 5))
+    (CTyAnn
+      CIntTy
+      (CInt 5))
 
-  test "curries a function of multiple arguments"
-    (aparen [asym "#", asquare [param "a" "t", param "b" "s"], aparen []])
-    (CFunc [0] () ("a", "t")
-      (CFunc [0, 0] () ("b", "s")
-        (CUnit [0, 0, 0])))
+  test "applied polymorphic fuction"
+    (app (poly "t" (alam "a" "t" $ asym "a")) (asym "int"))
+    (CPolyApp
+      (CPolyFunc "t" (CLam "a" (CTyParam "t") (CSym "a")))
+      CIntTy)
 
-  test "one type argument"
-    (aparen [asym ":", asquare [asym "t"], (aparen [asym "#", asquare [param "a" "t"], aint 5])])
-    (CTyFunc [0] () "t"
-      (CFunc [0, 0] () ("a", "t")
-        (CInt [0, 0, 0] 5)))
+  test "applied type operator"
+    (app
+      (poly "t" (alam "a" "t" $ asym "a"))
+      (app
+        (tylam "a" (aparen [asym "->", asym "a", asym "a"]))
+        (asym "int")))
+    (CPolyApp
+      (CPolyFunc "t" (CLam "a" (CTyParam "t") (CSym "a")))
+      (CTyLamApp
+        (CTyLam "a" (CTyPrim "->" (CTyParam "a") (CTyParam "a")))
+        CIntTy))
 
-  test "curries multiple type arguments"
-    (aparen [asym ":", asquare [asym "t", asym "s"], (aparen [asym "#", asquare [param "a" "t", param "b" "s"], aint 5])])
-    (CTyFunc [0] () "t"
-      (CTyFunc [0, 0] () "s"
-        (CFunc [0, 0, 0] () ("a", "t")
-          (CFunc [0, 0, 0, 0] () ("b", "s")
-            (CInt [0, 0, 0, 0, 0] 5)))))
+  test "record"
+    (tagcurly "#" [asym "a", aint 1, asym "b", aint 2])
+    (CRecord $ Map.fromList [("a", CInt 1), ("b", CInt 2)])
 
-  test "an application with no arguments as a force"
-    (aparen [aparen []])
-    (CForce [0] (CUnit [0, 0]))
+  test "record type"
+    (tyan
+      (tagcurly "#" [asym "a", asym "int", asym "b", asym "int"])
+      (tagcurly "#" [asym "a", aint 1, asym "b", aint 2]))
+    (CTyAnn
+      (CRecordTy $ Map.fromList [("a", CIntTy), ("b", CIntTy)])
+      (CRecord   $ Map.fromList [("a", CInt 1), ("b", CInt 2)]))
 
-  test "application of a single argument"
-    (aparen [aparen [], aparen []])
-    (CApp [0] (CUnit [0, 0]) (CUnit [1, 0]))
-
-  test "curries application of multiple arguments"
-    (aparen [aparen [], aint 1, aint 2])
-    (CApp [0]
-      (CApp [0, 0]
-        (CUnit [0, 0, 0])
-        (CInt  [1, 0, 0] 1))
-      (CInt [1, 0] 2))
+  test "type primtive"
+    (aparen [
+      asym "#",
+      asquare [
+        aparen [
+          asym ":",
+          asym "a",
+          aparen [
+            asym "|",
+            tagcurly "#" [asym "a", asym "int"],
+            tagcurly "#" [asym "b", asym "int", asym "c", asym "int"]]]],
+      asym "a"])
+    (CLam "a" (CTyPrim
+      "|"
+      (CRecordTy $ Map.fromList [("a", CIntTy)])
+      (CRecordTy $ Map.fromList [("b", CIntTy), ("c", CIntTy)]))
+      (CSym "a"))

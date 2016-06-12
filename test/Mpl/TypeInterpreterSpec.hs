@@ -1,61 +1,42 @@
 module Mpl.TypeInterpreterSpec where
 
 import Test.Hspec
-import qualified Data.Map as Map
 
-import Mpl.AST             (AST(..), Core(..), CoreType(..))
-import Mpl.TypeInterpreter (interpretTypes)
+import Mpl.Core            (Core(..), Term)
+import Mpl.TypeInterpreter (interpret)
+import qualified Data.Map.Strict as Map
 
-test :: String -> Core () () -> Core () () -> Spec
+test :: String -> Core Term -> Core Term -> Spec
 test message core expectedCore = it message $ do
-  interpretTypes core `shouldBe` expectedCore
+  interpret core `shouldBe` expectedCore
 
 spec :: Spec
 spec = do
   test "applies type functions"
-    (CApp () (CTyFunc () () ("t") (CFunc () () ("a", "t") (CUnit ()))) (CIdent () "unit"))
-    (CFunc () () ("a", "unit") (CUnit ()))
+    (CPolyApp
+      (CPolyFunc "t" (CLam "a" (CTyParam "t") (CSym "a")))
+      CIntTy)
+    (CLam "a" CIntTy (CSym "a"))
 
-  test "marks unbound types as unknown"
-    (CFunc () () ("a", "b") (CUnit ()))
-    (CFunc () () ("a", "unknown") (CUnit ()))
+  test "removes type annotations"
+    (CTyAnn CIntTy (CInt 5))
+    (CInt 5)
 
-  test "marks incorrectly named types as unknown"
-    (CApp () (CTyFunc () () ("t") (CFunc () () ("a", "z") (CUnit ()))) (CIdent () "unit"))
-    (CFunc () () ("a", "unknown") (CUnit ()))
+  test "applies type operators"
+    (CPolyApp
+      (CPolyFunc "t" (CLam "a" (CTyParam "t") (CSym "a")))
+      (CTyLamApp
+        (CTyLam "a" (CTyPrim "->" (CTyParam "a") (CTyParam "a")))
+        CIntTy))
+    (CLam "a" (CLamTy CIntTy CIntTy) (CSym "a"))
 
-  test "leaves unit unaltered"
-    (CUnit ())
-    (CUnit ())
-
-  test "leaves int unaltered"
-    (CInt () 1)
-    (CInt () 1)
-
-  test "leaves real unaltered"
-    (CReal () 1.0)
-    (CReal () 1.0)
-
-  test "leaves text unaltered"
-    (CText () "a")
-    (CText () "a")
-
-  test "leaves ident unaltered"
-    (CIdent () "a")
-    (CIdent () "a")
-
-  test "leaves list unaltered"
-    (CList () [])
-    (CList () [])
-
-  test "leaves assoc unaltered"
-    (CAssoc () [])
-    (CAssoc () [])
-
-  test "leaves map unaltered"
-    (CMap () Map.empty)
-    (CMap () Map.empty)
-
-  test "leaves thunk unaltered"
-    (CThunk () () (CUnit ()))
-    (CThunk () () (CUnit ()))
+  describe "primitives" $ do
+    describe "|" $ do
+      test "creates a new record type with the union of the fields of the arguments"
+        (CLam "a" (CTyPrim
+          "|"
+          (CRecordTy $ Map.fromList [("a", CIntTy)])
+          (CRecordTy $ Map.fromList [("b", CIntTy), ("c", CIntTy)]))
+          (CSym "a"))
+        (CLam "a" (CRecordTy $ Map.fromList [("a", CIntTy), ("b", CIntTy), ("c", CIntTy)])
+          (CSym "a"))

@@ -4,9 +4,11 @@ This is the project I use to play around with programming language theory and im
 
 ## TODO
 
-[ ] Combinators (parametric polymorphism of functions)
-[ ] Generics (parametric polymorphism of types)
-[ ] Typecheck type functions at compile time
+[ ] Typecheck terms at compile time
+[ ] Add a type elaboration function
+[ ] Remove special cases for type operators?
+  * It seems like they should be curried just like terms.
+  * That implies that we need type-level products.
 [ ] Warn on type contradictions at level 0.0
 [ ] Start level 1.0
 [ ] Give typechecker a once over and look into correctness
@@ -15,9 +17,22 @@ This is the project I use to play around with programming language theory and im
 [ ] Start level 2.0
 [ ] Convert level 1.0 <-> 2.0
 [ ] Specialization (ad hoc polymorphism)
-[ ] Type functions (system f-omega/type operators/row polymorphism)
 
 ## Things I've learned
+
+Quets are wanted pages. They request problems.
+Types are problems.     They request solutions.
+Terms are solutions.    They satisfy requests.
+
+A quet says "My workers need something to do."
+A type says "Ok, I want some kind of integer".
+A term says "Here is the integer you requested".
+
+A termfun type(funtype) says "I want a machine that can solve B if I can provide a solution to A."
+A term function (termfun) says "Here is your machine you requested."
+A type operator (tyop) says "If you can find demand for A, I can drum up demand for B."
+A dependent type (depty) says "If you can find a solution to A, I can generate problem B."
+
 * Term abstraction (Simply typed lambda calculus/term -> term) allows code to be reused with different values.
   * You don't need to copy-paste the implementation of "add" all over the place.
   * You can write a function once and pass in different values at each call site.
