@@ -18,7 +18,7 @@ parse = fullParses (E.parser grammar)
 
 grammar :: Grammar r (Prod r Text Char (AST))
 grammar = mdo
-  let exp           = int <|> float <|> text <|> sym <|> sexp
+  let exp           = int <|> float <|> text <|> sym <|> tagSexp <|> sexp
       whitespace    = isSpace
       spaceBefore a = some (satisfy whitespace) *> a
       spaceAfter  a = a <* some (satisfy whitespace)
@@ -27,6 +27,11 @@ grammar = mdo
       naturalDigits = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
       separated cons es Nothing  = cons es
       separated cons es (Just l) = cons (es ++ [l])
+
+  tagSexp <- rule $ (\(ASym tag) (ASexp l r a) -> ATagSexp tag l r a)
+    <$> sym
+    <*> sexp
+    <?> "tag-sexp"
 
   sexp <- rule $ paren <|> square <|> curly <?> "sexp"
 

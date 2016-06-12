@@ -1,6 +1,7 @@
 module Mpl.Core where
 
 import Data.Text (Text)
+import qualified Data.Map.Strict as Map
 
 data Term
 data Type
@@ -13,10 +14,12 @@ data Core a where
   CReal     :: Double  -> Core Term
   CText     :: Text    -> Core Term
   CSym      :: Text    -> Core Term
+  CRecord   :: Map.Map Text (Core Term) -> Core Term
 
   CIntTy    :: Core Type
   CTyParam  :: Text -> Core Type
   CLamTy    :: Core Type -> Core Type -> Core Type
+  CRecordTy :: Map.Map Text (Core Type) -> Core Type
 
   CLam      :: Text -> Core Type -> Core Term -> Core Term
   CTyOp     :: Text -> Core Type -> Core TyOp

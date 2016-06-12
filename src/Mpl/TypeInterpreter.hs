@@ -16,7 +16,7 @@ eval env (CTyAnn _ body) = eval env body
 eval _ a = a
 
 typeEval :: Env -> Core Type -> Core Type
-typeEval _   CIntTy       = CIntTy
+typeEval _   CIntTy = CIntTy
 typeEval env (CTyParam a) = fromMaybe (error $ "Unbound type variable: " ++ show a) (lookupTyParam a env)
 typeEval env (CTyOpApp (CTyOp param body) arg) = typeEval (bind param (typeEval env arg) env) body
 typeEval env (CLamTy a b) = CLamTy (typeEval env a) (typeEval env b)

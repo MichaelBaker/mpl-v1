@@ -4,10 +4,8 @@ This is the project I use to play around with programming language theory and im
 
 ## TODO
 
-[ ] Generics (parametric polymorphism of types)
-[ ] Change CIdent to CSym
-[ ] Change CTyFunc to CF
-[ ] Change prefix of all core type constructors to CT (perhaps move into a module)
+[ ] Type functions (type operators/row polymorphism)
+  * Records exist. Implement a type operator that supports polymorphism.
 [ ] Typecheck type functions at compile time
 [ ] Warn on type contradictions at level 0.0
 [ ] Start level 1.0
@@ -17,7 +15,6 @@ This is the project I use to play around with programming language theory and im
 [ ] Start level 2.0
 [ ] Convert level 1.0 <-> 2.0
 [ ] Specialization (ad hoc polymorphism)
-[ ] Type functions (system f-omega/type operators/row polymorphism)
 
 ## Things I've learned
 

@@ -1,11 +1,12 @@
 module Mpl.ASTToCoreSpec where
 
 import Test.Hspec
-import ASTHelpers (aparen, asquare, acurly, aint, afloat, atext, asym, alam, tyan, poly, app, tyop)
+import ASTHelpers (aparen, asquare, acurly, aint, afloat, atext, asym, alam, tyan, poly, app, tyop, tagcurly)
 
 import Mpl.AST       (AST(..))
 import Mpl.Core      (Core(..))
 import Mpl.ASTToCore (astToCore)
+import qualified Data.Map.Strict as Map
 
 test message ast core = it message (astToCore ast `shouldBe` core)
 
@@ -68,3 +69,15 @@ spec = do
       (CTyOpApp
         (CTyOp "a" (CLamTy (CTyParam "a") (CTyParam "a")))
         CIntTy))
+
+  test "record"
+    (tagcurly "#" [asym "a", aint 1, asym "b", aint 2])
+    (CRecord $ Map.fromList [("a", CInt 1), ("b", CInt 2)])
+
+  test "record type"
+    (tyan
+      (tagcurly "#" [asym "a", asym "int", asym "b", asym "int"])
+      (tagcurly "#" [asym "a", aint 1, asym "b", aint 2]))
+    (CTyAnn
+      (CRecordTy $ Map.fromList [("a", CIntTy), ("b", CIntTy)])
+      (CRecord   $ Map.fromList [("a", CInt 1), ("b", CInt 2)]))
