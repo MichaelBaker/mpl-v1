@@ -12,6 +12,7 @@ interpret core = eval emptyEnv core
 eval :: Env -> Core Term -> Core Term
 eval env (CPolyApp (CPolyFunc param body) argType) = eval (bind param (typeEval env argType) env) body
 eval env (CLam param tyParam body) = CLam param (typeEval env tyParam) (eval env body)
+eval env (CTyAnn _ body) = eval env body
 eval _ a = a
 
 typeEval :: Env -> Core Type -> Core Type

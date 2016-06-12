@@ -13,3 +13,7 @@ spec = do
     test_0_0 "simple polymorphic lambda"
       "((@ [t] ((# [(: a t)] a) 5)) int)"
       "5"
+
+    test_0_0 "type annotation"
+      "(: int 5)"
+      "5"

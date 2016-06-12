@@ -16,3 +16,7 @@ spec = do
       (CPolyFunc "t" (CLam "a" (CTyParam "t") (CSym "a")))
       CIntTy)
     (CLam "a" CIntTy (CSym "a"))
+
+  test "removes type annotations"
+    (CTyAnn CIntTy (CInt 5))
+    (CInt 5)
