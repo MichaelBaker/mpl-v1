@@ -22,8 +22,7 @@ library
     Mpl.Compiler,
     Mpl.ASTToCore,
     Mpl.Interpreter,
-    Mpl.Parser,
-    Mpl.TypeAnnotation
+    Mpl.Parser
   build-depends:
     base >= 4.7 && < 5,
     Earley,
