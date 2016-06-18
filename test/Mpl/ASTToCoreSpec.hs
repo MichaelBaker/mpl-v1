@@ -11,8 +11,8 @@ test message ast core = it message (astToCore ast `shouldBe` core)
 
 spec :: Spec
 spec = do
-  test "int   -> int"   (aint 8)   (CInt [0] 8)
-  test "ident -> ident" (asym "a") (CIdent [0] "a")
+  test "int -> int"   (aint 8)   (CInt [0] 8)
+  test "sym -> ident" (asym "a") (CIdent [0] "a")
 
   test "a function with no arguments to a thunk"
     (aparen [asym "#", asquare [], aint 8])

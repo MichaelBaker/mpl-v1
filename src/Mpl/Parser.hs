@@ -13,10 +13,10 @@ import Text.Earley         ((<?>), Grammar, Report, Prod, satisfy, rule, fullPar
 import qualified Text.Earley as E
 import qualified Data.Text   as T
 
-parse :: Text -> ([AST ()], Report Text Text)
+parse :: Text -> ([AST], Report Text Text)
 parse = fullParses (E.parser grammar)
 
-grammar :: Grammar r (Prod r Text Char (AST ()))
+grammar :: Grammar r (Prod r Text Char (AST))
 grammar = mdo
   let exp           = int <|> sym <|> sexp
       whitespace    = isSpace
@@ -30,26 +30,26 @@ grammar = mdo
 
   sexp <- rule $ paren <|> square <?> "sexp"
 
-  paren <- rule $ pure (separated $ ASexp () "(" ")")
+  paren <- rule $ pure (separated $ ASexp "(" ")")
     <*  floating (token '(')
     <*> many (spaceAfter exp)
     <*> optional exp
     <*  token ')'
     <?> "paren-brackets"
 
-  square <- rule $ pure (separated $ ASexp () "[" "]")
+  square <- rule $ pure (separated $ ASexp "[" "]")
     <*  floating (token '[')
     <*> many (spaceAfter exp)
     <*> optional exp
     <*  token ']'
     <?> "square-brackets"
 
-  sym <- rule $ (\a as -> ASym () $ pack (a:as))
+  sym <- rule $ (\a as -> ASym $ pack (a:as))
     <$> satisfy (\c -> any ($ c) [isAsciiLower, (`elem` symChars)])
     <*> many (satisfy (\c -> any ($ c) [isDigit, isAsciiLower, isAsciiUpper, (`elem` symChars)]))
     <?> "symbol"
 
-  int <- rule $ (\firstDigit rest -> AInt () $ forceRead (signed decimal) $ pack $ firstDigit:rest)
+  int <- rule $ (\firstDigit rest -> AInt $ forceRead (signed decimal) $ pack $ firstDigit:rest)
     <$> satisfy (`elem` naturalDigits)
     <*> many (satisfy isDigit)
     <?> "integer"

@@ -7,14 +7,14 @@ import qualified Data.Map.Strict as Map
 
 type Env = Map.Map Text Val
 
-data Val = Core (Core [Int])
-         | Closure Env (Core [Int])
+data Val = Core Core
+         | Closure Env Core
          deriving (Show)
 
-interpret :: Core [Int] -> Val
+interpret :: Core -> Val
 interpret ast = exec Map.empty ast
 
-exec :: Env -> Core [Int] -> Val
+exec :: Env -> Core -> Val
 exec env (CIdent path a) = case Map.lookup a env of
                              Nothing -> error $ "Invalid identifier: " ++ (show a)
                              Just o  -> o

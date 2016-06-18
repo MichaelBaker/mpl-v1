@@ -23,7 +23,7 @@ run string = do
   result    <- Right $ printVal $ interpret $ astToCore ast
   return result
 
-handleParseFail :: ([AST ()], Report Text Text) -> Either String (AST ())
+handleParseFail :: ([AST], Report Text Text) -> Either String (AST)
 handleParseFail (a:[], _)   = Right a
 handleParseFail (a:rest, _) = Left $ "Error: The grammar is ambiguous and produced " ++ show (1 + length rest) ++ " parses.\n\n" ++ (intercalate "\n" $ map show (a:rest))
 handleParseFail (_, r)      = Left $ show r
@@ -37,3 +37,4 @@ prettyPrint (CThunk _ b)   = "(# []" ++ prettyPrint b ++ ")"
 prettyPrint (CForce _ t)   = "(" ++ prettyPrint t ++ ")"
 prettyPrint (CFunc  _ p b) = "(# [" ++ unpack p ++ "] " ++ prettyPrint b ++ ")"
 prettyPrint (CApp   _ f a) = "(" ++ prettyPrint f ++ " " ++ prettyPrint a ++ ")"
+
