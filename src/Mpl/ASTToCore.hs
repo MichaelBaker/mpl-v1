@@ -1,6 +1,7 @@
 module Mpl.ASTToCore where
 
-import Mpl.AST (AST(..), Core(..), emptyEnv)
+import Mpl.AST  (AST(..))
+import Mpl.Core (Core(..))
 
 
 astToCore = elaborate [0]
@@ -12,9 +13,9 @@ elaborate path (ASexp  _ "(" ")" [ASym _ "#", ASexp _ "[" "]" params, body]) = e
 elaborate path (ASexp  _ "(" ")" (f:args)) = curryApplication path f $ reverse args
 elaborate _ a = error $ "Invalid s-expression: " ++ show a
 
-elaborateFunc path [] body         = CThunk path emptyEnv (elaborate (0:path) body)
-elaborateFunc path (sym:[]) body   = CFunc path emptyEnv (symName sym) (elaborate (0:path) body)
-elaborateFunc path (sym:rest) body = CFunc path emptyEnv (symName sym) $ elaborateFunc (0:path) rest body
+elaborateFunc path [] body         = CThunk path (elaborate (0:path) body)
+elaborateFunc path (sym:[]) body   = CFunc path (symName sym) (elaborate (0:path) body)
+elaborateFunc path (sym:rest) body = CFunc path (symName sym) $ elaborateFunc (0:path) rest body
 
 curryApplication path f []     = CForce path (elaborate (0:path) f)
 curryApplication path f (a:[]) = CApp path (elaborate (0:path) f) (elaborate (1:path) a)
