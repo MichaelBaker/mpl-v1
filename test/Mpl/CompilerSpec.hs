@@ -4,7 +4,8 @@ import Test.Hspec
 
 import Mpl.Compiler (compile)
 
-test name string result = it name $ compile string `shouldBe` result
+test name string result = it name $ do
+  compile string `shouldBe` result
 
 spec :: Spec
 spec = do
@@ -16,3 +17,4 @@ spec = do
     test "deep closure"                "((# [a] ((# [_] ((# [_] ((# [_] ((# [_] a) 1)) 2)) 3)) 4)) 5)" "5"
     test "multiple parameters"         "((# [a b] a) 1 2)" "1"
     test "partial application"         "((# [a b] a) 1)" "(# [b] a)"
+    test "runtime type error"          "(1 1)" "Tried to apply something that isn't a function: 1"

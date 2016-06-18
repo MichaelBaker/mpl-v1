@@ -7,7 +7,8 @@ import Mpl.AST       (AST(..))
 import Mpl.Core      (Core(..))
 import Mpl.ASTToCore (astToCore)
 
-test message ast core = it message (astToCore ast `shouldBe` core)
+test message ast core = it message $ do
+  astToCore ast `shouldBe` (Right core)
 
 spec :: Spec
 spec = do
