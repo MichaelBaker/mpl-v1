@@ -18,8 +18,11 @@ data RuntimeError
   | UnboundIdentifier Text
   deriving (Show)
 
-interpret :: Core -> Either RuntimeError Val
-interpret ast = exec Map.empty ast
+interpret :: Core -> Either RuntimeError Core
+interpret ast = case exec Map.empty ast of
+  Left e              -> Left e
+  Right (Core c)      -> Right c
+  Right (Closure _ c) -> Right c
 
 exec :: Env -> Core -> Either RuntimeError Val
 exec env (CIdent path a) = case Map.lookup a env of

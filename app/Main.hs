@@ -12,4 +12,4 @@ loop = do
     Nothing     -> return ()
     Just "exit" -> return ()
     Just "quit" -> return ()
-    Just a      -> outputStrLn (compile a) >> outputStrLn "" >> loop
+    Just a      -> outputStrLn (show $ compile a) >> outputStrLn "" >> loop
