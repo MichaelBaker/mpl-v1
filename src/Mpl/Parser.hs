@@ -13,8 +13,8 @@ import Text.Earley         ((<?>), Grammar, Report, Prod, satisfy, rule, fullPar
 import qualified Text.Earley as E
 import qualified Data.Text   as T
 
-parse :: Text -> ([AST], Report Text Text)
-parse = fullParses (E.parser grammar)
+toAST :: Text -> ([AST], Report Text Text)
+toAST = fullParses (E.parser grammar)
 
 grammar :: Grammar r (Prod r Text Char (AST))
 grammar = mdo

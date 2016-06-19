@@ -3,7 +3,7 @@ module Mpl.ASTToCore where
 import Mpl.AST  (AST(..))
 import Mpl.Core (Core(..))
 
-astToCore = elaborate [0]
+toCore = elaborate [0]
 
 elaborate :: [Int] -> AST -> Either String Core
 elaborate path (AInt value) = Right $ CInt path value

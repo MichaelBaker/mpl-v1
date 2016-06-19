@@ -4,10 +4,10 @@ import Test.Hspec
 import ASTHelpers (aparen, asquare, aint, asym)
 
 import Mpl.AST    (AST(..))
-import Mpl.Parser (parse)
+import Mpl.Parser (toAST)
 
 test name string result = it name $ do
-  let (parses, _) = parse string
+  let (parses, _) = toAST string
   parses `shouldBe` [result]
 
 spec :: Spec

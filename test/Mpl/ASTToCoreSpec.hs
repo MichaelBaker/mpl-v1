@@ -5,10 +5,10 @@ import ASTHelpers (aparen, asquare, aint, asym)
 
 import Mpl.AST       (AST(..))
 import Mpl.Core      (Core(..))
-import Mpl.ASTToCore (astToCore)
+import Mpl.ASTToCore (toCore)
 
 test message ast core = it message $ do
-  astToCore ast `shouldBe` (Right core)
+  toCore ast `shouldBe` (Right core)
 
 spec :: Spec
 spec = do

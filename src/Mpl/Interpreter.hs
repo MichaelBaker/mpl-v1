@@ -18,8 +18,8 @@ data RuntimeError
   | UnboundIdentifier Text
   deriving (Show)
 
-interpret :: Core -> Either RuntimeError Core
-interpret ast = case exec Map.empty ast of
+toValue :: Core -> Either RuntimeError Core
+toValue ast = case exec Map.empty ast of
   Left e              -> Left e
   Right (Core c)      -> Right c
   Right (Closure _ c) -> Right c

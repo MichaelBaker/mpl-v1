@@ -2,26 +2,26 @@ module Mpl.Compiler where
 
 import Mpl.AST         (AST)
 import Mpl.Core        (Core(..))
-import Mpl.ASTToCore   (astToCore)
-import Mpl.Parser      (parse)
-import Mpl.Interpreter (RuntimeError(..), interpret)
+import Mpl.Parser      (toAST)
+import Mpl.ASTToCore   (toCore)
+-- import Mpl.Typing      (toTypedCore)
+import Mpl.Interpreter (RuntimeError(..), toValue)
 import Text.Earley     (Report)
 import Data.Text       (Text, unpack, pack)
 import Data.List       (intercalate)
 
-import Prelude hiding (curry)
-
 data Error
   = PE String
   | AC String
+  | TE String
   | RE RuntimeError
   deriving (Show)
 
 compile :: String -> Either Error String
 compile string = do
-  ast  <- handleParseFail     $ parse (pack string)
-  core <- handleASTToCoreFail $ astToCore ast
-  handleInterpretFail $ interpret core
+  ast  <- handleParseFail     $ toAST (pack string)
+  core <- handleASTToCoreFail $ toCore ast
+  handleInterpretFail $ toValue core
 
 handleParseFail :: ([AST], Report Text Text) -> Either Error AST
 handleParseFail (a:[], _)   = Right a
