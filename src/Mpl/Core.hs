@@ -3,10 +3,19 @@ module Mpl.Core where
 import Data.Text (Text)
 
 data Core
-  = CInt   [Int] Integer
-  | CIdent [Int] Text
-  | CThunk [Int] Core
-  | CForce [Int] Core
-  | CFunc  [Int] Text Core
-  | CApp   [Int] Core Core
-  deriving (Show, Eq, Ord)
+  = CInt   [Int] Type Integer
+  | CIdent [Int] Type Text
+  | CThunk [Int] Type Core
+  | CForce [Int] Type Core
+  | CFunc  [Int] Type Param Core
+  | CApp   [Int] Type Core Core
+  deriving (Show, Eq)
+
+type Param = Text
+
+data Type
+  = TUnknown
+  | TInt
+  | TThunk Type
+  | TFunc Type Type
+  deriving (Show, Eq)
