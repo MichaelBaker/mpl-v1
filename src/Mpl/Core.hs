@@ -19,3 +19,10 @@ data Type
   | TThunk Type
   | TFunc Type Type
   deriving (Show, Eq)
+
+typeOf (CInt   _ ty _)   = ty
+typeOf (CIdent _ ty _)   = ty
+typeOf (CThunk _ ty _)   = ty
+typeOf (CForce _ ty _)   = ty
+typeOf (CFunc  _ ty _ _) = ty
+typeOf (CApp   _ ty _ _) = ty

@@ -4,7 +4,7 @@ import Mpl.AST         (AST)
 import Mpl.Core        (Core(..))
 import Mpl.Parser      (toAST)
 import Mpl.ASTToCore   (toCore)
--- import Mpl.Typing      (toTypedCore)
+import Mpl.Typing      (toTypedCore)
 import Mpl.Interpreter (RuntimeError(..), toValue)
 import Text.Earley     (Report)
 import Data.Text       (Text, unpack, pack)
@@ -17,11 +17,15 @@ data Error
   | RE RuntimeError
   deriving (Show)
 
-compile :: String -> Either Error String
-compile string = do
-  ast  <- handleParseFail     $ toAST (pack string)
-  core <- handleASTToCoreFail $ toCore ast
-  handleInterpretFail $ toValue core
+data Options = Options
+  { haltOnTypeErrors :: Bool }
+
+compile :: String -> Options -> Either Error String
+compile string options = do
+  ast       <- handleParseFail     $ toAST (pack string)
+  core      <- handleASTToCoreFail $ toCore ast
+  typedCore <- handleTypingFail (haltOnTypeErrors options) $ toTypedCore core
+  handleInterpretFail $ toValue typedCore
 
 handleParseFail :: ([AST], Report Text Text) -> Either Error AST
 handleParseFail (a:[], _)   = Right a
@@ -33,6 +37,10 @@ handleASTToCoreFail (Left  e)    = Left $ AC e
 
 handleInterpretFail (Right c) = Right $ printCore c
 handleInterpretFail (Left e)  = Left  $ RE e
+
+handleTypingFail False (_, typedCore)       = Right typedCore
+handleTypingFail True (Nothing, typedCore)  = Right typedCore
+handleTypingFail True (Just err, typedCore) = Left $ TE $ show err
 
 printCore (CInt   _ _ i)   = show i
 printCore (CIdent _ _ t)   = unpack t

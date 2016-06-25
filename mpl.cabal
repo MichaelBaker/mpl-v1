@@ -19,11 +19,12 @@ library
     OverloadedStrings
   exposed-modules:
     Mpl.AST,
-    Mpl.Core,
-    Mpl.Compiler,
     Mpl.ASTToCore,
+    Mpl.Compiler,
+    Mpl.Core,
     Mpl.Interpreter,
-    Mpl.Parser
+    Mpl.Parser,
+    Mpl.Typing
   build-depends:
     base >= 4.7 && < 5,
     Earley,
