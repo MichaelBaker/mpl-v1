@@ -2,13 +2,13 @@ module Mpl.Core where
 
 import Data.Text (Text)
 
-data Core
-  = CInt   [Int] Type Integer
-  | CIdent [Int] Type Text
-  | CThunk [Int] Type Core
-  | CForce [Int] Type Core
-  | CFunc  [Int] Type Param Core
-  | CApp   [Int] Type Core Core
+data Core m
+  = CInt   [Int] m Integer
+  | CIdent [Int] m Text
+  | CThunk [Int] m (Core m)
+  | CForce [Int] m (Core m)
+  | CFunc  [Int] m Param (Core m)
+  | CApp   [Int] m (Core m) (Core m)
   deriving (Show, Eq)
 
 type Param = Text
@@ -20,9 +20,9 @@ data Type
   | TFunc Type Type
   deriving (Show, Eq)
 
-typeOf (CInt   _ ty _)   = ty
-typeOf (CIdent _ ty _)   = ty
-typeOf (CThunk _ ty _)   = ty
-typeOf (CForce _ ty _)   = ty
-typeOf (CFunc  _ ty _ _) = ty
-typeOf (CApp   _ ty _ _) = ty
+metaOf (CInt   _ m _)   = m
+metaOf (CIdent _ m _)   = m
+metaOf (CThunk _ m _)   = m
+metaOf (CForce _ m _)   = m
+metaOf (CFunc  _ m _ _) = m
+metaOf (CApp   _ m _ _) = m

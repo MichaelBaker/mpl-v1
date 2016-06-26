@@ -5,26 +5,26 @@ import Data.Text (Text)
 
 import qualified Data.Map.Strict as Map
 
-type Env = Map.Map Text Val
+type Env m = Map.Map Text (Val m)
 
-data Val
-  = Core Core
-  | Closure Env Core
+data Val m
+  = Core (Core m)
+  | Closure (Env m) (Core m)
   deriving (Show)
 
-data RuntimeError
-  = AppliedNonFunction Core
-  | AppliedNonThunk Core
+data RuntimeError m
+  = AppliedNonFunction (Core m)
+  | AppliedNonThunk (Core m)
   | UnboundIdentifier Text
   deriving (Show)
 
-toValue :: Core -> Either RuntimeError Core
+toValue :: Core m -> Either (RuntimeError m) (Core m)
 toValue ast = case exec Map.empty ast of
   Left e              -> Left e
   Right (Core c)      -> Right c
   Right (Closure _ c) -> Right c
 
-exec :: Env -> Core -> Either RuntimeError Val
+exec :: Env m -> Core m -> Either (RuntimeError m) (Val m)
 exec env (CIdent path _ a) = case Map.lookup a env of
                              Nothing -> Left $ UnboundIdentifier a
                              Just o  -> Right o

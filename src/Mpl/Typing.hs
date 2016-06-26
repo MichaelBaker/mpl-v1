@@ -1,44 +1,48 @@
 module Mpl.Typing where
 
-import Mpl.Core  (Core(..), Type(..), typeOf)
+import Mpl.Core  (Core(..), Type(..), metaOf)
 import Data.Text (Text)
 import Data.Map.Strict as Map
 
 data TypeError = TypeError deriving (Show)
 type Context = Map.Map Text Type
 
-toTypedCore :: Core -> (Maybe TypeError, Core)
-toTypedCore core = case typeCheck Map.empty core of
-                     Nothing     -> (Just TypeError, core)
-                     Just result -> case typeOf result of
-                                      TUnknown -> (Just TypeError, core)
-                                      _        -> (Nothing, result)
+toTypedCore :: Core a -> (Maybe TypeError, Core Type)
+toTypedCore core = let typedCore = typeCheck Map.empty core
+                       in case metaOf typedCore of
+                            TUnknown -> (Just TypeError, typedCore)
+                            _        -> (Nothing, typedCore)
 
-typeCheck _ a@(CInt _ TInt _) = Just a
-typeCheck _ a@(CInt _ _ _)    = Nothing
-typeCheck context a@(CIdent path _ name) = do
-  identType <- Map.lookup name context
-  Just $ CIdent path identType name
-typeCheck context (CThunk path _ body) = do
-  newBody <- typeCheck context body
-  Just $ CThunk path (TThunk (typeOf newBody)) newBody
-typeCheck context (CForce path _ f) = do
-  newF <- typeCheck context f
-  case typeOf newF of
-    (TThunk _) -> Just $ CForce path (typeOf newF) newF
-    _          -> Nothing
-typeCheck _ a@(CFunc _ _ _ _) = Just a
-typeCheck context (CApp path _ f arg) = do
-  newArg <- typeCheck context arg
-  newF   <- typeCheckFunction context f (typeOf newArg)
-  case typeOf newF of
-    TFunc TUnknown _ -> Nothing
-    TFunc _ result   -> Just $ CApp path result newF newArg
-    _                -> Nothing
+typeCheck :: Context -> Core a -> Core Type
+typeCheck _ a@(CInt path _ val) = CInt path TInt val
 
-typeCheckFunction context (CFunc path _ param body) argType = do
-  newBody <- typeCheck (binding context param argType) body
-  Just $ CFunc path (TFunc argType (typeOf newBody)) param newBody
-typeCheckFunction _ _ _ = Nothing
+typeCheck context a@(CIdent path _ name) =
+  case Map.lookup name context of
+    Nothing -> CIdent path TUnknown name
+    Just ty -> CIdent path ty name
+
+typeCheck context (CThunk path _ body) =
+  let newBody = typeCheck context body
+      in CThunk path (TThunk (metaOf newBody)) newBody
+
+typeCheck context (CForce path _ f) =
+  let newF = typeCheck context f
+      in case metaOf newF of
+           (TThunk _) -> CForce path (metaOf newF) newF
+           _          -> CForce path TUnknown newF
+
+typeCheck context (CFunc path _ param body) =
+  let newBody = typeCheck context body
+      in CFunc path (TFunc TUnknown (metaOf newBody)) param newBody
+
+typeCheck context (CApp path _ f arg) =
+  let newArg = typeCheck context arg
+      newF   = typeCheck context f
+      in case metaOf newF of
+           TFunc paramType resultType ->
+             if paramType == (metaOf newArg)
+               then CApp path resultType newF newArg
+               else CApp path TUnknown newF newArg
+           _ -> CApp path TUnknown newF newArg
 
 binding context param ty = Map.insert param ty context

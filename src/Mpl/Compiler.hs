@@ -1,7 +1,7 @@
 module Mpl.Compiler where
 
 import Mpl.AST         (AST)
-import Mpl.Core        (Core(..))
+import Mpl.Core        (Core(..), Type)
 import Mpl.Parser      (toAST)
 import Mpl.ASTToCore   (toCore)
 import Mpl.Typing      (toTypedCore)
@@ -10,24 +10,24 @@ import Text.Earley     (Report)
 import Data.Text       (Text, unpack, pack)
 import Data.List       (intercalate)
 
-data Error
+data Error m
   = PE String
   | AC String
   | TE String
-  | RE RuntimeError
+  | RE (RuntimeError m)
   deriving (Show)
 
 data Options = Options
   { haltOnTypeErrors :: Bool }
 
-compile :: String -> Options -> Either Error String
+compile :: String -> Options -> Either (Error Type) String
 compile string options = do
   ast       <- handleParseFail     $ toAST (pack string)
   core      <- handleASTToCoreFail $ toCore ast
   typedCore <- handleTypingFail (haltOnTypeErrors options) $ toTypedCore core
   handleInterpretFail $ toValue typedCore
 
-handleParseFail :: ([AST], Report Text Text) -> Either Error AST
+handleParseFail :: ([AST], Report Text Text) -> Either (Error m) AST
 handleParseFail (a:[], _)   = Right a
 handleParseFail (a:rest, _) = Left $ PE $ "Error: The grammar is ambiguous and produced " ++ show (1 + length rest) ++ " parses.\n\n" ++ (intercalate "\n" $ map show (a:rest))
 handleParseFail (_, r)      = Left $ PE $ show r
