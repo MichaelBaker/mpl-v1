@@ -16,7 +16,8 @@ library
   hs-source-dirs:
     src
   default-extensions:
-    OverloadedStrings
+    OverloadedStrings,
+    TemplateHaskell
   exposed-modules:
     Mpl.AST,
     Mpl.ASTToCore,
@@ -29,9 +30,8 @@ library
     base >= 4.7 && < 5,
     Earley,
     text,
-    llvm-general-pure,
-    llvm-general,
-    containers
+    containers,
+    lens
   ghc-options:
     -fwarn-incomplete-patterns
     -fwarn-unused-imports
@@ -75,7 +75,8 @@ test-suite mpl-test
     text,
     QuickCheck,
     hint,
-    containers
+    containers,
+    lens
   ghc-options:
     -threaded
     -rtsopts

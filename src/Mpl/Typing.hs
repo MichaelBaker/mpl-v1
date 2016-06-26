@@ -1,48 +1,82 @@
 module Mpl.Typing where
 
-import Mpl.Core  (Core(..), Type(..), metaOf)
+import Mpl.Core  (Core(..), Type(..), Path, pathOf, metaOf)
 import Data.Text (Text)
-import Data.Map.Strict as Map
+import Control.Lens
+import qualified Data.Set        as Set
+import qualified Data.Map.Strict as Map
 
 data TypeError = TypeError deriving (Show)
-type Context = Map.Map Text Type
+
+type Bindings = Set.Set Text
+
+data Evidence =
+    Literal Path Type
+  | Body Path Type
+  deriving (Eq)
+
+data CaseFile = CaseFile
+  { _conclusion         :: Type
+  , _evidence           :: [Evidence]
+  , _identifierEvidence :: Map.Map Text [Evidence]
+  , _conflicts          :: Set.Set Path
+  }
+
+makeLenses ''CaseFile
 
 toTypedCore :: Core a -> (Maybe TypeError, Core Type)
-toTypedCore core = let typedCore = typeCheck Map.empty core
-                       in case metaOf typedCore of
-                            TUnknown -> (Just TypeError, typedCore)
-                            _        -> (Nothing, typedCore)
+toTypedCore core = undefined -- TODO
 
-typeCheck :: Context -> Core a -> Core Type
-typeCheck _ a@(CInt path _ val) = CInt path TInt val
+investigate :: Bindings -> Core a -> Core CaseFile
 
-typeCheck context a@(CIdent path _ name) =
-  case Map.lookup name context of
-    Nothing -> CIdent path TUnknown name
-    Just ty -> CIdent path ty name
+investigate _ (CInt path _ val) = CInt path (intLitCase path) val
 
-typeCheck context (CThunk path _ body) =
-  let newBody = typeCheck context body
-      in CThunk path (TThunk (metaOf newBody)) newBody
+investigate bindings (CIdent path _ name) =
+  if isBound name bindings
+    then CIdent path (boundIdentCase path)   name
+    else CIdent path (unboundIdentCase path) name
 
-typeCheck context (CForce path _ f) =
-  let newF = typeCheck context f
-      in case metaOf newF of
-           (TThunk _) -> CForce path (metaOf newF) newF
-           _          -> CForce path TUnknown newF
+investigate bindings (CThunk path _ body) =
+  let bodyWithCase = investigate bindings body
+      bodyCase     = metaOf bodyWithCase
+      bodyType     = view conclusion bodyCase
+      thunkCase    = bodyCase
+                   & set conclusion (TThunk bodyType)
+                   & set evidence [Body (pathOf bodyWithCase) bodyType]
+      in CThunk path thunkCase bodyWithCase
 
-typeCheck context (CFunc path _ param body) =
-  let newBody = typeCheck context body
-      in CFunc path (TFunc TUnknown (metaOf newBody)) param newBody
+investigate _ _ = undefined -- TODO
 
-typeCheck context (CApp path _ f arg) =
-  let newArg = typeCheck context arg
-      newF   = typeCheck context f
-      in case metaOf newF of
-           TFunc paramType resultType ->
-             if paramType == (metaOf newArg)
-               then CApp path resultType newF newArg
-               else CApp path TUnknown newF newArg
-           _ -> CApp path TUnknown newF newArg
+caseFile = CaseFile { _conclusion         = TUnknown
+                    , _evidence           = []
+                    , _conflicts          = emptyConflicts
+                    , _identifierEvidence = emptyIdentifierEvidence
+                    }
 
-binding context param ty = Map.insert param ty context
+intLitCase path = caseFile
+                & set conclusion TInt
+                & set evidence [Literal path TInt]
+
+unboundIdentCase path = caseFile
+                      & set conclusion TUnboundIdent
+                      & set conflicts (Set.singleton path)
+
+boundIdentCase path = caseFile & set conclusion TPoly
+
+emptyIdentifierEvidence :: Map.Map Text [Evidence]
+emptyIdentifierEvidence = Map.empty
+
+emptyConflicts :: Set.Set Path
+emptyConflicts = Set.empty
+
+emptyBinding :: Bindings
+emptyBinding = Set.empty
+
+addBinding :: Text -> Bindings -> Bindings
+addBinding = Set.insert
+
+isBound :: Text -> Bindings -> Bool
+isBound = Set.member
+
+bindingsFromList :: [Text] -> Bindings
+bindingsFromList = Set.fromList

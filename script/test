@@ -1,1 +1,1 @@
-stack test
+stack test --test-arguments "$1"
