@@ -30,6 +30,13 @@ metaOf (CForce _ m _)   = m
 metaOf (CFunc  _ m _ _) = m
 metaOf (CApp   _ m _ _) = m
 
+withMeta (CInt   path _ a)   m = CInt   path m a
+withMeta (CIdent path _ a)   m = CIdent path m a
+withMeta (CThunk path _ a)   m = CThunk path m a
+withMeta (CForce path _ a)   m = CForce path m a
+withMeta (CFunc  path _ a b) m = CFunc  path m a b
+withMeta (CApp   path _ a b) m = CApp   path m a b
+
 pathOf (CInt   path _ _)   = path
 pathOf (CIdent path _ _)   = path
 pathOf (CThunk path _ _)   = path
