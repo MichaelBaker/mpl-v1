@@ -50,9 +50,9 @@ spec = do
       (Concludes TUnboundIdent)
       (CIdent [0] () "a")
 
-    testWithBinding "bound identifier is of type poly"
+    testWithBinding "bound identifier awaits the type of its identifier"
       ["a"]
-      (Concludes TPoly)
+      (Concludes (TIdent "a"))
       (CIdent [0] () "a")
 
     test "thunk takes its body's type"
@@ -65,3 +65,28 @@ spec = do
       (CApp [0] ()
         (CIdent [0, 0] () "+")
         (CIdent [1, 0] () "a"))
+
+    testWithBinding "plus implies its argument is an integer"
+      ["a"]
+      (ProvidesIdentEvidence "a" $ ArgOf [0, 0] TInt)
+      (CApp [0] ()
+        (CIdent [0, 0] () "+")
+        (CIdent [1, 0] () "a"))
+
+    test "plus is of type int -> int -> int"
+      (Concludes $ TFunc TInt (TFunc TInt TInt))
+      (CIdent [0] () "+")
+
+    test "plus applied to an integer has type int -> int"
+      (Concludes $ TFunc TInt TInt)
+      (CApp [0] ()
+        (CIdent [0, 0] () "+")
+        (CInt   [1, 0] () 1))
+
+    test "plus applied to two integers has type int"
+      (Concludes TInt)
+      (CApp [0] ()
+        (CApp [0, 0] ()
+          (CIdent [0, 0, 0] () "+")
+          (CInt   [1, 0, 0] () 1))
+        (CInt [1, 0] () 1))

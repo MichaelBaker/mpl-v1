@@ -19,6 +19,7 @@ data Type
   | TUnboundIdent
   | TPoly
   | TInt
+  | TIdent Text
   | TThunk Type
   | TFunc Type Type
   deriving (Show, Eq)

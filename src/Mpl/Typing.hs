@@ -36,8 +36,8 @@ investigate _ (CInt path _ val) = CInt path (intLitCase path) val
 
 investigate bindings (CIdent path _ name) =
   if isBound name bindings
-    then CIdent path (boundIdentCase path)   name
-    else CIdent path (unboundIdentCase path) name
+    then CIdent path (boundIdentCase   path name) name
+    else CIdent path (unboundIdentCase path name) name
 
 investigate bindings (CThunk path _ body) =
   let bodyWithCase = investigate bindings body
@@ -48,15 +48,30 @@ investigate bindings (CThunk path _ body) =
                    & set evidence [Body (pathOf bodyWithCase) bodyType]
       in CThunk path thunkCase bodyWithCase
 
-investigate bindings (CApp path _ (CIdent iPath _ "+") arg) =
+investigate bindings (CApp path _ f arg) =
   let argWithCase = investigate bindings arg
-      newIdent    = CIdent iPath (set conclusion (TFunc TInt $ TFunc TInt TInt) caseFile) "+"
-      newArg      = addEvidence (ArgOf iPath TInt) argWithCase
-      argCase     = metaOf newArg
-      appCase     = caseFile
-                  & set conclusion (TFunc TInt TInt)
-                  & set evidence [FuncReturn iPath (TFunc TInt TInt)]
-      in CApp path (merge appCase argCase) newIdent newArg
+      fWithCase   = investigate bindings f
+      argType     = view conclusion (metaOf argWithCase)
+      fType       = view conclusion (metaOf fWithCase)
+      appCase     = case (fType, argType) of
+                      (TFunc a b, TIdent c) -> caseFile & set conclusion b
+                                                        & set identifierEvidence (Map.singleton c [ArgOf (pathOf f) a])
+                      (TFunc a b, c) -> if a == c
+                                          then caseFile & set conclusion b
+                                                        & set evidence [FuncReturn (pathOf f) b]
+                                          else caseFile & set conclusion TUnknown
+                                                        & set conflicts (Set.singleton path)
+                      _ -> caseFile
+      in CApp path (List.foldl' merge appCase [metaOf argWithCase, metaOf fWithCase]) fWithCase argWithCase
+      -- TODO: Polymorphic function
+
+      -- newIdent    = CIdent iPath (set conclusion (TFunc TInt $ TFunc TInt TInt) caseFile) "+"
+      -- newArg      = addEvidence (ArgOf iPath TInt) argWithCase
+      -- argCase     = metaOf newArg
+      -- appCase     = caseFile
+      --             & set conclusion (TFunc TInt TInt)
+      --             & set evidence [FuncReturn iPath (TFunc TInt TInt)]
+      -- in CApp path (merge appCase argCase) newIdent newArg
 
 investigate _ _ = undefined -- TODO
 
@@ -70,11 +85,12 @@ intLitCase path = caseFile
                 & set conclusion TInt
                 & set evidence [Literal path TInt]
 
-unboundIdentCase path = caseFile
+unboundIdentCase path "+" = caseFile & set conclusion (TFunc TInt (TFunc TInt TInt))
+unboundIdentCase path name = caseFile
                       & set conclusion TUnboundIdent
                       & set conflicts (Set.singleton path)
 
-boundIdentCase path = caseFile & set conclusion TPoly
+boundIdentCase path name = caseFile & set conclusion (TIdent name)
 
 merge c1 c2 = c1
             & over conflicts (Set.union $ view conflicts c2)
