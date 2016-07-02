@@ -90,3 +90,8 @@ spec = do
           (CIdent [0, 0, 0] () "+")
           (CInt   [1, 0, 0] () 1))
         (CInt [1, 0] () 1))
+
+    test "a lambda with no constraints on its parameter is polymorphic"
+      (Concludes $ TFunc TPoly (TIdent "a"))
+      (CFunc [0] () "a"
+        (CIdent [0, 0] () "a"))

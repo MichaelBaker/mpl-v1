@@ -48,6 +48,14 @@ investigate bindings (CThunk path _ body) =
                    & set evidence [Body (pathOf bodyWithCase) bodyType]
       in CThunk path thunkCase bodyWithCase
 
+investigate bindings (CFunc path _ param body) =
+  let bodyWithCase  = investigate (addBinding param bindings) body
+      bodyType      = view conclusion (metaOf bodyWithCase)
+      identEvidence = view identifierEvidence (metaOf bodyWithCase)
+      paramType     = typeOfParam identEvidence param
+      funcCase      = caseFile & set conclusion (TFunc paramType bodyType)
+      in CFunc path (merge funcCase $ metaOf bodyWithCase) param bodyWithCase
+
 investigate bindings (CApp path _ f arg) =
   let argWithCase = investigate bindings arg
       fWithCase   = investigate bindings f
@@ -92,6 +100,15 @@ unboundIdentCase path name = caseFile
 
 boundIdentCase path name = caseFile & set conclusion (TIdent name)
 
+typeOfParam ev p = case Map.lookup p ev of
+                     Nothing -> TPoly
+                     Just e  -> snd $ formConclusion e
+
+typeOf (Literal _ ty)    = ty
+typeOf (Body _ ty)       = ty
+typeOf (ArgOf _ ty)      = ty
+typeOf (FuncReturn _ ty) = ty
+
 merge c1 c2 = c1
             & over conflicts (Set.union $ view conflicts c2)
             & over identifierEvidence (Map.unionWith (++) $ view identifierEvidence c2)
@@ -109,13 +126,11 @@ addEvidence e c =
            then withMeta c (over conflicts (Set.insert $ pathOf c) newCase)
            else withMeta c newCase
 
-hasConflict []     = False
-hasConflict (e:es) = fst $ List.foldl' conflicts (False, typeOf e) $ map typeOf es
-  where typeOf (Literal _ ty)    = ty
-        typeOf (Body _ ty)       = ty
-        typeOf (ArgOf _ ty)      = ty
-        typeOf (FuncReturn _ ty) = ty
-        conflicts (alreadyConflicts, currentE) newE =
+hasConflict = fst . formConclusion
+
+formConclusion []  = (False, TUnknown)
+formConclusion (e:es) = List.foldl' conflicts (False, typeOf e) $ map typeOf es
+  where conflicts (alreadyConflicts, currentE) newE =
           if alreadyConflicts
             then (alreadyConflicts, currentE)
             else case (currentE, newE) of
@@ -142,3 +157,4 @@ isBound = Set.member
 
 bindingsFromList :: [Text] -> Bindings
 bindingsFromList = Set.fromList
+
