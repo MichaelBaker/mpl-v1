@@ -4,7 +4,7 @@ import Test.Hspec
 
 import Data.Text
 import Control.Lens
-import Mpl.Core (Core(..), Type(..), metaOf)
+import Mpl.Core (Core(..), Type(..), Path, metaOf)
 import Mpl.Typing
   ( CaseFile
   , Evidence(..)
@@ -13,19 +13,23 @@ import Mpl.Typing
   , bindingsFromList
   , conclusion
   , evidence
+  , conflicts
   , identifierEvidence
   )
+import qualified Data.Set        as Set
 import qualified Data.Map.Strict as Map
 
 data TestType = Concludes Type
               | ProvidesEvidence Evidence
               | ProvidesIdentEvidence Text Evidence
+              | Conflicts Path
 
 testWithBinding message boundIdents testType core = it message $ do
   let bindings = bindingsFromList boundIdents
       result   = investigate bindings core
       caseFile = metaOf result
   case testType of
+    Conflicts path     -> Set.member path (view conflicts caseFile) `shouldBe` True
     Concludes ty       -> view conclusion caseFile `shouldBe` ty
     ProvidesEvidence e -> elem e (view evidence caseFile) `shouldBe` True
     ProvidesIdentEvidence name e ->
@@ -95,3 +99,25 @@ spec = do
       (Concludes $ TFunc TPoly (TIdent "a"))
       (CFunc [0] () "a"
         (CIdent [0, 0] () "a"))
+
+    test "a lambda with constraints on its parameter is monomorphic"
+      (Concludes $ TFunc TInt TInt)
+      (CFunc [0] () "a"
+        (CApp [0, 0] ()
+          (CApp [0, 0, 0] ()
+            (CIdent [0, 0, 0, 0] () "+")
+            (CIdent [1, 0, 0, 0] () "a"))
+          (CIdent [1, 0, 0] () "a")))
+
+    test "application of a polymorphic function always has the type of the function's body"
+      (Concludes $ TInt)
+      (CApp [0] ()
+        (CFunc [0, 0] () "a"
+          (CInt [0, 0, 0] () 1))
+        (CInt [1, 0] () 1))
+
+    test "application of a non-function is a conflict"
+      (Conflicts [0])
+      (CApp [0] ()
+        (CInt [0, 0] () 1)
+        (CInt [1, 0] () 1))

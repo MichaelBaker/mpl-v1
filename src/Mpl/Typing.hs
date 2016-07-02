@@ -62,6 +62,7 @@ investigate bindings (CApp path _ f arg) =
       argType     = view conclusion (metaOf argWithCase)
       fType       = view conclusion (metaOf fWithCase)
       appCase     = case (fType, argType) of
+                      (TFunc TPoly b, _) -> caseFile & set conclusion b
                       (TFunc a b, TIdent c) -> caseFile & set conclusion b
                                                         & set identifierEvidence (Map.singleton c [ArgOf (pathOf f) a])
                       (TFunc a b, c) -> if a == c
@@ -69,17 +70,8 @@ investigate bindings (CApp path _ f arg) =
                                                         & set evidence [FuncReturn (pathOf f) b]
                                           else caseFile & set conclusion TUnknown
                                                         & set conflicts (Set.singleton path)
-                      _ -> caseFile
+                      _ -> caseFile & set conflicts (Set.singleton path)
       in CApp path (List.foldl' merge appCase [metaOf argWithCase, metaOf fWithCase]) fWithCase argWithCase
-      -- TODO: Polymorphic function
-
-      -- newIdent    = CIdent iPath (set conclusion (TFunc TInt $ TFunc TInt TInt) caseFile) "+"
-      -- newArg      = addEvidence (ArgOf iPath TInt) argWithCase
-      -- argCase     = metaOf newArg
-      -- appCase     = caseFile
-      --             & set conclusion (TFunc TInt TInt)
-      --             & set evidence [FuncReturn iPath (TFunc TInt TInt)]
-      -- in CApp path (merge appCase argCase) newIdent newArg
 
 investigate _ _ = undefined -- TODO
 
