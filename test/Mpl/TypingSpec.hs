@@ -121,3 +121,14 @@ spec = do
       (CApp [0] ()
         (CInt [0, 0] () 1)
         (CInt [1, 0] () 1))
+
+    test "forcing a thunk has the type of the thunk's body"
+      (Concludes TInt)
+      (CForce [0] ()
+        (CThunk [0, 0] ()
+          (CInt [0, 0, 0]  () 1)))
+
+    test "forcing a non-thunk results in a conflict"
+      (Conflicts [0])
+      (CForce [0] ()
+        (CInt [0, 0]  () 1))

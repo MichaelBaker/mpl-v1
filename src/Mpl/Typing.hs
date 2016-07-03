@@ -73,7 +73,13 @@ investigate bindings (CApp path _ f arg) =
                       _ -> caseFile & set conflicts (Set.singleton path)
       in CApp path (List.foldl' merge appCase [metaOf argWithCase, metaOf fWithCase]) fWithCase argWithCase
 
-investigate _ _ = undefined -- TODO
+investigate bindings (CForce path _ f) =
+  let fWithCase = investigate bindings f
+      fCase     = metaOf fWithCase
+      forceCase = case view conclusion fCase of
+                    (TThunk a) -> caseFile & set conclusion a
+                    _          -> caseFile & set conflicts (Set.singleton path)
+      in CForce path (merge forceCase fCase) fWithCase
 
 caseFile = CaseFile { _conclusion         = TUnknown
                     , _evidence           = []
@@ -149,4 +155,3 @@ isBound = Set.member
 
 bindingsFromList :: [Text] -> Bindings
 bindingsFromList = Set.fromList
-
