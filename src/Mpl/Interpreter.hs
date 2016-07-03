@@ -1,27 +1,48 @@
 module Mpl.Interpreter where
 
-import Mpl.AST   (Core(..), Env, emptyEnv, meta)
-import Data.Text (pack)
+import Mpl.Core  (Core(..))
+import Data.Text (Text)
 
 import qualified Data.Map.Strict as Map
 
-interpret :: Core [Int] -> Core [Int]
-interpret ast = exec emptyEnv ast
+type Env m = Map.Map Text (Val m)
 
-exec :: Env -> Core [Int] -> Core [Int]
-exec env (CIdent path a) = case Map.lookup a env of
-  Nothing -> CText path $ pack $ "Invalid identifier: " ++ (show a)
-  Just o  -> o
-exec env (CList  t as)    = CList t (map (exec env) as)
-exec env (CAssoc t as)    = CMap t $ Map.fromList $ map (\(k, v) -> (exec env k, exec env v)) as
-exec env (CThunk t _ a)   = CThunk t env a
-exec env (CFunc  t _ a b) = CFunc  t env a b
-exec env (CForce _ a)     = forceThunk $ exec env a
-exec env (CApp   _ f a)   = evalFunction (exec env f) (exec env a)
-exec env a                = a
+data Val m
+  = Core (Core m)
+  | Closure (Env m) (Core m)
+  deriving (Show)
 
-forceThunk (CThunk _ closedEnv body) = exec closedEnv body
-forceThunk ast = CText (meta ast) (pack $ "Tried to force something that isn't a thunk: " ++ show ast)
+data RuntimeError m
+  = AppliedNonFunction (Core m)
+  | AppliedNonThunk (Core m)
+  | UnboundIdentifier Text
+  deriving (Show)
 
-evalFunction (CFunc _ closedEnv (param, _) body) arg = exec (Map.insert param arg closedEnv) body
-evalFunction ast _ = CText (meta ast) (pack $ "Tried to apply something that isn't a function: " ++ show ast)
+toValue :: Core m -> Either (RuntimeError m) (Core m)
+toValue ast = case exec Map.empty ast of
+  Left e              -> Left e
+  Right (Core c)      -> Right c
+  Right (Closure _ c) -> Right c
+
+exec :: Env m -> Core m -> Either (RuntimeError m) (Val m)
+exec env (CIdent path _ a) = case Map.lookup a env of
+                             Nothing -> Left $ UnboundIdentifier a
+                             Just o  -> Right o
+exec env c@(CThunk _ _ _)   = Right $ Closure env c
+exec env c@(CFunc  _ _ _ _) = Right $ Closure env c
+exec env (CForce _ _ a)     = do
+  a' <- exec env a
+  forceThunk a'
+exec env (CApp _ _ f a)   = do
+  f' <- exec env f
+  a' <- exec env a
+  evalFunction f' a'
+exec env a = Right $ Core a
+
+forceThunk (Closure closedEnv (CThunk _ _ body)) = exec closedEnv body
+forceThunk (Closure _ c) = Left $ AppliedNonThunk c
+forceThunk (Core c) = Left $ AppliedNonThunk c
+
+evalFunction (Closure closedEnv (CFunc _ _ param body)) arg = exec (Map.insert param arg closedEnv) body
+evalFunction (Closure _ c) _ = Left $ AppliedNonFunction c
+evalFunction (Core c) _ = Left $ AppliedNonFunction c

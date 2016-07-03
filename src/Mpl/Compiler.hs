@@ -1,49 +1,50 @@
 module Mpl.Compiler where
 
-import Mpl.AST            (AST, Core(..))
-import Mpl.ASTToCore      (astToCore)
-import Mpl.TypeAnnotation (annotate)
-import Mpl.Parser         (parse)
-import Mpl.Interpreter    (interpret)
+import Mpl.AST         (AST)
+import Mpl.Core        (Core(..))
+import Mpl.Parser      (toAST)
+import Mpl.ASTToCore   (toCore)
+import Mpl.Typing      (CaseFile, toTypedCore)
+import Mpl.Interpreter (RuntimeError(..), toValue)
+import Text.Earley     (Report)
+import Data.Text       (Text, unpack, pack)
+import Data.List       (intercalate)
 
-import Text.Earley   (Report)
-import Data.Text     (Text, unpack, pack)
-import Data.List     (intercalate)
-import Numeric       (showFFloatAlt)
+data Error m
+  = PE String
+  | AC String
+  | TE String
+  | RE (RuntimeError m)
+  deriving (Show)
 
-import qualified Data.Map.Strict as Map
+data Options = Options
+  { haltOnTypeErrors :: Bool }
 
-import Prelude hiding (curry)
+compile :: String -> Options -> Either (Error CaseFile) String
+compile string options = do
+  ast       <- handleParseFail     $ toAST (pack string)
+  core      <- handleASTToCoreFail $ toCore ast
+  typedCore <- handleTypingFail (haltOnTypeErrors options) $ toTypedCore core
+  handleInterpretFail $ toValue typedCore
 
-compile :: String -> String
-compile string = case run string of
-  Left  s -> s
-  Right s -> s
-
-run :: String -> Either String String
-run string = do
-  parsedAST <- Right $ parse (pack string)
-  ast       <- handleParseFail parsedAST
-  result    <- Right $ prettyPrint $ interpret $ fst $ annotate $ astToCore ast
-  return result
-
-handleParseFail :: ([AST ()], Report Text Text) -> Either String (AST ())
+handleParseFail :: ([AST], Report Text Text) -> Either (Error m) AST
 handleParseFail (a:[], _)   = Right a
-handleParseFail (a:rest, _) = Left $ "Error: The grammar is ambiguous and produced " ++ show (1 + length rest) ++ " parses.\n\n" ++ (intercalate "\n" $ map show (a:rest))
-handleParseFail (_, r)      = Left $ show r
+handleParseFail (a:rest, _) = Left $ PE $ "Error: The grammar is ambiguous and produced " ++ show (1 + length rest) ++ " parses.\n\n" ++ (intercalate "\n" $ map show (a:rest))
+handleParseFail (_, r)      = Left $ PE $ show r
 
-prettyPrint (CUnit  _)            = "()"
-prettyPrint (CInt   _ i)          = show i
-prettyPrint (CReal  _ r)          = showFFloatAlt Nothing r ""
-prettyPrint (CText  _ t)          = show t
-prettyPrint (CIdent _ t)          = unpack t
-prettyPrint (CList  _ as)         = "[" ++ intercalate " " (map prettyPrint as) ++ "]"
-prettyPrint (CAssoc _ ps)         = "{" ++ intercalate " " (map prettyPrintPair ps) ++ "}"
-prettyPrint (CMap   _ m)          = "{" ++ intercalate " " (map prettyPrintPair $ Map.toList m) ++ "}"
-prettyPrint (CThunk _ _ b)        = "(# []" ++ prettyPrint b ++ ")"
-prettyPrint (CForce _ t)          = "(" ++ prettyPrint t ++ ")"
-prettyPrint (CFunc  _ _ (p, _) b) = "(# [" ++ unpack p ++ "] " ++ prettyPrint b ++ ")"
-prettyPrint (CApp   _ f a)        = "(" ++ prettyPrint f ++ " " ++ prettyPrint a ++ ")"
+handleASTToCoreFail (Right core) = Right core
+handleASTToCoreFail (Left  e)    = Left $ AC e
 
-prettyPrintPair (a, b) = prettyPrint a ++ " " ++ prettyPrint b
+handleInterpretFail (Right c) = Right $ printCore c
+handleInterpretFail (Left e)  = Left  $ RE e
 
+handleTypingFail False (_, typedCore)       = Right typedCore
+handleTypingFail True (Nothing, typedCore)  = Right typedCore
+handleTypingFail True (Just err, typedCore) = Left $ TE $ show err
+
+printCore (CInt   _ _ i)   = show i
+printCore (CIdent _ _ t)   = unpack t
+printCore (CThunk _ _ b)   = "(# []" ++ printCore b ++ ")"
+printCore (CForce _ _ t)   = "(" ++ printCore t ++ ")"
+printCore (CFunc  _ _ p b) = "(# [" ++ unpack p ++ "] " ++ printCore b ++ ")"
+printCore (CApp   _ _ f a) = "(" ++ printCore f ++ " " ++ printCore a ++ ")"

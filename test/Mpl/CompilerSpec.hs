@@ -2,25 +2,59 @@ module Mpl.CompilerSpec where
 
 import Test.Hspec
 
-import Mpl.Compiler (compile)
-
-test name string result = it name $ compile string `shouldBe` result
+import Mpl.Compiler (Error(..), Options(..), compile)
 
 spec :: Spec
 spec = do
-  describe "interpreter" $ do
-    test "unit"                        "()" "()"
-    test "a single int"                "8907" "8907"
-    test "a single float"              "234.522" "234.522"
-    test "a list of ints and floats"   "  [ 123 234.5423  2 3 6 234.322] \n\n" "[123 234.5423 2 3 6 234.322]"
-    test "an int -> int map"           "{1 2 3 4}" "{1 2 3 4}"
-    test "a float -> int map"          "{1.0 23 0.3 134}" "{1.0 23 0.3 134}"
-    test "a string -> float/int map"   "{\"hello\" 1.0 \"there\" 1234}" "{\"hello\" 1.0 \"there\" 1234}"
-    test "forcing a thunk"             "((# [] 5))" "5"
-    test "simple function application" "((# [a int] a) 5)" "5"
-    test "simple closure"              "((# [a int] ((# [_ int] a) 1)) 5)" "5"
-    test "deep closure"                "((# [a int] ((# [_ int] ((# [_ int] ((# [_ int] ((# [_ int] a) 1)) 2)) 3)) 4)) 5)" "5"
-    test "construct pair"              "((# [a int b int] [a b]) 1 2)" "[1 2]"
-    test "construct list of maps"      "((# [a int b int c int] [{\"a\" a} {b b} {c \"3\"}]) 1 2 3)" "[{\"a\" 1} {2 2} {3 \"3\"}]"
-    test "partial application"         "((# [a int b int] [a b]) 1)" "(# [b] [a b])"
-    test "curried application"         "(((# [a int b int] [a b]) 1) 2)" "[1 2]"
+  describe "1.0" $ do
+    test_1_0 "a single int"                "8907" (Success "8907")
+    test_1_0 "forcing a thunk"             "((# [] 5))" (Success "5")
+    test_1_0 "simple function application" "((# [a] a) 5)" (Success "5")
+    test_1_0 "simple closure"              "((# [a] ((# [_] a) 1)) 5)" (Success "5")
+    test_1_0 "deep closure"                "((# [a] ((# [_] ((# [_] ((# [_] ((# [_] a) 1)) 2)) 3)) 4)) 5)" (Success "5")
+    test_1_0 "multiple parameters"         "((# [a b] a) 1 2)" (Success "1")
+    test_1_0 "partial application"         "((# [a b] a) 1)" (Success "(# [b] a)")
+    test_1_0 "runtime type error"          "(1 1)" RuntimeError
+
+  describe "2.0" $ do
+    test_2_0 "a single int"                "8907" (Success "8907")
+    test_2_0 "forcing a thunk"             "((# [] 5))" (Success "5")
+    test_2_0 "simple function application" "((# [a] a) 5)" (Success "5")
+    test_2_0 "simple closure"              "((# [a] ((# [_] a) 1)) 5)" (Success "5")
+    test_2_0 "deep closure"                "((# [a] ((# [_] ((# [_] ((# [_] ((# [_] a) 1)) 2)) 3)) 4)) 5)" (Success "5")
+    test_2_0 "multiple parameters"         "((# [a b] a) 1 2)" (Success "1")
+    test_2_0 "partial application"         "((# [a b] a) 1)" (Success "(# [b] a)")
+    test_2_0 "compile time type error"     "(1 1)" TypeError
+
+test_1_0 name string testType = it name $ do
+  let result = compile string $ Options {
+    haltOnTypeErrors = False }
+  checkResult testType result
+
+test_2_0 name string testType = it name $ do
+  let result = compile string $ Options {
+    haltOnTypeErrors = True }
+  checkResult testType result
+
+checkResult (Success expected) result = resultType result `shouldBe` (SuccessResult expected)
+checkResult RuntimeError       result = resultType result `shouldBe` RuntimeErrorResult
+checkResult TypeError          result = resultType result `shouldBe` TypeErrorResult
+
+data TestType
+  = Success String
+  | RuntimeError
+  | TypeError
+
+data ResultType
+  = SuccessResult String
+  | ParseErrorResult
+  | ASTToCoreErrorResult
+  | TypeErrorResult
+  | RuntimeErrorResult
+  deriving (Show, Eq)
+
+resultType (Right s)     = SuccessResult s
+resultType (Left (PE _)) = ParseErrorResult
+resultType (Left (AC _)) = ASTToCoreErrorResult
+resultType (Left (TE _)) = TypeErrorResult
+resultType (Left (RE _)) = RuntimeErrorResult

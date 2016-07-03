@@ -16,23 +16,26 @@ library
   hs-source-dirs:
     src
   default-extensions:
-    OverloadedStrings
+    OverloadedStrings,
+    TemplateHaskell
   exposed-modules:
     Mpl.AST,
-    Mpl.Compiler,
     Mpl.ASTToCore,
+    Mpl.Compiler,
+    Mpl.Core,
     Mpl.Interpreter,
     Mpl.Parser,
-    Mpl.TypeAnnotation
+    Mpl.Typing
   build-depends:
     base >= 4.7 && < 5,
     Earley,
     text,
-    llvm-general-pure,
-    llvm-general,
-    containers
+    containers,
+    lens
   ghc-options:
-    -fwarn-incomplete-patterns -Werror
+    -fwarn-incomplete-patterns
+    -fwarn-unused-imports
+    -Werror
   default-language:
     Haskell2010
 
@@ -44,7 +47,9 @@ executable mpl
   default-extensions:
     OverloadedStrings
   ghc-options:
-    -threaded -rtsopts -with-rtsopts=-N
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
   build-depends:
     base,
     mpl,
@@ -70,9 +75,12 @@ test-suite mpl-test
     text,
     QuickCheck,
     hint,
-    containers
+    containers,
+    lens
   ghc-options:
-    -threaded -rtsopts -with-rtsopts=-N
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
   default-language:
     Haskell2010
 
