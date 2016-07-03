@@ -1,10 +1,10 @@
 module Mpl.Compiler where
 
 import Mpl.AST         (AST)
-import Mpl.Core        (Core(..), Type)
+import Mpl.Core        (Core(..))
 import Mpl.Parser      (toAST)
 import Mpl.ASTToCore   (toCore)
-import Mpl.Typing      (toTypedCore)
+import Mpl.Typing      (CaseFile, toTypedCore)
 import Mpl.Interpreter (RuntimeError(..), toValue)
 import Text.Earley     (Report)
 import Data.Text       (Text, unpack, pack)
@@ -20,7 +20,7 @@ data Error m
 data Options = Options
   { haltOnTypeErrors :: Bool }
 
-compile :: String -> Options -> Either (Error Type) String
+compile :: String -> Options -> Either (Error CaseFile) String
 compile string options = do
   ast       <- handleParseFail     $ toAST (pack string)
   core      <- handleASTToCoreFail $ toCore ast

@@ -27,8 +27,13 @@ data CaseFile = CaseFile
 
 makeLenses ''CaseFile
 
-toTypedCore :: Core a -> (Maybe TypeError, Core Type)
-toTypedCore core = undefined -- TODO
+toTypedCore :: Core a -> (Maybe TypeError, Core CaseFile)
+toTypedCore core =
+  let coreWithCase  = investigate emptyBinding core
+      coreConflicts = view conflicts (metaOf coreWithCase)
+      in if Set.null coreConflicts
+           then (Nothing, coreWithCase)
+           else (Just TypeError, coreWithCase)
 
 investigate :: Bindings -> Core a -> Core CaseFile
 
