@@ -10,21 +10,27 @@ type Env m = Map.Map Text (Val m)
 data Val m
   = Core (Core m)
   | Closure (Env m) (Core m)
+  | PrimAdd (Core m)
+  | PrimAddPartial (Core m) Integer
   deriving (Show)
 
 data RuntimeError m
   = AppliedNonFunction (Core m)
   | AppliedNonThunk (Core m)
   | UnboundIdentifier Text
+  | AdditionOfNonInt (Val m)
   deriving (Show)
 
 toValue :: Core m -> Either (RuntimeError m) (Core m)
 toValue ast = case exec Map.empty ast of
-  Left e              -> Left e
-  Right (Core c)      -> Right c
-  Right (Closure _ c) -> Right c
+  Left e                     -> Left e
+  Right (Core c)             -> Right c
+  Right (Closure _ c)        -> Right c
+  Right (PrimAdd c)          -> Right c
+  Right (PrimAddPartial c _) -> Right c
 
 exec :: Env m -> Core m -> Either (RuntimeError m) (Val m)
+exec env c@(CIdent path _ "+") = Right $ PrimAdd c
 exec env (CIdent path _ a) = case Map.lookup a env of
                              Nothing -> Left $ UnboundIdentifier a
                              Just o  -> Right o
@@ -42,7 +48,13 @@ exec env a = Right $ Core a
 forceThunk (Closure closedEnv (CThunk _ _ body)) = exec closedEnv body
 forceThunk (Closure _ c) = Left $ AppliedNonThunk c
 forceThunk (Core c) = Left $ AppliedNonThunk c
+forceThunk (PrimAdd c) = Left $ AppliedNonThunk c
+forceThunk (PrimAddPartial c _) = Left $ AppliedNonThunk c
 
 evalFunction (Closure closedEnv (CFunc _ _ param body)) arg = exec (Map.insert param arg closedEnv) body
+evalFunction (PrimAdd c) (Core (CInt _ _ val)) = Right $ PrimAddPartial c val
+evalFunction (PrimAdd _) a = Left $ AdditionOfNonInt a
+evalFunction (PrimAddPartial _ val1) (Core (CInt _ m val2)) = Right $ Core $ CInt [] m (val1 + val2)
+evalFunction (PrimAddPartial _ val1) a = Left $ AdditionOfNonInt a
 evalFunction (Closure _ c) _ = Left $ AppliedNonFunction c
 evalFunction (Core c) _ = Left $ AppliedNonFunction c

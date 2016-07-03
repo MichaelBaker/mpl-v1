@@ -15,6 +15,7 @@ spec = do
     test_1_0 "multiple parameters"         "((# [a b] a) 1 2)" (Success "1")
     test_1_0 "partial application"         "((# [a b] a) 1)" (Success "(# [b] a)")
     test_1_0 "runtime type error"          "(1 1)" RuntimeError
+    test_1_0 "addition"                    "((# [a] (+ 1 (+ a a))) 1)" (Success "3")
 
   describe "2.0" $ do
     test_2_0 "a single int"                "8907" (Success "8907")

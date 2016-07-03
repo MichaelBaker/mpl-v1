@@ -48,3 +48,4 @@ printCore (CThunk _ _ b)   = "(# []" ++ printCore b ++ ")"
 printCore (CForce _ _ t)   = "(" ++ printCore t ++ ")"
 printCore (CFunc  _ _ p b) = "(# [" ++ unpack p ++ "] " ++ printCore b ++ ")"
 printCore (CApp   _ _ f a) = "(" ++ printCore f ++ " " ++ printCore a ++ ")"
+
