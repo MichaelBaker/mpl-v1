@@ -29,18 +29,16 @@ spec = do
 test_1_0 name string testType = it name $ do
   let result = compile string $ Options {
     haltOnTypeErrors = False }
-  case testType of
-    Success expected -> resultType result `shouldBe` (SuccessResult expected)
-    RuntimeError     -> resultType result `shouldBe` RuntimeErrorResult
-    TypeError        -> resultType result `shouldBe` TypeErrorResult
+  checkResult testType result
 
 test_2_0 name string testType = it name $ do
   let result = compile string $ Options {
     haltOnTypeErrors = True }
-  case testType of
-    Success expected -> resultType result `shouldBe` (SuccessResult expected)
-    RuntimeError     -> resultType result `shouldBe` RuntimeErrorResult
-    TypeError        -> resultType result `shouldBe` TypeErrorResult
+  checkResult testType result
+
+checkResult (Success expected) result = resultType result `shouldBe` (SuccessResult expected)
+checkResult RuntimeError       result = resultType result `shouldBe` RuntimeErrorResult
+checkResult TypeError          result = resultType result `shouldBe` TypeErrorResult
 
 data TestType
   = Success String
