@@ -1,7 +1,7 @@
 module Mpl.ParserSpec where
 
 import Test.Hspec
-import ASTHelpers (aparen, asquare, acurly, aint, afloat, atext, asym, tagcurly, tagparens, tagsquare)
+import ASTHelpers (aparen, asquare, acurly, aint, afloat, atext, asym)
 
 import Mpl.AST    (AST(..))
 import Mpl.Parser (parse)
@@ -10,10 +10,11 @@ test name string result = it name $ do
   let (parses, _) = parse string
   parses `shouldBe` [result]
 
-param name ty = aparen [asym ":", asym name, asym ty]
-
 spec :: Spec
 spec = do
+  describe "unit" $ do
+    test "unit" "()" (aparen [])
+
   describe "integer" $ do
     test "a single digit"  "1"         (aint 1)
     test "a single number" "12"        (aint 12)
@@ -27,39 +28,33 @@ spec = do
     test "empty text" "\"\""      (atext "")
     test "plain text" "\"hello\"" (atext "hello")
 
-  describe "symbols" $ do
+  describe "identifier" $ do
     test "single letter"       "a"                (asym "a")
     test "camel cased word"    "uUadkjADkdfsjljD" (asym "uUadkjADkdfsjljD")
     test "symbolic identifier" "<$>"              (asym "<$>")
     test "octothorp"           "#"                (asym "#")
 
-  describe "s-expressions" $ do
-    test "paren"                     "()"                         (aparen  [])
-    test "curly"                     "{}"                         (acurly  [])
-    test "square"                    "[]"                         (asquare [])
-    test "square with one item"      "[12]"                       (asquare [aint 12])
-    test "square with items"         "[12 13]"                    (asquare [aint 12, aint 13])
-    test "square crazy"              " [   1 53  23  8 12 13   ]" (asquare [aint 1,  aint 53, aint 23, aint 8, aint 12, aint 13])
+  describe "list" $ do
+    test "empty"                     "[]"                         (asquare [])
+    test "an int"                    "[12]"                       (asquare [aint 12])
+    test "two ints"                  "[12 13]"                    (asquare [aint 12, aint 13])
+    test "leading inner whitespace"  "[ 12 13]"                   (asquare [aint 12, aint 13])
+    test "leading outer whitespace"  " [12 13]"                   (asquare [aint 12, aint 13])
+    test "trailing outer whitespace" "[12 13]  "                  (asquare [aint 12, aint 13])
+    test "trailing inner whitespace" "[12 13 ]"                   (asquare [aint 12, aint 13])
+    test "surrounding whitespace"    " [ 12 13]"                  (asquare [aint 12, aint 13])
+    test "crazy"                     " [   1 53  23  8 12 13   ]" (asquare [aint 1,  aint 53, aint 23, aint 8, aint 12, aint 13])
 
-    test "simple parens"
-      "(# [] 5)"
-      (aparen [asym "#", asquare [], aint 5])
+  describe "map" $ do
+    test "empty"         "{}"        (acurly [])
+    test "string -> int" "{\"a\" 1}" (acurly [atext "a", aint 1])
 
-    test "complex parens"
-      "(: [t] (# [(: a t)] 5))"
-      (aparen [asym ":", asquare [asym "t"], (aparen [asym "#", asquare [param "a" "t"], aint 5])])
+  describe "function" $ do
+    test "no arguments"       "(# [] 5)"             (aparen [asym "#", asquare [], aint 5])
+    test "one argument"       "(# [a int] 5)"        (aparen [asym "#", asquare [asym "a", asym "int"], aint 5])
+    test "multiple arguments" "(# [a int b unit] 5)" (aparen [asym "#", asquare [asym "a", asym "int", asym "b", asym "unit"], aint 5])
 
-  describe "tagged s-expressions" $ do
-    test "simple tagged curly sexp"
-      "#{}"
-      (tagcurly "#" [])
-
-    test "tagged parens with items"
-      "<$>(1 2 3)"
-      (tagparens "<$>" [aint 1, aint 2, aint 3])
-
-    test "tagged nested square brackets"
-      "![?[3 4] *[1 2]]"
-      (tagsquare "!" [
-        tagsquare "?" [aint 3, aint 4],
-        tagsquare "*" [aint 1, aint 2]])
+  describe "application" $ do
+    test "simple application"        "(a 5)"             (aparen [asym "a", aint 5])
+    test "application of a function" "((# [a int] a) 5)" (aparen [aparen [asym "#", asquare [asym "a", asym "int"], asym "a"], aint 5])
+    test "forcing a thunk"           "((# [] 5))"        (aparen [aparen [asym "#", asquare [], aint 5]])

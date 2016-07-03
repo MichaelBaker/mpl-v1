@@ -1,82 +1,49 @@
 module Mpl.Compiler where
 
-import Mpl.Core            (Core(..), Type)
-import Mpl.ASTToCore       (astToCore)
-import Mpl.Parser          (parse)
-import Mpl.Interpreter     (eval)
-import Mpl.TypeInterpreter (interpret)
-import Mpl.TypeChecker     (TypeError(..), typeContradictions)
-import Data.Text           (Text, unpack, pack)
+import Mpl.AST            (AST, Core(..))
+import Mpl.ASTToCore      (astToCore)
+import Mpl.TypeAnnotation (annotate)
+import Mpl.Parser         (parse)
+import Mpl.Interpreter    (interpret)
 
-data Result = Result {
-  output   :: Text,
-  warnings :: Warnings,
-  errors   :: Errors
-  } deriving (Show)
+import Text.Earley   (Report)
+import Data.Text     (Text, unpack, pack)
+import Data.List     (intercalate)
+import Numeric       (showFFloatAlt)
 
-data Options = Options {
-  typeContradictionsAreErrors :: Bool
-  } deriving (Show)
+import qualified Data.Map.Strict as Map
 
-defaultOptions = Options {
-  typeContradictionsAreErrors = False
-  }
+import Prelude hiding (curry)
 
-type Output   = String
-type Warnings = [Warning]
-type Errors   = [Error]
+compile :: String -> String
+compile string = case run string of
+  Left  s -> s
+  Right s -> s
 
-data Warning = TypeContradictionWarning (Core Type) (Core Type) Text deriving (Show, Eq)
+run :: String -> Either String String
+run string = do
+  parsedAST <- Right $ parse (pack string)
+  ast       <- handleParseFail parsedAST
+  result    <- Right $ prettyPrint $ interpret $ fst $ annotate $ astToCore ast
+  return result
 
-data Error = AmbiguousGrammar Int [Text]
-           | FailedParse Text
-           | TypeContradictionError (Core Type) (Core Type) Text
-           deriving (Show, Eq)
+handleParseFail :: ([AST ()], Report Text Text) -> Either String (AST ())
+handleParseFail (a:[], _)   = Right a
+handleParseFail (a:rest, _) = Left $ "Error: The grammar is ambiguous and produced " ++ show (1 + length rest) ++ " parses.\n\n" ++ (intercalate "\n" $ map show (a:rest))
+handleParseFail (_, r)      = Left $ show r
 
-compile :: Options -> String -> Result
-compile options string = case parse (pack string) of
-                           (ast:[], _) -> typeCheck options $ interpret $ astToCore ast
-                           (a:rest, _) -> Result {
-                             output   = "",
-                             warnings = [],
-                             errors   = [AmbiguousGrammar (1 + length rest) $ map (pack . show) (a:rest)]
-                             }
-                           (_, r) -> Result {
-                             output   = "",
-                             warnings = [],
-                             errors   = [FailedParse $ pack $ show r]
-                             }
+prettyPrint (CUnit  _)            = "()"
+prettyPrint (CInt   _ i)          = show i
+prettyPrint (CReal  _ r)          = showFFloatAlt Nothing r ""
+prettyPrint (CText  _ t)          = show t
+prettyPrint (CIdent _ t)          = unpack t
+prettyPrint (CList  _ as)         = "[" ++ intercalate " " (map prettyPrint as) ++ "]"
+prettyPrint (CAssoc _ ps)         = "{" ++ intercalate " " (map prettyPrintPair ps) ++ "}"
+prettyPrint (CMap   _ m)          = "{" ++ intercalate " " (map prettyPrintPair $ Map.toList m) ++ "}"
+prettyPrint (CThunk _ _ b)        = "(# []" ++ prettyPrint b ++ ")"
+prettyPrint (CForce _ t)          = "(" ++ prettyPrint t ++ ")"
+prettyPrint (CFunc  _ _ (p, _) b) = "(# [" ++ unpack p ++ "] " ++ prettyPrint b ++ ")"
+prettyPrint (CApp   _ f a)        = "(" ++ prettyPrint f ++ " " ++ prettyPrint a ++ ")"
 
-typeCheck options core = let contradictions = typeContradictions core in
-                             if typeContradictionsAreErrors options && not (null contradictions)
-                               then Result {
-                                 output   = "",
-                                 warnings = [],
-                                 errors   = map convertTypeError contradictions
-                                 }
-                               else Result {
-                                 output   = pack $ prettyPrint $ eval $ core,
-                                 warnings = map convertTypeWarning contradictions,
-                                 errors   = []
-                                 }
-
-
-convertTypeWarning (Contradiction expected actual core) = TypeContradictionWarning expected actual (pack $ prettyPrint core)
-
-convertTypeError (Contradiction expected actual core) = TypeContradictionError expected actual (pack $ prettyPrint core)
-
-prettyPrint (CInt  a) = show a
-prettyPrint (CReal a) = show a
-prettyPrint (CText a) = show a
-prettyPrint (CSym a)  = unpack a
-prettyPrint (CTermApp a b) = "(" ++ prettyPrint a ++ " " ++ prettyPrint b ++ ")"
-prettyPrint (CLam param tyParam body) = "(# [(: " ++ unpack param ++ " " ++ prettyPrintTy tyParam ++ ")] " ++ prettyPrint body ++ ")"
-prettyPrint a = show a
-
-prettyPrintTy CIntTy  = "int"
-prettyPrintTy CRealTy = "real"
-prettyPrintTy CTextTy = "text"
-prettyPrintTy (CTyParam a) = unpack a
-prettyPrintTy (CLamTy a b) = "(-> " ++ prettyPrintTy a ++ " " ++ prettyPrintTy b ++ ")"
-prettyPrintTy a = show a
+prettyPrintPair (a, b) = prettyPrint a ++ " " ++ prettyPrint b
 

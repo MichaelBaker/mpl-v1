@@ -1,20 +1,27 @@
 module Mpl.Interpreter where
 
-import Mpl.Core   (Core(..), Term)
-import Data.Maybe (fromMaybe)
-import Data.Text  (Text)
+import Mpl.AST   (Core(..), Env, emptyEnv, meta)
+import Data.Text (pack)
+
 import qualified Data.Map.Strict as Map
 
-type Env = Map.Map Text (Core Term)
+interpret :: Core [Int] -> Core [Int]
+interpret ast = exec emptyEnv ast
 
-eval :: Core Term -> Core Term
-eval core = eval' emptyEnv core
+exec :: Env -> Core [Int] -> Core [Int]
+exec env (CIdent path a) = case Map.lookup a env of
+  Nothing -> CText path $ pack $ "Invalid identifier: " ++ (show a)
+  Just o  -> o
+exec env (CList  t as)    = CList t (map (exec env) as)
+exec env (CAssoc t as)    = CMap t $ Map.fromList $ map (\(k, v) -> (exec env k, exec env v)) as
+exec env (CThunk t _ a)   = CThunk t env a
+exec env (CFunc  t _ a b) = CFunc  t env a b
+exec env (CForce _ a)     = forceThunk $ exec env a
+exec env (CApp   _ f a)   = evalFunction (exec env f) (exec env a)
+exec env a                = a
 
-eval' :: Env -> Core Term -> Core Term
-eval' env (CTermApp (CLam param _ body) a) = eval' (bind param (eval' env a) env) body
-eval' env (CSym a) = fromMaybe (error $ "Unbound parameter: " ++ show a) (lookupParam a env)
-eval' _ a = a
+forceThunk (CThunk _ closedEnv body) = exec closedEnv body
+forceThunk ast = CText (meta ast) (pack $ "Tried to force something that isn't a thunk: " ++ show ast)
 
-emptyEnv    = Map.empty  :: Env
-bind        = Map.insert :: Text -> Core Term -> Env -> Env
-lookupParam = Map.lookup :: Text -> Env -> Maybe (Core Term)
+evalFunction (CFunc _ closedEnv (param, _) body) arg = exec (Map.insert param arg closedEnv) body
+evalFunction ast _ = CText (meta ast) (pack $ "Tried to apply something that isn't a function: " ++ show ast)

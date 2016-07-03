@@ -4,56 +4,14 @@ This is the project I use to play around with programming language theory and im
 
 ## TODO
 
-[ ] Add a type elaboration function
-[ ] Remove special cases for type operators?
-  * It seems like they should be curried just like terms.
-  * That implies that we need type-level products.
-[ ] Warn on type contradictions at level 0.0
 [ ] Start level 1.0
 [ ] Give typechecker a once over and look into correctness
+[ ] Warn on type contradictions at level 0.0
+[ ] Error on type contradictions and lack of proof at level 1.0
 [ ] Add type inference (for type elision at level 0.0)
 [ ] Convert level 0.0 <-> 1.0
 [ ] Start level 2.0
 [ ] Convert level 1.0 <-> 2.0
-[ ] Specialization (ad hoc polymorphism)
-
-## Things I've learned
-
-Quets are wanted pages. They request problems.
-Types are problems.     They request solutions.
-Terms are solutions.    They satisfy requests.
-
-A quet says "My workers need something to do."
-A type says "Ok, I want some kind of integer".
-A term says "Here is the integer you requested".
-
-A termfun type(funtype) says "I want a machine that can solve B if I can provide a solution to A."
-A term function (termfun) says "Here is your machine you requested."
-A type operator (tyop) says "If you can find demand for A, I can drum up demand for B."
-A dependent type (depty) says "If you can find a solution to A, I can generate problem B."
-
-* Term abstraction (Simply typed lambda calculus/term -> term) allows code to be reused with different values.
-  * You don't need to copy-paste the implementation of "add" all over the place.
-  * You can write a function once and pass in different values at each call site.
-
-* Type abstraction (System F/type -> term) allows code to be reused with different types of values.
-  * I think this only gives you combinators (f a b = b, f a g = g a, etc...). You need System F-omega for generic data structures.
-  * You don't need to copy-paste the implementation of a function for every new type of value (int, bool, etc...).
-  * You can write a function once and pass in a different type at each call site.
-
-* A major difference between the type level and the term level is that type computations conventionally happen at compile time.
-  * There's no particular reason that this needs to be the case.
-  * If we want that, it implies that all "type" code is purely syntactic with literals. No run-time input is needed (unless you make compilation interactive).
-  * Type providers can generate types using arbitrary code at compile time.
-    * This is just generic code generation, but at the type level.
-  * However. Once you genrate the types, then they can impose restrictions on the term language.
-    * So these are two separate coding tasks.
-      1. Write program(s) to generate the specification (types) of another program.
-      2. Write a program that meets that specification.
-    * A challenge is how to associate enough type information with terms that you can actually verify compliance.
-  * A type function that is executed at run-time could be considered a contract where the type information is the input and a boolean is the output.
-  * Run-time dispatch is a function from type information -> term/implementation.
-  * Compile-time dispatch is the same thing, but, you know, at compile time.
 
 ## Things I want
 

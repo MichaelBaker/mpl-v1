@@ -1,54 +1,41 @@
 module Mpl.ASTToCore where
 
-import Mpl.AST  (AST(..))
-import Mpl.Core (Core(..), Term)
-import qualified Data.Map.Strict as Map
+import Mpl.AST (AST(..), Core(..), CoreType(..), emptyEnv)
 
-astToCore :: AST -> Core Term
-astToCore ast = elaborate ast
 
-elaborate (AInt a)   = CInt a
-elaborate (AFloat a) = CReal a
-elaborate (AText a)  = CText a
-elaborate (ASym a)   = CSym a
-elaborate a@(ASexp "(" ")" ((ASym "#"):rest)) = lambda rest
-elaborate a@(ASexp "(" ")" ((ASym ":"):rest)) = typeAnnotation rest
-elaborate a@(ASexp "(" ")" ((ASym "@"):_))    = error $ "Unapplied polymorphic function: " ++ show a
-elaborate a@(ASexp "(" ")" [f, arg])          = application a f arg
-elaborate a@(ATagSexp "#" "{" "}" items)      = record a items
-elaborate _ = undefined
+astToCore = elaborate [0]
 
-record sexp items = CRecord $ Map.fromList $ makeItems items
-  where makeItems []                  = []
-        makeItems (_:[])              = error $ "Odd number of items in record: " ++ show sexp
-        makeItems ((ASym key):v:rest) = (key, elaborate v) : makeItems rest
-        makeItems _                   = error $ "Invalid record field: " ++ show sexp
+elaborate :: [Int] -> AST () -> Core [Int]
+elaborate path (AInt   _ value)          = CInt path value
+elaborate path (AFloat _ value)          = CReal path value
+elaborate path (AText  _ value)          = CText path value
+elaborate path (ASym   _ value)          = CIdent path value
+elaborate path (ASexp  _ "[" "]" values) = CList  path (map (\(i, v) -> elaborate (i:path) v) $ zip [0..] values)
+elaborate path (ASexp  _ "{" "}" values) = CAssoc path (map (\(i, (k, v)) -> (elaborate (i:path) k, elaborate ((i + 1):path) v)) $ zip [0,2..] $ listToPairs "map" values)
+elaborate path (ASexp  _ "(" ")" [])     = CUnit  path
+elaborate path (ASexp  _ "(" ")" [ASym _ "#", ASexp _ "[" "]" params, body]) = elaborateFunc path (listToPairs "parameter list" params) body
+elaborate path (ASexp  _ "(" ")" (f:args)) = curryApplication path f $ reverse args
+elaborate _ a = error $ "Invalid s-expression: " ++ show a
 
-typeAnnotation (a:b:[]) = CTyAnn (ty a) (elaborate b)
-typeAnnotation a = error $ "Invalid type annotation: " ++ show a
+elaborateFunc path [] body               = CThunk path emptyEnv (elaborate (0:path) body)
+elaborateFunc path ((sym, ty):[]) body   = CFunc path emptyEnv (symName sym, symToType ty) (elaborate (0:path) body)
+elaborateFunc path ((sym, ty):rest) body = CFunc path emptyEnv (symName sym, symToType ty) $ elaborateFunc (0:path) rest body
 
-ty (ASym "int") = CIntTy
-ty (ASym a)     = CTyParam a
-ty (ASexp "(" ")" [ASym sym, a, b]) = CTyPrim sym (ty a) (ty b)
-ty (ASexp "(" ")" (f:arg:[])) = CTyLamApp (tyLam f) (ty arg)
-ty a@(ATagSexp "#" "{" "}" items) = recordTy a items
-ty a = error $ "Invalid type: " ++ show a
+curryApplication path f []     = CForce path (elaborate (0:path) f)
+curryApplication path f (a:[]) = CApp path (elaborate (0:path) f) (elaborate (1:path) a)
+curryApplication path f (a:as) = CApp path (curryApplication (0:path) f as) (elaborate (1:path) a)
 
-recordTy sexp items = CRecordTy $ Map.fromList $ makeItems items
-  where makeItems []                  = []
-        makeItems (_:[])              = error $ "Odd number of items in record type: " ++ show sexp
-        makeItems ((ASym key):v:rest) = (key, ty v) : makeItems rest
-        makeItems _                   = error $ "Invalid record type field: " ++ show sexp
+listToPairs _    []         = []
+listToPairs item (a:[])     = error $ "Odd number of items in " ++ item
+listToPairs item (a:b:rest) = (a, b) : listToPairs item rest
 
-application _ (ASexp "(" ")" ((ASym "@"):rest)) arg = CPolyApp (polyFunc rest) (ty arg)
-application _ (ASexp "(" ")" ((ASym "#"):rest)) arg = CTermApp (lambda rest) (elaborate arg)
-application sexp _ _ = error $ "Invalid application: " ++ show sexp
+symName (ASym _ name) = name
+symName a             = error $ "Invalid parameter name: " ++ show a
 
-lambda [ASexp "[" "]" [ASexp "(" ")" [ASym ":", ASym param, tyParam]], body] = CLam param (ty tyParam)$ elaborate body
-lambda a = error $ "Invalid lambda: " ++ show a
-
-polyFunc [ASexp "[" "]" [ASym param], body] = CPolyFunc param $ elaborate body
-polyFunc a = error $ "Invalid polymorphic function: " ++ show a
-
-tyLam (ASexp "(" ")" [ASym "$", (ASexp "[" "]" [ASym param]), body]) = CTyLam param $ ty body
-tyLam a = error $ "Invalid type operator: " ++ show a
+symToType (ASym _ "unit")  = CUnitTy
+symToType (ASym _ "int")   = CIntTy
+symToType (ASym _ "float") = CRealTy
+symToType (ASym _ "text")  = CTextTy
+symToType (ASym _ "list")  = CListTy
+symToType (ASym _ "map")   = CMapTy
+symToType a                = error $ "Invalid type name: " ++ show a
