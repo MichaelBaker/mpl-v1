@@ -17,7 +17,8 @@ library
     src
   default-extensions:
     OverloadedStrings,
-    TemplateHaskell
+    TemplateHaskell,
+    DeriveGeneric
   exposed-modules:
     Mpl.AST,
     Mpl.ASTToCore,
@@ -25,13 +26,16 @@ library
     Mpl.Core,
     Mpl.Interpreter,
     Mpl.Parser,
-    Mpl.Typing
+    Mpl.Typing,
+    Mpl.Dyn.Parser,
+    Mpl.Dyn.AST
   build-depends:
     base >= 4.7 && < 5,
     Earley,
     text,
     containers,
-    lens
+    lens,
+    pretty-show
   ghc-options:
     -fwarn-incomplete-patterns
     -fwarn-unused-imports
@@ -76,6 +80,7 @@ test-suite mpl-test
     QuickCheck,
     hint,
     containers,
+    transformers,
     lens
   ghc-options:
     -threaded
