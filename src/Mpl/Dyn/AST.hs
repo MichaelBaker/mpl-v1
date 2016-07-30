@@ -1,6 +1,6 @@
 module Mpl.Dyn.AST where
 
-import GHC.Generics (Generic)
+import GHC.Generics     (Generic)
 import Text.Show.Pretty (PrettyVal, dumpStr)
 
 data AST =
