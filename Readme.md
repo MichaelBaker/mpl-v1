@@ -4,7 +4,8 @@ This is the project I use to play around with programming language theory and im
 
 ## TODO
 
-[ ] Start level 1.0
+[ ] Legit parser with a nice syntax
+[ ] Sum types and case statements
 [ ] Give typechecker a once over and look into correctness
 [ ] Warn on type contradictions at level 0.0
 [ ] Error on type contradictions and lack of proof at level 1.0

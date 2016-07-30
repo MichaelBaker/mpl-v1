@@ -7,7 +7,11 @@ extra-deps:
 - llvm-general-3.5.1.2
 - llvm-general-pure-3.5.1.0
 
+# You must have the following in your lib-dirs:
+#   * libncurses
+#   * libffi
 extra-lib-dirs:
 - /usr/local/Cellar/libffi/3.0.13/lib/
+- /usr/lib
 
 resolver: nightly-2016-04-20
