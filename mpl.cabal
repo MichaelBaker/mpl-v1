@@ -81,7 +81,8 @@ test-suite mpl-test
     hint,
     containers,
     transformers,
-    lens
+    lens,
+    Earley
   ghc-options:
     -threaded
     -rtsopts

@@ -1,13 +1,20 @@
 module Mpl.Dyn.AST where
 
 import GHC.Generics     (Generic)
-import Text.Show.Pretty (PrettyVal, dumpStr)
+import Data.Text        (Text, unpack)
+import Text.Show.Pretty (Value(String), PrettyVal, prettyVal, dumpStr)
 
 data AST =
-  AInt Integer
+    AProg [AST]
+  | AInt Integer
+  | ADef AST AST
+  | ASym Text
   deriving (Generic, Eq)
 
 instance PrettyVal AST
 
 instance Show AST where
   show = dumpStr
+
+instance PrettyVal Text where
+  prettyVal = String . unpack
