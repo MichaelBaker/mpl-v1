@@ -8,7 +8,7 @@ import Text.Trifecta.Result (Result(Success, Failure))
 test name filename parseType expectedResult = it name $ do
   result <- parseFile parseType ("test/TestCases/Dyn/Parser/" ++ filename)
   case result of
-    Failure ex -> fail $ show ex
+    Failure ex -> expectationFailure $ show ex
     Success a  -> a `shouldBe` expectedResult
 
 spec :: Spec

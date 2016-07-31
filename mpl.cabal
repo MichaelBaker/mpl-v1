@@ -84,7 +84,6 @@ test-suite mpl-test
     containers,
     transformers,
     lens,
-    Earley,
     trifecta,
     parsers
   ghc-options:
