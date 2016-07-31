@@ -37,7 +37,8 @@ library
     lens,
     pretty-show,
     trifecta,
-    parsers
+    parsers,
+    bytestring
   ghc-options:
     -fwarn-incomplete-patterns
     -fwarn-unused-imports
