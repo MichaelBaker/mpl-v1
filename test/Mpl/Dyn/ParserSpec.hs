@@ -33,6 +33,7 @@ spec = do
   describe "definition" $ do
     test "constant"          "definition-00.mpldyn" Def (def (sym "myConst") (int 123))
     test "function constant" "definition-01.mpldyn" Def (def (sym "fun") (lam [] (real 2.0)))
+    test "function sugar"    "definition-02.mpldyn" Def (def (sym "fun") (lam [sym "a", sym "b"] (real 3.0)))
 
   describe "lambda" $ do
     test "lambda with zero arguments"  "lambda-00.mpldyn" Exp (lam [] (int 9))
@@ -43,4 +44,8 @@ spec = do
     test "two constants" "program-00.mpldyn" Prog (prog [
       def (sym "myConst")    (int 123),
       def (sym "otherConst") (int 890)
+      ])
+
+    test "function sugar" "program-01.mpldyn" Prog (prog [
+      def (sym "f") (lam [sym "a", sym "b"] (int 123))
       ])

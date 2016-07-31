@@ -6,10 +6,10 @@ import Mpl.Dyn.AST               (AST(..), Span(..))
 import Control.Applicative       ((<|>), many)
 import Data.Text                 (pack)
 import Data.ByteString.Char8     (unpack)
-import Data.Char                 (isAsciiUpper, isAsciiLower, isDigit)
-import Text.Parser.Char          (satisfy)
-import Text.Parser.Token         (TokenParsing(), integer, whiteSpace, double, parens, brackets)
-import Text.Parser.Combinators   (try, optional, sepBy)
+-- import Data.Char                 (isAsciiUpper, isAsciiLower, isDigit)
+import Text.Parser.Char          (oneOf)
+import Text.Parser.Token         (TokenParsing(), integer, whiteSpace, double, parens, brackets, symbolic)
+import Text.Parser.Combinators   ((<?>), try, optional, sepBy, manyTill)
 import Text.Trifecta.Delta       (Delta(Directed))
 import Text.Trifecta.Result      (Result())
 import Text.Trifecta.Parser      (parseFromFileEx)
@@ -26,52 +26,60 @@ program = withSpan $ AProg <$> many (definition <* whiteSpace)
 
 expression = lambda <|> try real <|> int
 
-char = satisfy . (==)
-
 withSpan :: (DeltaParsing m) => m (Span -> a) -> m a
 withSpan parser = do
   startSpan <- position
   item      <- parser
   endSpan   <- position
-  let (filePath, startByte) = case startSpan of
-                                Directed file _ _ bytes _ -> (file, bytes)
-                                _ -> error $ "Invalid start delta: " ++ show startSpan
-  let endByte = case endSpan of
-                  Directed _ _ _ bytes _ -> bytes
-                  _ -> error $ "Invalid end delta: " ++ show endSpan
-  return $ item (Span (unpack filePath) startByte endByte)
+  return $ item (makeSpan startSpan endSpan)
+
+makeSpan startSpan endSpan = Span (unpack filePath) startByte endByte
+  where (filePath, startByte) = case startSpan of
+                                  Directed file _ _ bytes _ -> (file, bytes)
+                                  _ -> error $ "Invalid start delta: " ++ show startSpan
+        endByte = case endSpan of
+                    Directed _ _ _ bytes _ -> bytes
+                    _ -> error $ "Invalid end delta: " ++ show endSpan
 
 lambda = withSpan $ parens $ do
-  char '#'
+  symbolic '#'
   whiteSpace
-  args <- try arguments <|> return []
+  args <- try (brackets $ sepBy symbol whiteSpace) <|> return []
   whiteSpace
   body <- expression
   return $ ALam args body
 
-arguments = brackets (sepBy symbol whiteSpace)
-
 int = withSpan $ AInt <$> integer
 
 real = withSpan $ do
-  neg <- optional (satisfy (== '-'))
+  neg <- optional (symbolic '-')
   val <- double
   return $ case neg of
     Nothing -> AReal val
     Just _  -> AReal (-val)
 
 definition = withSpan $ do
+  startSpan <- position
   sym <- symbol
   whiteSpace
-  satisfy (== '=')
+  args <- manyTill (symbol <* whiteSpace) (symbolic '=')
   whiteSpace
-  val <- expression
-  return $ ADef sym val
+  body <- expression
+  endSpan <- position
+  return $ if null args
+    then ADef sym body
+    else ADef sym (ALam args body $ makeSpan startSpan endSpan)
 
 symbol :: (Monad m, TokenParsing m, DeltaParsing m) => m AST
 symbol = withSpan $ do
-  firstChar <- satisfy (\a -> any ($ a) [isAsciiUpper, isAsciiLower, (`elem` symChars)])
-  rest      <- many $ satisfy (\a -> any ($ a) [isAsciiUpper, isAsciiLower, (`elem` symChars), isDigit])
+  firstChar <- oneOf symStartChars <?> "start of symbol"
+  rest      <- (many $ oneOf symChars) <?> "tail of symbol"
   return $ ASym $ pack (firstChar : rest)
 
-symChars = ['<', '>', '?', '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '_', '+', '|', '\\', '/', '.']
+symStartChars =
+  ['<', '>', '?', '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '_', '+', '|', '\\', '/', '.'] ++
+  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+symChars = symStartChars ++ digits
+
+digits = "0123456789"
