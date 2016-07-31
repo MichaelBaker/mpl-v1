@@ -26,3 +26,8 @@ spec = do
   describe "identifier" $ do
     test "constant"      "constant-00.mpldyn" Prog (AProg [ADef (ASym "myConst") (AInt 123)])
     test "two constants" "constant-01.mpldyn" Prog (AProg [ADef (ASym "myConst") (AInt 123), ADef (ASym "otherConst") (AInt 890)])
+
+  describe "lambda" $ do
+    test "lambda with zero arguments"  "lambda-00.mpldyn" Exp (ALam [] (AInt 9))
+    test "lambda with one argument"    "lambda-01.mpldyn" Exp (ALam [ASym "a"] (AInt 9))
+    test "lambda with three arguments" "lambda-02.mpldyn" Exp (ALam [ASym "a", ASym "b", ASym "c"] (AInt 9))

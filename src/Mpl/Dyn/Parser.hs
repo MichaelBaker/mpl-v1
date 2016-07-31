@@ -7,8 +7,8 @@ import Control.Applicative     ((<|>), many)
 import Data.Text               (pack)
 import Data.Char               (isAsciiUpper, isAsciiLower, isDigit)
 import Text.Parser.Char        (satisfy)
-import Text.Parser.Token       (TokenParsing(), integer, whiteSpace, double)
-import Text.Parser.Combinators (try, optional)
+import Text.Parser.Token       (TokenParsing(), integer, whiteSpace, double, parens, brackets)
+import Text.Parser.Combinators (try, optional, sepBy)
 import Text.Trifecta.Result    (Result())
 import Text.Trifecta.Parser    (parseFromFileEx)
 
@@ -20,7 +20,19 @@ parseFile Prog filepath = parseFromFileEx program filepath
 
 program = AProg <$> many (definition <* whiteSpace)
 
-expression = try real <|> int
+expression = lambda <|> try real <|> int
+
+char = satisfy . (==)
+
+lambda = parens $ do
+  char '#'
+  whiteSpace
+  args <- try arguments <|> return []
+  whiteSpace
+  body <- expression
+  return $ ALam args body
+
+arguments = brackets (sepBy symbol whiteSpace)
 
 int = AInt <$> integer
 

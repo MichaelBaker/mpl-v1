@@ -5,11 +5,12 @@ import Data.Text        (Text)
 import Text.Show.Pretty (Value(String), PrettyVal, prettyVal, dumpStr)
 
 data AST =
-    AProg [AST]
-  | AInt  Integer
-  | AReal Double
-  | ADef AST AST
-  | ASym Text
+    AProg  [AST]
+  | AInt   Integer
+  | AReal  Double
+  | ADef   AST AST
+  | ASym   Text
+  | ALam   [AST] AST
   deriving (Generic, Eq)
 
 instance PrettyVal AST
