@@ -35,7 +35,9 @@ library
     text,
     containers,
     lens,
-    pretty-show
+    pretty-show,
+    trifecta,
+    parsers
   ghc-options:
     -fwarn-incomplete-patterns
     -fwarn-unused-imports
@@ -82,7 +84,9 @@ test-suite mpl-test
     containers,
     transformers,
     lens,
-    Earley
+    Earley,
+    trifecta,
+    parsers
   ghc-options:
     -threaded
     -rtsopts

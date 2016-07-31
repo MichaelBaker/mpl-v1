@@ -1,7 +1,7 @@
 module Mpl.Dyn.AST where
 
 import GHC.Generics     (Generic)
-import Data.Text        (Text, unpack)
+import Data.Text        (Text)
 import Text.Show.Pretty (Value(String), PrettyVal, prettyVal, dumpStr)
 
 data AST =
@@ -17,4 +17,4 @@ instance Show AST where
   show = dumpStr
 
 instance PrettyVal Text where
-  prettyVal = String . unpack
+  prettyVal = String . show
