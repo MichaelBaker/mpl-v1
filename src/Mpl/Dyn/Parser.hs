@@ -15,11 +15,12 @@ import Text.Trifecta.Result      (Result())
 import Text.Trifecta.Parser      (parseFromFileEx)
 import Text.Trifecta.Combinators (DeltaParsing(), position)
 
-data ParseType = Exp | Prog
+data ParseType = Exp | Prog | Def
 
 parseFile :: ParseType -> String -> IO (Result AST)
 parseFile Exp  filepath = parseFromFileEx expression filepath
 parseFile Prog filepath = parseFromFileEx program filepath
+parseFile Def  filepath = parseFromFileEx definition filepath
 
 program = withSpan $ AProg <$> many (definition <* whiteSpace)
 

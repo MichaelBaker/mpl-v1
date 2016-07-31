@@ -30,15 +30,17 @@ spec = do
     test "several digits" "real-01.mpldyn" Exp (real 1234567890.0)
     test "negative"       "real-02.mpldyn" Exp (real (-1234567890.0))
 
-  describe "identifier" $ do
-    test "constant"      "constant-00.mpldyn" Prog (prog [def (sym "myConst") (int 123)])
-    test "two constants" "constant-01.mpldyn" Prog (prog [
-      def (sym "myConst")    (int 123),
-      def (sym "otherConst") (int 890)
-      ])
-    test "function constant" "constant-02.mpldyn" Prog (prog [def (sym "fun") (lam [] (real 2.0))])
+  describe "definition" $ do
+    test "constant"          "definition-00.mpldyn" Def (def (sym "myConst") (int 123))
+    test "function constant" "definition-01.mpldyn" Def (def (sym "fun") (lam [] (real 2.0)))
 
   describe "lambda" $ do
     test "lambda with zero arguments"  "lambda-00.mpldyn" Exp (lam [] (int 9))
     test "lambda with one argument"    "lambda-01.mpldyn" Exp (lam [sym "a"] (int 9))
     test "lambda with three arguments" "lambda-02.mpldyn" Exp (lam [sym "a", sym "b", sym "c"] (int 9))
+
+  describe "program" $ do
+    test "two constants" "program-00.mpldyn" Prog (prog [
+      def (sym "myConst")    (int 123),
+      def (sym "otherConst") (int 890)
+      ])
