@@ -2,14 +2,15 @@
 
 module Mpl.Dyn.Parser where
 
-import Mpl.Dyn.AST          (AST(..))
-import Control.Applicative  (many)
-import Data.Text            (pack)
-import Data.Char            (isAsciiUpper, isAsciiLower, isDigit)
-import Text.Parser.Char     (satisfy)
-import Text.Parser.Token    (TokenParsing(), integer, whiteSpace)
-import Text.Trifecta.Result (Result())
-import Text.Trifecta.Parser (parseFromFileEx)
+import Mpl.Dyn.AST             (AST(..))
+import Control.Applicative     ((<|>), many)
+import Data.Text               (pack)
+import Data.Char               (isAsciiUpper, isAsciiLower, isDigit)
+import Text.Parser.Char        (satisfy)
+import Text.Parser.Token       (TokenParsing(), integer, whiteSpace, double)
+import Text.Parser.Combinators (try, optional)
+import Text.Trifecta.Result    (Result())
+import Text.Trifecta.Parser    (parseFromFileEx)
 
 data ParseType = Exp | Prog
 
@@ -19,7 +20,16 @@ parseFile Prog filepath = parseFromFileEx program filepath
 
 program = AProg <$> many (definition <* whiteSpace)
 
-expression = AInt <$> integer
+expression = try real <|> int
+
+int = AInt <$> integer
+
+real = do
+  neg <- optional (satisfy (== '-'))
+  val <- double
+  return $ case neg of
+    Nothing -> AReal val
+    Just _  -> AReal (-val)
 
 definition = do
   sym <- symbol

@@ -6,7 +6,8 @@ import Text.Show.Pretty (Value(String), PrettyVal, prettyVal, dumpStr)
 
 data AST =
     AProg [AST]
-  | AInt Integer
+  | AInt  Integer
+  | AReal Double
   | ADef AST AST
   | ASym Text
   deriving (Generic, Eq)

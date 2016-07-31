@@ -16,6 +16,12 @@ spec = do
   describe "integer" $ do
     test "a single digit" "integer-00.mpldyn" Exp (AInt 1)
     test "several digits" "integer-01.mpldyn" Exp (AInt 1234567890)
+    test "negative"       "integer-02.mpldyn" Exp (AInt (-1234567890))
+
+  describe "real" $ do
+    test "a single digit" "real-00.mpldyn" Exp (AReal 1.0)
+    test "several digits" "real-01.mpldyn" Exp (AReal 1234567890.0)
+    test "negative"       "real-02.mpldyn" Exp (AReal (-1234567890.0))
 
   describe "identifier" $ do
     test "constant"      "constant-00.mpldyn" Prog (AProg [ADef (ASym "myConst") (AInt 123)])
