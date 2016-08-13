@@ -59,3 +59,8 @@ spec = do
     testFile "function sugar" "program-01.mpldyn" Prog (prog $ recdefs [
       def (sym "f") (lam [sym "a", sym "b"] (int 123))
       ])
+
+    testFile "two function sugar" "program-02.mpldyn" Prog (prog $ recdefs [
+      def (sym "f") (lam [sym "a", sym "b"] (int 123)),
+      def (sym "g") (lam [sym "a", sym "b"] (sym "a"))
+      ])
