@@ -26,6 +26,7 @@ lam     a b = ALam     a b emptySpan
 recdefs a   = ARecDefs a emptySpan
 rec     a   = ARec     a emptySpan
 field   a b = AField   a b emptySpan
+list    a   = AList    a emptySpan
 
 spec :: Spec
 spec = do
@@ -60,6 +61,15 @@ spec = do
       field (int 0) (int 1),
       field (sym "a") (int 3),
       field (sym "b") (sym "c")
+      ])
+
+  describe "list" $ do
+    testString "empty list" "[]" Exp (list [])
+    testFile "list with multiple elements and trailing comma" "list-00.mpldyn" Exp (list [
+      (int 0),
+      (rec [field (sym "a") (int 3)]),
+      (real 32.1),
+      (sym "a")
       ])
 
   describe "program" $ do

@@ -30,36 +30,45 @@ parseString Exp  string = Parser.parseString expression zeroDelta string
 parseString Prog string = Parser.parseString program    zeroDelta string
 parseString Def  string = Parser.parseString definition zeroDelta string
 
-program = withSpan $ AProg <$> recursiveDefinitions
+program = withSpan $ AProg <$> recursiveDefinitions <?> "program"
 
-expression = lambda <|> try real <|> int <|> record <|> symbol
+expression =
+      lambda
+  <|> try real
+  <|> int
+  <|> record
+  <|> list
+  <|> symbol
+  <?> "expression"
 
-recursiveDefinitions = withSpan $ ARecDefs <$> many (definition <* whiteSpace)
+recursiveDefinitions = withSpan $ ARecDefs <$> many (definition <* whiteSpace) <?> "recursive definitions"
 
-record = withSpan $ braces $ ARec <$> optionalTrailing recordField (symbolic ',')
+record = withSpan $ braces $ ARec <$> optionalTrailing recordField (symbolic ',') <?> "record"
 
-recordField = withSpan $ AField <$> fieldLabel <* whiteSpace <* symbolic ':' <* whiteSpace <*> expression
+recordField = withSpan $ AField <$> fieldLabel <* whiteSpace <* symbolic ':' <* whiteSpace <*> expression <?> "record field"
 
-fieldLabel = int <|> symbol
+fieldLabel = int <|> symbol <?> "field label"
 
-lambda = withSpan $ parens $ do
+list = withSpan $ brackets $ AList <$> optionalTrailing expression (symbolic ',') <?> "list"
+
+lambda = withSpan $ (parens $ do
   symbolic '#'
   whiteSpace
   args <- try (brackets $ sepBy symbol whiteSpace) <|> return []
   whiteSpace
   body <- expression
-  return $ ALam args body
+  return $ ALam args body) <?> "lambda"
 
-int = withSpan $ AInt <$> integer
+int = withSpan $ AInt <$> integer <?> "integer"
 
-real = withSpan $ do
+real = withSpan $ (do
   neg <- optional (symbolic '-')
   val <- double
   return $ case neg of
     Nothing -> AReal val
-    Just _  -> AReal (-val)
+    Just _  -> AReal (-val)) <?> "real number"
 
-definition = withSpan $ do
+definition = withSpan $ (do
   startSpan <- position
   sym <- symbol
   whiteSpace
@@ -69,13 +78,13 @@ definition = withSpan $ do
   endSpan <- position
   return $ if null args
     then ADef sym body
-    else ADef sym (ALam args body $ makeSpan startSpan endSpan)
+    else ADef sym (ALam args body $ makeSpan startSpan endSpan)) <?> "definition"
 
 symbol :: (Monad m, TokenParsing m, DeltaParsing m) => m AST
-symbol = withSpan $ do
+symbol = withSpan $ (do
   firstChar <- oneOf symStartChars <?> "start of symbol"
   rest      <- (many $ oneOf symChars) <?> "tail of symbol"
-  return $ ASym $ pack (firstChar : rest)
+  return $ ASym $ pack (firstChar : rest)) <?> "symbol"
 
 reservedChars = ['.']
 
