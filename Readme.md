@@ -4,6 +4,7 @@ This is the project I use to play around with programming language theory and im
 
 ## TODO
 
+[ ] Separate literals into their own little AST for Dyn
 [ ] Legit parser with a nice syntax
 [ ] Sum types and case statements
 [ ] Give typechecker a once over and look into correctness

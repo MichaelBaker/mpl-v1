@@ -24,6 +24,8 @@ prog    a   = AProg    a emptySpan
 def     a b = ADef     a b emptySpan
 lam     a b = ALam     a b emptySpan
 recdefs a   = ARecDefs a emptySpan
+rec     a   = ARec     a emptySpan
+field   a b = AField   a b emptySpan
 
 spec :: Spec
 spec = do
@@ -49,6 +51,16 @@ spec = do
     testFile "lambda with zero arguments"  "lambda-00.mpldyn" Exp (lam [] (int 9))
     testFile "lambda with one argument"    "lambda-01.mpldyn" Exp (lam [sym "a"] (int 9))
     testFile "lambda with three arguments" "lambda-02.mpldyn" Exp (lam [sym "a", sym "b", sym "c"] (int 9))
+
+  describe "record" $ do
+    testString "empty record"                   "{}"     Exp (rec [])
+    testString "record with one symbolic field" "{a: 1}" Exp (rec [field (sym "a") (int 1)])
+    testString "record with one numberic field" "{0: 1}" Exp (rec [field (int 0) (int 1)])
+    testFile   "record with multiple fields and trailing comma" "record-00.mpldyn" Exp (rec [
+      field (int 0) (int 1),
+      field (sym "a") (int 3),
+      field (sym "b") (sym "c")
+      ])
 
   describe "program" $ do
     testFile "two constants" "program-00.mpldyn" Prog (prog $ recdefs [

@@ -8,7 +8,7 @@ import Data.Text                 (pack)
 import Data.ByteString.Char8     (unpack)
 -- import Data.Char                 (isAsciiUpper, isAsciiLower, isDigit)
 import Text.Parser.Char          (oneOf)
-import Text.Parser.Token         (TokenParsing(), integer, whiteSpace, double, parens, brackets, symbolic)
+import Text.Parser.Token         (TokenParsing(), integer, whiteSpace, double, parens, brackets, braces, symbolic)
 import Text.Parser.Combinators   ((<?>), try, optional, sepBy, manyTill)
 import Text.Trifecta.Delta       (Delta(Directed))
 import Text.Trifecta.Result      (Result())
@@ -30,28 +30,17 @@ parseString Exp  string = Parser.parseString expression zeroDelta string
 parseString Prog string = Parser.parseString program    zeroDelta string
 parseString Def  string = Parser.parseString definition zeroDelta string
 
-zeroDelta = Delta.Columns 0 0
-
 program = withSpan $ AProg <$> recursiveDefinitions
+
+expression = lambda <|> try real <|> int <|> record <|> symbol
 
 recursiveDefinitions = withSpan $ ARecDefs <$> many (definition <* whiteSpace)
 
-expression = lambda <|> try real <|> int <|> symbol
+record = withSpan $ braces $ ARec <$> optionalTrailing recordField (symbolic ',')
 
-withSpan :: (DeltaParsing m) => m (Span -> a) -> m a
-withSpan parser = do
-  startSpan <- position
-  item      <- parser
-  endSpan   <- position
-  return $ item (makeSpan startSpan endSpan)
+recordField = withSpan $ AField <$> fieldLabel <* whiteSpace <* symbolic ':' <* whiteSpace <*> expression
 
-makeSpan startSpan endSpan = Span (unpack filePath) startByte endByte
-  where (filePath, startByte) = case startSpan of
-                                  Directed file _ _ bytes _ -> (file, bytes)
-                                  _ -> error $ "Invalid start delta: " ++ show startSpan
-        endByte = case endSpan of
-                    Directed _ _ _ bytes _ -> bytes
-                    _ -> error $ "Invalid end delta: " ++ show endSpan
+fieldLabel = int <|> symbol
 
 lambda = withSpan $ parens $ do
   symbolic '#'
@@ -88,10 +77,36 @@ symbol = withSpan $ do
   rest      <- (many $ oneOf symChars) <?> "tail of symbol"
   return $ ASym $ pack (firstChar : rest)
 
+reservedChars = ['.']
+
 symStartChars =
-  ['<', '>', '?', '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '_', '+', '|', '\\', '/', '.'] ++
+  ['<', '>', '?', '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '_', '+', '|', '\\', '/'] ++
   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 symChars = symStartChars ++ digits
 
 digits = "0123456789"
+
+optionalTrailing a sep = do
+  values   <- many $ try (a <* whiteSpace <* sep <* whiteSpace)
+  trailing <- optional a
+  return $ case trailing of
+    Nothing -> values
+    Just a  -> values ++ [a]
+
+withSpan :: (DeltaParsing m) => m (Span -> a) -> m a
+withSpan parser = do
+  startSpan <- position
+  item      <- parser
+  endSpan   <- position
+  return $ item (makeSpan startSpan endSpan)
+
+makeSpan startSpan endSpan = Span (unpack filePath) startByte endByte
+  where (filePath, startByte) = case startSpan of
+                                  Directed file _ _ bytes _ -> (file, bytes)
+                                  _ -> error $ "Invalid start delta: " ++ show startSpan
+        endByte = case endSpan of
+                    Directed _ _ _ bytes _ -> bytes
+                    _ -> error $ "Invalid end delta: " ++ show endSpan
+
+zeroDelta = Delta.Columns 0 0

@@ -6,13 +6,15 @@ import Text.Show.Pretty (Value(String), PrettyVal, prettyVal, dumpStr)
 import Data.Int         (Int64(..))
 
 data AST =
-    AProg    AST       Span
-  | ARecDefs [AST]     Span
-  | AInt     Integer   Span
-  | AReal    Double    Span
-  | ADef     AST AST   Span
-  | ASym     Text      Span
-  | ALam     [AST] AST Span
+    AProg    AST          Span
+  | ARecDefs [AST]        Span
+  | ARec     [AST]        Span
+  | AField   AST AST      Span
+  | AInt     Integer      Span
+  | AReal    Double       Span
+  | ADef     AST AST      Span
+  | ASym     Text         Span
+  | ALam     [AST] AST    Span
   deriving (Generic, Eq)
 
 data Span = Span
