@@ -15,6 +15,9 @@ import Text.Trifecta.Result      (Result())
 import Text.Trifecta.Parser      (parseFromFileEx)
 import Text.Trifecta.Combinators (DeltaParsing(), position)
 
+import qualified Text.Trifecta.Delta  as Delta
+import qualified Text.Trifecta.Parser as Parser
+
 data ParseType = Exp | Prog | Def
 
 parseFile :: ParseType -> String -> IO (Result AST)
@@ -22,9 +25,16 @@ parseFile Exp  filepath = parseFromFileEx expression filepath
 parseFile Prog filepath = parseFromFileEx program filepath
 parseFile Def  filepath = parseFromFileEx definition filepath
 
+parseString :: ParseType -> String -> Result AST
+parseString Exp  string = Parser.parseString expression zeroDelta string
+parseString Prog string = Parser.parseString program    zeroDelta string
+parseString Def  string = Parser.parseString definition zeroDelta string
+
+zeroDelta = Delta.Columns 0 0
+
 program = withSpan $ AProg <$> many (definition <* whiteSpace)
 
-expression = lambda <|> try real <|> int
+expression = lambda <|> try real <|> int <|> symbol
 
 withSpan :: (DeltaParsing m) => m (Span -> a) -> m a
 withSpan parser = do
