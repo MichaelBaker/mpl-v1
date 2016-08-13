@@ -32,7 +32,9 @@ parseString Def  string = Parser.parseString definition zeroDelta string
 
 zeroDelta = Delta.Columns 0 0
 
-program = withSpan $ AProg <$> many (definition <* whiteSpace)
+program = withSpan $ AProg <$> recursiveDefinitions
+
+recursiveDefinitions = withSpan $ ARecDefs <$> many (definition <* whiteSpace)
 
 expression = lambda <|> try real <|> int <|> symbol
 

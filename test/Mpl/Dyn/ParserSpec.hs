@@ -17,12 +17,13 @@ testString name string parseType expectedResult = it name $ do
     Failure ex -> expectationFailure $ show ex
     Success a  -> a `shouldBe` expectedResult
 
-int  a   = AInt  a emptySpan
-sym  a   = ASym  a emptySpan
-real a   = AReal a emptySpan
-prog a   = AProg a emptySpan
-def  a b = ADef  a b emptySpan
-lam  a b = ALam  a b emptySpan
+int     a   = AInt     a emptySpan
+sym     a   = ASym     a emptySpan
+real    a   = AReal    a emptySpan
+prog    a   = AProg    a emptySpan
+def     a b = ADef     a b emptySpan
+lam     a b = ALam     a b emptySpan
+recdefs a   = ARecDefs a emptySpan
 
 spec :: Spec
 spec = do
@@ -50,11 +51,11 @@ spec = do
     testFile "lambda with three arguments" "lambda-02.mpldyn" Exp (lam [sym "a", sym "b", sym "c"] (int 9))
 
   describe "program" $ do
-    testFile "two constants" "program-00.mpldyn" Prog (prog [
+    testFile "two constants" "program-00.mpldyn" Prog (prog $ recdefs [
       def (sym "myConst")    (int 123),
       def (sym "otherConst") (int 890)
       ])
 
-    testFile "function sugar" "program-01.mpldyn" Prog (prog [
+    testFile "function sugar" "program-01.mpldyn" Prog (prog $ recdefs [
       def (sym "f") (lam [sym "a", sym "b"] (int 123))
       ])
