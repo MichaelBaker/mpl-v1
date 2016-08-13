@@ -16,6 +16,8 @@ data AST =
   | ASym     Text         Span
   | ALam     [AST] AST    Span
   | AList    [AST]        Span
+  | ALens    [AST]        Span
+  | AApp     AST [AST]    Span
   deriving (Generic, Eq)
 
 data Span = Span

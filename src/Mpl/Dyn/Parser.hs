@@ -3,14 +3,13 @@
 module Mpl.Dyn.Parser where
 
 import Mpl.Dyn.AST               (AST(..), Span(..))
-import Control.Applicative       ((<|>), many)
+import Control.Applicative       ((<|>), many, some)
 import Data.Text                 (pack)
 import Data.ByteString.Char8     (unpack)
--- import Data.Char                 (isAsciiUpper, isAsciiLower, isDigit)
 import Text.Parser.Char          (oneOf)
-import Text.Parser.Token         (TokenParsing(), integer, whiteSpace, double, parens, brackets, braces, symbolic)
-import Text.Parser.Combinators   ((<?>), try, optional, sepBy, manyTill)
-import Text.Trifecta.Delta       (Delta(Directed))
+import Text.Parser.Token         (TokenParsing(), integer, whiteSpace, someSpace, double, parens, brackets, braces, symbolic)
+import Text.Parser.Combinators   ((<?>), try, optional, sepEndBy, sepEndBy1, manyTill)
+import Text.Trifecta.Delta       (Delta(Directed, Columns, Tab, Lines))
 import Text.Trifecta.Result      (Result())
 import Text.Trifecta.Parser      (parseFromFileEx)
 import Text.Trifecta.Combinators (DeltaParsing(), position)
@@ -21,19 +20,26 @@ import qualified Text.Trifecta.Parser as Parser
 data ParseType = Exp | Prog | Def
 
 parseFile :: ParseType -> String -> IO (Result AST)
-parseFile Exp  filepath = parseFromFileEx expression filepath
-parseFile Prog filepath = parseFromFileEx program filepath
-parseFile Def  filepath = parseFromFileEx definition filepath
+parseFile Exp  filepath = parseFromFileEx expressionWithApp filepath
+parseFile Prog filepath = parseFromFileEx program           filepath
+parseFile Def  filepath = parseFromFileEx definition        filepath
 
 parseString :: ParseType -> String -> Result AST
-parseString Exp  string = Parser.parseString expression zeroDelta string
-parseString Prog string = Parser.parseString program    zeroDelta string
-parseString Def  string = Parser.parseString definition zeroDelta string
+parseString Exp  string = Parser.parseString expressionWithApp zeroDelta string
+parseString Prog string = Parser.parseString program           zeroDelta string
+parseString Def  string = Parser.parseString definition        zeroDelta string
 
 program = withSpan $ AProg <$> recursiveDefinitions <?> "program"
 
+expressionWithApp = try application <|> expression
+
 expression =
-      lambda
+  -- Parentheticals
+      try lambda
+  <|> parens expressionWithApp
+
+  -- Literals
+  <|> lens
   <|> try real
   <|> int
   <|> record
@@ -41,20 +47,26 @@ expression =
   <|> symbol
   <?> "expression"
 
+application = withSpan $ AApp <$> expression <*> some expression <?> "application"
+
 recursiveDefinitions = withSpan $ ARecDefs <$> many (definition <* whiteSpace) <?> "recursive definitions"
 
-record = withSpan $ braces $ ARec <$> optionalTrailing recordField (symbolic ',') <?> "record"
+record = withSpan $ braces $ ARec <$> sepEndBy recordField (floating $ symbolic ',') <?> "record"
 
 recordField = withSpan $ AField <$> fieldLabel <* whiteSpace <* symbolic ':' <* whiteSpace <*> expression <?> "record field"
 
 fieldLabel = int <|> symbol <?> "field label"
 
-list = withSpan $ brackets $ AList <$> optionalTrailing expression (symbolic ',') <?> "list"
+list = withSpan $ brackets $ AList <$> sepEndBy expression (floating $ symbolic ',') <?> "list"
+
+lens = withSpan $ ALens <$> some lensPart <?> "lens"
+
+lensPart = symbolic '.' *> (int <|> symbol <|> parens expression)
 
 lambda = withSpan $ (parens $ do
   symbolic '#'
   whiteSpace
-  args <- try (brackets $ sepBy symbol whiteSpace) <|> return []
+  args <- try (brackets $ sepEndBy symbol whiteSpace) <|> return []
   whiteSpace
   body <- expression
   return $ ALam args body) <?> "lambda"
@@ -84,24 +96,25 @@ symbol :: (Monad m, TokenParsing m, DeltaParsing m) => m AST
 symbol = withSpan $ (do
   firstChar <- oneOf symStartChars <?> "start of symbol"
   rest      <- (many $ oneOf symChars) <?> "tail of symbol"
+  whiteSpace
   return $ ASym $ pack (firstChar : rest)) <?> "symbol"
 
 reservedChars = ['.']
 
 symStartChars =
-  ['<', '>', '?', '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '_', '+', '|', '\\', '/'] ++
+  ['<', '>', '?', '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '_', '+', '\\', '/', '|'] ++
   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 symChars = symStartChars ++ digits
 
 digits = "0123456789"
 
-optionalTrailing a sep = do
-  values   <- many $ try (a <* whiteSpace <* sep <* whiteSpace)
-  trailing <- optional a
-  return $ case trailing of
-    Nothing -> values
-    Just a  -> values ++ [a]
+floating p = whiteSpace <* p <* whiteSpace
+
+optionalTrailing2 a sep = do
+  values   <- some $ try (a <* sep)
+  trailing <- a <* optional sep
+  return $ values ++ [trailing]
 
 withSpan :: (DeltaParsing m) => m (Span -> a) -> m a
 withSpan parser = do
@@ -112,10 +125,15 @@ withSpan parser = do
 
 makeSpan startSpan endSpan = Span (unpack filePath) startByte endByte
   where (filePath, startByte) = case startSpan of
+                                  Columns _ bytes           -> ("<no file>", bytes)
+                                  Tab _ _ bytes             -> ("<no file>", bytes)
+                                  Lines _ _ bytes _         -> ("<no file>", bytes)
                                   Directed file _ _ bytes _ -> (file, bytes)
-                                  _ -> error $ "Invalid start delta: " ++ show startSpan
         endByte = case endSpan of
+                    Columns _ bytes        -> bytes
+                    Tab _ _ bytes          -> bytes
+                    Lines _ _ bytes _      -> bytes
                     Directed _ _ _ bytes _ -> bytes
-                    _ -> error $ "Invalid end delta: " ++ show endSpan
 
 zeroDelta = Delta.Columns 0 0
+

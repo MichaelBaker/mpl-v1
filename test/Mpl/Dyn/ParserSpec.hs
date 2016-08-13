@@ -27,6 +27,8 @@ recdefs a   = ARecDefs a emptySpan
 rec     a   = ARec     a emptySpan
 field   a b = AField   a b emptySpan
 list    a   = AList    a emptySpan
+lens    a   = ALens    a emptySpan
+app     a b = AApp     a b emptySpan
 
 spec :: Spec
 spec = do
@@ -70,6 +72,34 @@ spec = do
       (rec [field (sym "a") (int 3)]),
       (real 32.1),
       (sym "a")
+      ])
+  describe "lens" $ do
+    testString "field label"      ".hello"      Exp (lens [sym "hello"])
+    testString "int label"        ".0"          Exp (lens [int 0])
+    testString "expression label" ".(1.234)"    Exp (lens [real 1.234])
+    testString "multiple lenses"  ".a.0.(1.23)" Exp (lens [sym "a", int 0, real 1.23])
+
+  describe "application" $ do
+    testString "simple application" "a b" Exp (app (sym "a") [sym "b"])
+    testString "paren application"  "(a b)" Exp (app (sym "a") [sym "b"])
+    testString "int application"    "(3 4)" Exp (app (int 3) [int 4])
+    testFile   "nested application" "application-00.mpldyn" Exp (app (sym "myFun") [
+      int 1,
+      int 2,
+      int 3
+      ])
+    testFile   "nested application" "application-01.mpldyn" Exp (app (sym "myFun") [
+      int 1,
+      app (sym "f") [
+        int 4,
+        int 2
+      ],
+      real 4.2,
+      app (sym "g") [
+        app (int 3) [
+          int 4
+        ]
+      ]
       ])
 
   describe "program" $ do
