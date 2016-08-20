@@ -2,7 +2,9 @@
 
 module Mpl.Dyn.Parser where
 
-import Mpl.Dyn.AST               (AST(..), Span(..))
+import Prelude hiding (span)
+
+import Mpl.Dyn.AST               (AST(..), Span(..), span)
 import Control.Applicative       ((<|>), many, some)
 import Data.Text                 (pack)
 import Data.ByteString.Char8     (unpack)
@@ -63,13 +65,15 @@ lens = withSpan $ ALens <$> some lensPart <?> "lens"
 
 lensPart = symbolic '.' *> (int <|> symbol <|> parens expression)
 
-lambda = withSpan $ (parens $ do
+lambda = withSpan (parens $ do
   symbolic '#'
   whiteSpace
-  args <- try (brackets $ sepEndBy symbol whiteSpace) <|> return []
-  whiteSpace
-  body <- expression
-  return $ ALam args body) <?> "lambda"
+  argFun <- optional (try binding)
+  case argFun of
+    Just (args, body) -> return $ ALam args body
+    Nothing -> do
+      body <- expression
+      return $ ALam [] body) <?> "lambda"
 
 int = withSpan $ AInt <$> integer <?> "integer"
 
@@ -84,13 +88,16 @@ definition = withSpan $ (do
   startSpan <- position
   sym <- symbol
   whiteSpace
-  args <- manyTill (symbol <* whiteSpace) (symbolic '=')
-  whiteSpace
-  body <- expression
+  (args, body) <- binding
   endSpan <- position
   return $ if null args
     then ADef sym body
     else ADef sym (ALam args body $ makeSpan startSpan endSpan)) <?> "definition"
+
+binding = do
+  args <- manyTill symbol (symbolic '=')
+  body <- expression
+  return $ (args, body)
 
 symbol :: (Monad m, TokenParsing m, DeltaParsing m) => m AST
 symbol = withSpan $ (do

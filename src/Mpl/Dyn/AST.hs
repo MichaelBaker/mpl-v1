@@ -28,6 +28,19 @@ data Span = Span
 
 emptySpan = Span "" 0 0
 
+span (AProg    _   s) = s
+span (ARecDefs _   s) = s
+span (ARec     _   s) = s
+span (AField   _ _ s) = s
+span (AInt     _   s) = s
+span (AReal    _   s) = s
+span (ADef     _ _ s) = s
+span (ASym     _   s) = s
+span (ALam     _ _ s) = s
+span (AList    _   s) = s
+span (ALens    _   s) = s
+span (AApp     _ _ s) = s
+
 instance Eq Span where
   a == b = True
 

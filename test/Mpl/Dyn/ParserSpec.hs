@@ -17,17 +17,17 @@ testString name string parseType expectedResult = it name $ do
     Failure ex -> expectationFailure $ show ex
     Success a  -> a `shouldBe` expectedResult
 
-int     a   = AInt     a emptySpan
-sym     a   = ASym     a emptySpan
-real    a   = AReal    a emptySpan
-prog    a   = AProg    a emptySpan
+int     a   = AInt     a   emptySpan
+sym     a   = ASym     a   emptySpan
+real    a   = AReal    a   emptySpan
+prog    a   = AProg    a   emptySpan
 def     a b = ADef     a b emptySpan
 lam     a b = ALam     a b emptySpan
-recdefs a   = ARecDefs a emptySpan
-rec     a   = ARec     a emptySpan
+recdefs a   = ARecDefs a   emptySpan
+rec     a   = ARec     a   emptySpan
 field   a b = AField   a b emptySpan
-list    a   = AList    a emptySpan
-lens    a   = ALens    a emptySpan
+list    a   = AList    a   emptySpan
+lens    a   = ALens    a   emptySpan
 app     a b = AApp     a b emptySpan
 
 spec :: Spec
