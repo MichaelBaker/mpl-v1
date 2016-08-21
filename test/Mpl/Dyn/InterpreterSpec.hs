@@ -28,3 +28,6 @@ spec = do
 
   describe "symbol" $ do
     testString "undefined symbol" "a" "Undefined symbol 'a'"
+
+  describe "list" $ do
+    testString "list of ints" "[1,2,3]" "[1, 2, 3]"
