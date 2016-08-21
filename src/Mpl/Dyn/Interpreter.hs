@@ -54,11 +54,15 @@ interp a@(ALet bindings body _) = do
           message     = concat ["Invalid definition'", pack invalidCode, "' at ", pack $ show invalidSpan]
           in return $ AUtf16 message invalidSpan
     _ -> do
-      mapM_ addBinding bindings
+      mapM_ (addBinding . defToPair) bindings
       interp body
+interp a@(ALam _ _ _) = return a
 interp a = return undefined -- TODO: Make this total
 
-addBinding (ADef (ASym name _) body _) = do
+defToPair (ADef sym@(ASym _ _) body _) = (sym, body)
+defToPair a = error $ "Invalid definition: " ++ show a
+
+addBinding (ASym name _, body) = do
   value <- interp body
   State.modify' $ \state -> state { env = Map.insert name value (env state) }
 addBinding a = error $ "Invalid binding: " ++ show a
@@ -70,6 +74,9 @@ isValidField _                       = False
 isValidDef (ADef (ASym _ _) _ _) = True
 isValidDef _                     = False
 
+isValidParam (ASym _ _) = True
+isValidParam _          = False
+
 showResult (AInt a _) = show a
 showResult (AReal a _) = show a
 showResult (AUtf16 a _) = show a
@@ -77,4 +84,7 @@ showResult (AList as _) = "[" ++ intercalate ", " (map showResult as) ++ "]"
 showResult (ARec as _) = "{" ++ intercalate ", " (map showResult as) ++ "}"
 showResult (AField key val _) = showResult key ++ ": " ++ showResult val
 showResult (ASym a _) = unpack a
+showResult (ALam ps body _) =
+  let paramList = if null ps then "" else unwords (map showResult ps) ++ " = "
+  in "(# " ++ paramList ++ showResult body ++ ")"
 showResult a = error $ "Cannot showResult: '" ++ show a ++ "'"  -- TODO: Make this total

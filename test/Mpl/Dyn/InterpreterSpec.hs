@@ -41,3 +41,7 @@ spec = do
   describe "let" $ do
     testString "simple let" "let a = 5 in a" "5"
     testFile   "two bindings" "let-00.mpldyn" "6"
+
+  describe "lambda" $ do
+    testString "simple thunk" "(# 5)" "(# 5)"
+    testString "simple lambda" "(# a = a)" "(# a = a)"
