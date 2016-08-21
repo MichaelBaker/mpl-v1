@@ -18,6 +18,10 @@ testString name string expectedResult = it name $ do
     Failure ex -> expectationFailure $ show ex
     Success a  -> interpret a `shouldBe` expectedResult
 
+-- TODO
+-- Add a test for closures
+-- Calling something that isn't a function
+
 spec :: Spec
 spec = do
   describe "integer" $ do
@@ -27,13 +31,13 @@ spec = do
     testString "simple real" "234.123" "234.123"
 
   describe "symbol" $ do
-    testString "undefined symbol" "a" "\"Undefined symbol 'a'\""
+    testString "undefined symbol" "a" "\"<Undefined symbol 'a'>\""
 
   describe "list" $ do
     testString "list of ints" "[1,2,3]" "[1, 2, 3]"
 
   describe "record" $ do
-    testString "two field record" "{ 1: \"a\", wat: \"yep\" }" "{1: \"a\", wat: \"yep\"}"
+    testString "two field record" "{ 1: \"a\", wat: \"yep\" }" "{wat: \"yep\", 1: \"a\"}"
 
   describe "utf16" $ do
     testString "simple utf16 string" "\"hello\"" "\"hello\""
@@ -45,3 +49,6 @@ spec = do
   describe "lambda" $ do
     testString "simple thunk" "(# 5)" "(# 5)"
     testString "simple lambda" "(# a = a)" "(# a = a)"
+
+  describe "application" $ do
+    testString "simple application" "let f a = a in f 5" "5"

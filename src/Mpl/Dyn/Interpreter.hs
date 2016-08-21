@@ -2,89 +2,128 @@ module Mpl.Dyn.Interpreter where
 
 import Prelude hiding (concat, span)
 
-import Mpl.Dyn.AST (AST(..), span, emptySpan)
-import Data.Text   (Text, pack, unpack, concat)
-import Data.List   (foldl', intercalate)
+import Mpl.Dyn.AST   (AST(..), span, emptySpan)
+import Data.Text     (Text, pack, unpack, concat)
+import Data.List     (foldl', intercalate)
+import Control.Monad (foldM)
 
 import qualified Control.Monad.Trans.State.Strict as State
 import qualified Data.Map.Strict                  as Map
 
+data Value =
+    VInt     Integer
+  | VReal    Double
+  | VUtf16   Text
+  | VList    [Value]
+  | VRec     (Map.Map FieldLabel Value)
+  | VClosure AST Env
+  deriving (Show)
+
+data FieldLabel =
+    FSym Text
+  | FInt Integer
+  deriving (Show, Eq, Ord)
+
+type Env = Map.Map Text Value
+
 data InterpreterState = InterpreterState
-  { env :: Map.Map Text AST
+  { env :: Env
   }
 
 interpret :: AST -> Text
-interpret ast = pack $ showResult $ State.evalState (interp ast) startState
+interpret ast = pack $ showValue $ State.evalState (interp ast) startState
   where startState = InterpreterState { env = Map.empty }
 
-interp :: AST -> State.State InterpreterState AST
-interp a@(AInt _ _) = return a
-interp a@(AReal _ _) = return a
-interp a@(AUtf16 _ _) = return a
+interp :: AST -> State.State InterpreterState Value
+interp (AInt a _) = return $ VInt a
+interp (AReal a _) = return $ VReal a
+interp (AUtf16 a _) = return $ VUtf16 a
 interp (AList as lspan) = do
   vals <- mapM interp as
-  return $ AList vals lspan
-interp (ARec fs rspan) = do
-  case filter (not . isValidField) fs of
-    (invalidField:_) ->
-      let invalidSpan = span invalidField
-          invalidCode = showResult invalidField
-          message     = concat ["Invalid record field '", pack invalidCode, "' at ", pack $ show invalidSpan]
-          in return $ AUtf16 message invalidSpan
-    _ -> do
-      newFields <- mapM interp fs
-      return $ ARec newFields rspan
-interp (AField key@(ASym _ _) val fspan) = do
-  newVal <- interp val
-  return $ AField key newVal fspan
-interp (AField key val fspan) = do
-  newKey <- interp key
-  newVal <- interp val
-  return $ AField newKey newVal fspan
-interp a@(ASym name symSpan) = do
+  return $ VList vals
+interp (ARec fs rspan) = foldM (addRecField rspan) (VRec Map.empty) fs
+interp a@(AField _ _ _) = return $ VUtf16 $ concat ["<Invalid expression: '", pack (show a), "'>"]
+interp (ASym name symSpan) = do
   state <- State.get
   return $ case Map.lookup name (env state) of
-    Nothing -> AUtf16 (concat ["Undefined symbol '", name, "'"]) symSpan
+    Nothing -> VUtf16 (concat ["<Undefined symbol '", name, "'>"])
     Just a  -> a
-interp a@(ALet bindings body _) = do
-  case filter (not . isValidDef) bindings of
-    (invalidDef:_) ->
-      let invalidSpan = span invalidDef
-          invalidCode = showResult invalidDef
-          message     = concat ["Invalid definition'", pack invalidCode, "' at ", pack $ show invalidSpan]
-          in return $ AUtf16 message invalidSpan
-    _ -> do
-      mapM_ (addBinding . defToPair) bindings
-      interp body
-interp a@(ALam _ _ _) = return a
+interp (ALet bindings body letSpan) = interpWithBindings letSpan body bindings
+interp a@(ALam _ _ _) = do
+  state <- State.get
+  return $ VClosure a (env state)
+interp app@(AApp fAst args _) = do
+  f <- interp fAst
+  case f of
+    VClosure lam@(ALam params body _) localEnv -> do
+      State.withState (\s -> s { env = localEnv }) $ addLambdaBindings app lam body params args
+    a -> return $ VUtf16 (concat ["<Tried to call ", pack (showValue a), " as a function at ", pack (show $ span app)])
 interp a = return undefined -- TODO: Make this total
 
-defToPair (ADef sym@(ASym _ _) body _) = (sym, body)
-defToPair a = error $ "Invalid definition: " ++ show a
+addLambdaBindings app lam body [] [] = do
+  interp body
+addLambdaBindings app lam _ [] _ = do
+  return $ VUtf16 (concat ["<Too many arguments provided to ", pack (showCode lam), " in ", pack (showCode app), ">"])
+addLambdaBindings app lam body ps [] = do
+  state <- State.get
+  return $ VClosure (ALam ps body (span lam)) (env state)
+addLambdaBindings app lam body (p:ps) (a:as) = do
+  case p of
+    ASym name _ -> do
+      addBinding name a
+      addLambdaBindings app lam body ps as
+    a -> return $ VUtf16 (concat ["<Invalid parameter: ", pack (showCode p), ">"])
 
-addBinding (ASym name _, body) = do
+interpWithBindings span body ((ADef (ASym name _) valueAst _):rest) = do
+  addBinding name valueAst
+  interpWithBindings span body rest
+interpWithBindings span body (def:_) = do
+  return $ VUtf16 $ concat ["<Invalid definition: '", pack (show def), "' in ", pack (show span), ">"]
+interpWithBindings span body [] = interp body
+
+addRecField recSpan (VRec fields) (AField (ASym label _) valueAst _) = do
+  value <- interp valueAst
+  return $ VRec (Map.insert (FSym label) value fields)
+addRecField recSpan (VRec fields) (AField (AInt label _) valueAst _) = do
+  value <- interp valueAst
+  return $ VRec (Map.insert (FInt label) value fields)
+addRecField recSpan rec field = do
+  let message = concat ["<Invalid record field '", pack (show field), "' at ", pack $ show recSpan, ">"]
+  return $ VUtf16 message
+
+addBinding name body = do
   value <- interp body
   State.modify' $ \state -> state { env = Map.insert name value (env state) }
-addBinding a = error $ "Invalid binding: " ++ show a
 
-isValidField (AField (ASym _ _) _ _) = True
-isValidField (AField (AInt _ _) _ _) = True
-isValidField _                       = False
+-- defToPair (ADef sym@(ASym _ _) body _) = (sym, body)
+-- defToPair a = error $ "Invalid definition: " ++ show a
 
-isValidDef (ADef (ASym _ _) _ _) = True
-isValidDef _                     = False
+-- isValidField (AField (ASym _ _) _ _) = True
+-- isValidField (AField (AInt _ _) _ _) = True
+-- isValidField _                       = False
+-- 
+-- isValidDef (ADef (ASym _ _) _ _) = True
+-- isValidDef _                     = False
+-- 
+-- isValidParam (ASym _ _) = True
+-- isValidParam _          = False
 
-isValidParam (ASym _ _) = True
-isValidParam _          = False
+showValue (VInt a)         = show a
+showValue (VReal a)        = show a
+showValue (VUtf16 a)       = show a
+showValue (VList as)       = "[" ++ intercalate ", " (map showValue as) ++ "]"
+showValue (VRec as)        = "{" ++ intercalate ", " (map showRecField $ Map.toList as) ++ "}"
+showValue (VClosure lam _) = showCode lam
+-- showValue (AField key val _) = showValue key ++ ": " ++ showValue val
+-- showValue (ASym a _) = unpack a
 
-showResult (AInt a _) = show a
-showResult (AReal a _) = show a
-showResult (AUtf16 a _) = show a
-showResult (AList as _) = "[" ++ intercalate ", " (map showResult as) ++ "]"
-showResult (ARec as _) = "{" ++ intercalate ", " (map showResult as) ++ "}"
-showResult (AField key val _) = showResult key ++ ": " ++ showResult val
-showResult (ASym a _) = unpack a
-showResult (ALam ps body _) =
-  let paramList = if null ps then "" else unwords (map showResult ps) ++ " = "
-  in "(# " ++ paramList ++ showResult body ++ ")"
-showResult a = error $ "Cannot showResult: '" ++ show a ++ "'"  -- TODO: Make this total
+showCode (ALam ps body _) =
+  let paramList = if null ps then "" else unwords (map showCode ps) ++ " = "
+  in "(# " ++ paramList ++ showCode body ++ ")"
+showCode (ASym a _) = unpack a
+showCode (AInt a _) = show a
+showCode a = show a
+
+showRecField (FSym name, value) = unpack name ++ ": " ++ showValue value
+showRecField (FInt name, value) = show name   ++ ": " ++ showValue value
+
