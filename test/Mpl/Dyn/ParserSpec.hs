@@ -20,6 +20,7 @@ testString name string parseType expectedResult = it name $ do
 int     a   = AInt     a   emptySpan
 sym     a   = ASym     a   emptySpan
 real    a   = AReal    a   emptySpan
+text    a   = AUtf16   a   emptySpan
 prog    a   = AProg    a   emptySpan
 def     a b = ADef     a b emptySpan
 lam     a b = ALam     a b emptySpan
@@ -41,6 +42,9 @@ spec = do
     testFile "a single digit" "real-00.mpldyn" Exp (real 1.0)
     testFile "several digits" "real-01.mpldyn" Exp (real 1234567890.0)
     testFile "negative"       "real-02.mpldyn" Exp (real (-1234567890.0))
+
+  describe "utf16" $ do
+    testString "a simple string" "\"hello\"" Exp (text "hello")
 
   describe "symbol" $ do
     testString "an alphabetic symbol" "abc" Exp (sym "abc")

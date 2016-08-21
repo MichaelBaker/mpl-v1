@@ -9,7 +9,7 @@ import Control.Applicative       ((<|>), many, some)
 import Data.Text                 (pack)
 import Data.ByteString.Char8     (unpack)
 import Text.Parser.Char          (oneOf)
-import Text.Parser.Token         (TokenParsing(), integer, whiteSpace, someSpace, double, parens, brackets, braces, symbolic)
+import Text.Parser.Token         (TokenParsing(), integer, whiteSpace, someSpace, double, parens, brackets, braces, symbolic, stringLiteral)
 import Text.Parser.Combinators   ((<?>), try, optional, sepEndBy, sepEndBy1, manyTill)
 import Text.Trifecta.Delta       (Delta(Directed, Columns, Tab, Lines))
 import Text.Trifecta.Result      (Result())
@@ -41,6 +41,7 @@ expression =
   <|> parens expressionWithApp
 
   -- Literals
+  <|> utf16
   <|> lens
   <|> try real
   <|> int
@@ -60,6 +61,8 @@ recordField = withSpan $ AField <$> fieldLabel <* whiteSpace <* symbolic ':' <* 
 fieldLabel = int <|> symbol <?> "field label"
 
 list = withSpan $ brackets $ AList <$> sepEndBy expression (floating $ symbolic ',') <?> "list"
+
+utf16 = withSpan $ AUtf16 <$> stringLiteral <?> "utf16"
 
 lens = withSpan $ ALens <$> some lensPart <?> "lens"
 

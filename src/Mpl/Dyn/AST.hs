@@ -12,6 +12,7 @@ data AST =
   | AField   AST AST      Span
   | AInt     Integer      Span
   | AReal    Double       Span
+  | AUtf16   Text         Span
   | ADef     AST AST      Span
   | ASym     Text         Span
   | ALam     [AST] AST    Span
@@ -34,6 +35,7 @@ span (ARec     _   s) = s
 span (AField   _ _ s) = s
 span (AInt     _   s) = s
 span (AReal    _   s) = s
+span (AUtf16   _   s) = s
 span (ADef     _ _ s) = s
 span (ASym     _   s) = s
 span (ALam     _ _ s) = s

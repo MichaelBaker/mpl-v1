@@ -27,8 +27,9 @@ library
     Mpl.Interpreter,
     Mpl.Parser,
     Mpl.Typing,
+    Mpl.Dyn.AST,
     Mpl.Dyn.Parser,
-    Mpl.Dyn.AST
+    Mpl.Dyn.Interpreter
   build-depends:
     base >= 4.7 && < 5,
     Earley,
@@ -38,7 +39,8 @@ library
     pretty-show,
     trifecta,
     parsers,
-    bytestring
+    bytestring,
+    transformers
   ghc-options:
     -fwarn-incomplete-patterns
     -Werror
