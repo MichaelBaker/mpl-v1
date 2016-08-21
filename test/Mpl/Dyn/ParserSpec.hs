@@ -25,6 +25,7 @@ prog    a   = AProg    a   emptySpan
 def     a b = ADef     a b emptySpan
 lam     a b = ALam     a b emptySpan
 recdefs a   = ARecDefs a   emptySpan
+let_exp a b = ALet     a b emptySpan
 rec     a   = ARec     a   emptySpan
 field   a b = AField   a b emptySpan
 list    a   = AList    a   emptySpan
@@ -105,6 +106,9 @@ spec = do
         ]
       ]
       ])
+
+  describe "let" $ do
+    testString "simple let" "let a = 5 in a" Exp (let_exp [def (sym "a") (int 5)] $ sym "a")
 
   describe "program" $ do
     testFile "two constants" "program-00.mpldyn" Prog (prog $ recdefs [

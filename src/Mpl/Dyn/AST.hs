@@ -8,6 +8,7 @@ import Data.Int         (Int64(..))
 data AST =
     AProg    AST          Span
   | ARecDefs [AST]        Span
+  | ALet     [AST] AST    Span
   | ARec     [AST]        Span
   | AField   AST AST      Span
   | AInt     Integer      Span
@@ -31,6 +32,7 @@ emptySpan = Span "" 0 0
 
 span (AProg    _   s) = s
 span (ARecDefs _   s) = s
+span (ALet     _ _ s) = s
 span (ARec     _   s) = s
 span (AField   _ _ s) = s
 span (AInt     _   s) = s

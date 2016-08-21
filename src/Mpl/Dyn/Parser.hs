@@ -9,7 +9,7 @@ import Control.Applicative       ((<|>), many, some)
 import Data.Text                 (pack)
 import Data.ByteString.Char8     (unpack)
 import Text.Parser.Char          (oneOf)
-import Text.Parser.Token         (TokenParsing(), integer, whiteSpace, someSpace, double, parens, brackets, braces, symbolic, stringLiteral)
+import Text.Parser.Token         (TokenParsing(), integer, whiteSpace, someSpace, double, parens, brackets, braces, symbolic, stringLiteral, textSymbol)
 import Text.Parser.Combinators   ((<?>), try, optional, sepEndBy, sepEndBy1, manyTill)
 import Text.Trifecta.Delta       (Delta(Directed, Columns, Tab, Lines))
 import Text.Trifecta.Result      (Result())
@@ -40,6 +40,9 @@ expression =
       try lambda
   <|> parens expressionWithApp
 
+  -- Other
+  <|> let_exp
+
   -- Literals
   <|> utf16
   <|> lens
@@ -53,6 +56,8 @@ expression =
 application = withSpan $ AApp <$> expression <*> some expression <?> "application"
 
 recursiveDefinitions = withSpan $ ARecDefs <$> many (definition <* whiteSpace) <?> "recursive definitions"
+
+let_exp = withSpan $ ALet <$> (textSymbol "let" *> many (try definition) <* textSymbol "in") <*> expression <?> "let"
 
 record = withSpan $ braces $ ARec <$> sepEndBy recordField (floating $ symbolic ',') <?> "record"
 
@@ -107,7 +112,12 @@ symbol = withSpan $ (do
   firstChar <- oneOf symStartChars <?> "start of symbol"
   rest      <- (many $ oneOf symChars) <?> "tail of symbol"
   whiteSpace
-  return $ ASym $ pack (firstChar : rest)) <?> "symbol"
+  let name = firstChar : rest
+  if name `elem` reservedSymbols
+    then fail $ "Reserved symbol: " ++ show name
+    else return $ ASym $ pack name) <?> "symbol"
+
+reservedSymbols = ["let", "in"]
 
 reservedChars = ['.']
 
