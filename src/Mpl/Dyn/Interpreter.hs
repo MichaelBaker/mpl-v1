@@ -4,7 +4,7 @@ import Prelude hiding (concat, span)
 
 import Mpl.Dyn.AST (AST(..), span, emptySpan)
 import Data.Text   (Text, pack, unpack, concat)
-import Data.List   (intercalate)
+import Data.List   (foldl', intercalate)
 
 import qualified Control.Monad.Trans.State.Strict as State
 import qualified Data.Map.Strict                  as Map
@@ -25,10 +25,13 @@ interp (AList as lspan) = do
   vals <- mapM interp as
   return $ AList vals lspan
 interp (ARec fs rspan) = do
-  let invalidField = take 1 $ filter (not . isValidField) fs
-  if not (null invalidField)
-    then return $ AUtf16 (concat ["Invalid record field '", pack (showResult $ head invalidField), "'"]) (span $ head invalidField)
-    else do
+  case filter (not . isValidField) fs of
+    (invalidField:_) ->
+      let invalidSpan = span invalidField
+          invalidCode = showResult invalidField
+          message     = concat ["Invalid record field '", pack invalidCode, "' at ", pack $ show invalidSpan]
+          in return $ AUtf16 message invalidSpan
+    _ -> do
       newFields <- mapM interp fs
       return $ ARec newFields rspan
 interp (AField key@(ASym _ _) val fspan) = do
@@ -43,11 +46,29 @@ interp a@(ASym name symSpan) = do
   return $ case Map.lookup name (env state) of
     Nothing -> AUtf16 (concat ["Undefined symbol '", name, "'"]) symSpan
     Just a  -> a
+interp a@(ALet bindings body _) = do
+  case filter (not . isValidDef) bindings of
+    (invalidDef:_) ->
+      let invalidSpan = span invalidDef
+          invalidCode = showResult invalidDef
+          message     = concat ["Invalid definition'", pack invalidCode, "' at ", pack $ show invalidSpan]
+          in return $ AUtf16 message invalidSpan
+    _ -> do
+      mapM_ addBinding bindings
+      interp body
 interp a = return undefined -- TODO: Make this total
+
+addBinding (ADef (ASym name _) body _) = do
+  value <- interp body
+  State.modify' $ \state -> state { env = Map.insert name value (env state) }
+addBinding a = error $ "Invalid binding: " ++ show a
 
 isValidField (AField (ASym _ _) _ _) = True
 isValidField (AField (AInt _ _) _ _) = True
 isValidField _                       = False
+
+isValidDef (ADef (ASym _ _) _ _) = True
+isValidDef _                     = False
 
 showResult (AInt a _) = show a
 showResult (AReal a _) = show a

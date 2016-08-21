@@ -7,7 +7,7 @@ import Mpl.Dyn.Interpreter  (interpret)
 import Text.Trifecta.Result (Result(Success, Failure))
 
 testFile name filename expectedResult = it name $ do
-  result <- parseFile Exp ("test/TestCases/Dyn/Parser/" ++ filename)
+  result <- parseFile Exp ("test/TestCases/Dyn/Interpreter/" ++ filename)
   case result of
     Failure ex -> expectationFailure $ show ex
     Success a  -> interpret a `shouldBe` expectedResult
@@ -37,3 +37,7 @@ spec = do
 
   describe "utf16" $ do
     testString "simple utf16 string" "\"hello\"" "\"hello\""
+
+  describe "let" $ do
+    testString "simple let" "let a = 5 in a" "5"
+    testFile   "two bindings" "let-00.mpldyn" "6"
