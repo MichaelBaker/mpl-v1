@@ -27,7 +27,13 @@ spec = do
     testString "simple real" "234.123" "234.123"
 
   describe "symbol" $ do
-    testString "undefined symbol" "a" "Undefined symbol 'a'"
+    testString "undefined symbol" "a" "\"Undefined symbol 'a'\""
 
   describe "list" $ do
     testString "list of ints" "[1,2,3]" "[1, 2, 3]"
+
+  describe "record" $ do
+    testString "two field record" "{ 1: \"a\", wat: \"yep\" }" "{1: \"a\", wat: \"yep\"}"
+
+  describe "utf16" $ do
+    testString "simple utf16 string" "\"hello\"" "\"hello\""
