@@ -31,6 +31,7 @@ field   a b = AField   a b emptySpan
 list    a   = AList    a   emptySpan
 lens    a   = ALens    a   emptySpan
 app     a b = AApp     a b emptySpan
+lensapp a b = ALensApp a b emptySpan
 
 spec :: Spec
 spec = do
@@ -78,6 +79,7 @@ spec = do
       (real 32.1),
       (sym "a")
       ])
+
   describe "lens" $ do
     testString "field label"      ".hello"      Exp (lens [sym "hello"])
     testString "int label"        ".0"          Exp (lens [int 0])
@@ -88,6 +90,7 @@ spec = do
     testString "simple application" "a b" Exp (app (sym "a") [sym "b"])
     testString "paren application"  "(a b)" Exp (app (sym "a") [sym "b"])
     testString "int application"    "(3 4)" Exp (app (int 3) [int 4])
+    testString "lens application"   "a.b.c.3" Exp (lensapp (lens [sym "b", sym "c", int 3]) (sym "a"))
     testFile   "nested application" "application-00.mpldyn" Exp (app (sym "myFun") [
       int 1,
       int 2,

@@ -52,3 +52,6 @@ spec = do
 
   describe "application" $ do
     testString "simple application" "let f a = a in f 5" "5"
+
+  describe "lensApplication" $ do
+    testString "lens application" "let a = {b: \"hello\"} in a.b" "\"hello\""

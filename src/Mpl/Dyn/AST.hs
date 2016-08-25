@@ -20,6 +20,7 @@ data AST =
   | AList    [AST]        Span
   | ALens    [AST]        Span
   | AApp     AST [AST]    Span
+  | ALensApp AST AST      Span
   deriving (Generic, Eq)
 
 data Span = Span
@@ -44,6 +45,7 @@ span (ALam     _ _ s) = s
 span (AList    _   s) = s
 span (ALens    _   s) = s
 span (AApp     _ _ s) = s
+span (ALensApp _ _ s) = s
 
 instance Eq Span where
   a == b = True

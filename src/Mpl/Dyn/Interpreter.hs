@@ -95,27 +95,12 @@ addBinding name body = do
   value <- interp body
   State.modify' $ \state -> state { env = Map.insert name value (env state) }
 
--- defToPair (ADef sym@(ASym _ _) body _) = (sym, body)
--- defToPair a = error $ "Invalid definition: " ++ show a
-
--- isValidField (AField (ASym _ _) _ _) = True
--- isValidField (AField (AInt _ _) _ _) = True
--- isValidField _                       = False
--- 
--- isValidDef (ADef (ASym _ _) _ _) = True
--- isValidDef _                     = False
--- 
--- isValidParam (ASym _ _) = True
--- isValidParam _          = False
-
 showValue (VInt a)         = show a
 showValue (VReal a)        = show a
 showValue (VUtf16 a)       = show a
 showValue (VList as)       = "[" ++ intercalate ", " (map showValue as) ++ "]"
 showValue (VRec as)        = "{" ++ intercalate ", " (map showRecField $ Map.toList as) ++ "}"
 showValue (VClosure lam _) = showCode lam
--- showValue (AField key val _) = showValue key ++ ": " ++ showValue val
--- showValue (ASym a _) = unpack a
 
 showCode (ALam ps body _) =
   let paramList = if null ps then "" else unwords (map showCode ps) ++ " = "
