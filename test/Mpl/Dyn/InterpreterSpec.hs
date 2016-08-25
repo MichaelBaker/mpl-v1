@@ -1,7 +1,8 @@
 module Mpl.Dyn.InterpreterSpec where
 
 import Test.Hspec
-import Mpl.Dyn.AST          (AST(..), emptySpan)
+import Mpl.Span             (emptySpan)
+import Mpl.Dyn.AST          (AST(..))
 import Mpl.Dyn.Parser       (ParseType(Exp), parseFile, parseString)
 import Mpl.Dyn.Interpreter  (interpret)
 import Text.Trifecta.Result (Result(Success, Failure))

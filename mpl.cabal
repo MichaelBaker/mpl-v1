@@ -27,7 +27,10 @@ library
     Mpl.Interpreter,
     Mpl.Parser,
     Mpl.Typing,
+    Mpl.Span,
     Mpl.Dyn.AST,
+    Mpl.Dyn.Core,
+    Mpl.Dyn.Desugar,
     Mpl.Dyn.Parser,
     Mpl.Dyn.Interpreter
   build-depends:

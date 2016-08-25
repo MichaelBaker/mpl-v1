@@ -2,7 +2,8 @@ module Mpl.Dyn.Interpreter where
 
 import Prelude hiding (concat, span)
 
-import Mpl.Dyn.AST   (AST(..), span, emptySpan)
+import Mpl.Span      (emptySpan)
+import Mpl.Dyn.AST   (AST(..), span)
 import Data.Text     (Text, pack, unpack, concat)
 import Data.List     (foldl', intercalate)
 import Control.Monad (foldM)

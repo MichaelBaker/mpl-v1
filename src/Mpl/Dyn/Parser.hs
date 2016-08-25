@@ -4,7 +4,8 @@ module Mpl.Dyn.Parser where
 
 import Prelude hiding (span)
 
-import Mpl.Dyn.AST               (AST(..), Span(..), span)
+import Mpl.Span                  (Span(..))
+import Mpl.Dyn.AST               (AST(..), span)
 import Control.Applicative       ((<|>), many, some)
 import Data.Text                 (pack)
 import Data.ByteString.Char8     (unpack)

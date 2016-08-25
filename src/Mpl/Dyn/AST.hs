@@ -3,7 +3,7 @@ module Mpl.Dyn.AST where
 import GHC.Generics     (Generic)
 import Data.Text        (Text)
 import Text.Show.Pretty (Value(String), PrettyVal, prettyVal, dumpStr)
-import Data.Int         (Int64(..))
+import Mpl.Span         (Span)
 
 data AST =
     AProg    AST          Span
@@ -23,14 +23,6 @@ data AST =
   | ALensApp AST AST      Span
   deriving (Generic, Eq)
 
-data Span = Span
-  { filePath  :: String
-  , startByte :: Int64
-  , endByte   :: Int64
-  } deriving (Show)
-
-emptySpan = Span "" 0 0
-
 span (AProg    _   s) = s
 span (ARecDefs _   s) = s
 span (ALet     _ _ s) = s
@@ -47,16 +39,10 @@ span (ALens    _   s) = s
 span (AApp     _ _ s) = s
 span (ALensApp _ _ s) = s
 
-instance Eq Span where
-  a == b = True
-
 instance PrettyVal AST
 
 instance Show AST where
   show = dumpStr
 
 instance PrettyVal Text where
-  prettyVal = String . show
-
-instance PrettyVal Span where
   prettyVal = String . show
