@@ -3,16 +3,18 @@ module Mpl.Dyn.Desugar where
 import Mpl.Dyn.Core (Core(..), CoreLabel(..), CoreBind(..))
 import Mpl.Dyn.AST  (AST(..))
 
-desugar (ASym   a span)    = CSym   a span
-desugar (AInt   a span)    = CInt   a span
-desugar (AReal  a span)    = CReal  a span
-desugar (AUtf16 a span)    = CUtf16 a span
-desugar (AList  a span)    = CList  (map desugar a) span
-desugar (ARec   a span)    = CRec   (map fromField a) span
-desugar (ALet   a  b span) = CLet   (map fromBind a) (desugar b) span
-desugar (ALam   [] b span) = CThunk (desugar b) span
-desugar (ALam   a  b span) = makeLambda (map fromSym a) (desugar b) span
-desugar (AApp   a  b span) = makeApplication (desugar a) (map desugar b) span
+desugar (ASym     a span)     = CSym   a span
+desugar (AInt     a span)     = CInt   a span
+desugar (AReal    a span)     = CReal  a span
+desugar (AUtf16   a span)     = CUtf16 a span
+desugar (AList    a span)     = CList  (map desugar a) span
+desugar (ARec     a span)     = CRec   (map fromField a) span
+desugar (ALet     a  b span)  = CLet   (map fromBind a) (desugar b) span
+desugar (ALam     [] b span)  = CThunk (desugar b) span
+desugar (ALam     a  b span)  = makeLambda (map fromSym a) (desugar b) span
+desugar (ALens    a    span)  = CLens (map desugar a) span
+desugar (AApp     a  b span)  = makeApplication (desugar a) (map desugar b) span
+desugar (ALensApp a b span)   = CApp (desugar a) (desugar b) span
 desugar a = undefined -- TODO: Make this total
 
 makeLambda []     body span = body

@@ -4,7 +4,7 @@ This is the project I use to play around with programming language theory and im
 
 ## TODO
 
-[ ] Make the types of the AST stricter
+[ ] Add error handling to the interpreter monad
 [ ] Think about what would make good error messages
 [ ] Sum types and case statements
 [ ] Give typechecker a once over and look into correctness
@@ -14,6 +14,7 @@ This is the project I use to play around with programming language theory and im
 [ ] Convert level 0.0 <-> 1.0
 [ ] Start level 2.0
 [ ] Convert level 1.0 <-> 2.0
+[ ] Reversable parsers
 
 ## Things I want
 

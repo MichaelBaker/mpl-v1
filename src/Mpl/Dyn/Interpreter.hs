@@ -17,9 +17,10 @@ data Value =
   | VUtf16   Text
   | VList    [Value]
   | VRec     (Map.Map ValueLabel Value)
+  | VLens    [ValueLabel]
   | VThunk   Core Env
   | VClosure CoreBind Core Env
-  deriving (Show)
+  deriving (Show, Eq)
 
 data ValueLabel =
     VLSym Text
@@ -47,6 +48,7 @@ interp (CRec fs rspan) = do
   State.mapState
     (\(recordImpl, state) -> (VRec recordImpl, state))
     $ foldM (addRecField rspan) Map.empty fs
+interp (CLens as _) = convertValsToLabels [] as
 interp (CSym name symSpan) = do
   state <- State.get
   return $ case Map.lookup name (env state) of
@@ -62,25 +64,14 @@ interp a@(CThunk body _) = do
 interp app@(CApp fCore argCore _) = do
   f <- interp fCore
   case f of
+    VLens as -> do
+      arg <- interp argCore
+      interpGetLens arg arg [] as
     VClosure (CoreBind param) body localEnv -> do
       State.withState (\s -> s { env = localEnv }) $ do
         addBinding param argCore
         interp body
     a -> return $ VUtf16 (concat ["<Tried to call ", pack (showValue f), " as a function at ", pack (show app)])
-
--- addLambdaBindings app lam body [] [] = do
---   interp body
--- addLambdaBindings app lam _ [] _ = do
---   return $ VUtf16 (concat ["<Too many arguments provided to ", pack (showCode lam), " in ", pack (showCode app), ">"])
--- addLambdaBindings app lam body ps [] = do
---   state <- State.get
---   return $ VClosure (ALam ps body (span lam)) (env state)
--- addLambdaBindings app lam body (p:ps) (a:as) = do
---   case p of
---     ASym name _ -> do
---       addBinding name a
---       addLambdaBindings app lam body ps as
---     a -> return $ VUtf16 (concat ["<Invalid parameter: ", pack (showCode p), ">"])
 
 addRecField recSpan fields (label, core) = do
   let valueLabel = case label of
@@ -89,10 +80,35 @@ addRecField recSpan fields (label, core) = do
   State.mapState (transform valueLabel) (interp core)
   where transform valueLabel (value, state) = (Map.insert valueLabel value fields, state)
 
+convertValsToLabels soFar [] = return $ VLens $ reverse soFar
+convertValsToLabels soFar ((CSym label _):as) = convertValsToLabels (VLSym label:soFar) as
+convertValsToLabels soFar (a:as) = do
+  val <- interp a
+  case val of
+    VInt   label -> convertValsToLabels (VLInt label:soFar) as
+    VUtf16 label -> convertValsToLabels (VLSym label:soFar) as
+    a            -> error $ "Invalid field: " ++ show a -- TODO: Use in-interpreter error handling
+
 interpWithBindings span body ((CoreBind name, core):rest) = do
   addBinding name core
   interpWithBindings span body rest
 interpWithBindings span body [] = interp body
+
+interpGetLens originalArg arg _ [] = return arg
+interpGetLens originalArg r@(VRec fields) soFar (a:as) = do
+  case Map.lookup a fields of
+    Just v  -> interpGetLens originalArg v soFar as
+    Nothing -> if r /= originalArg
+                 then error $ "Field " ++ showLabel a ++ " is not present at " ++ showValue (VLens $ reverse soFar) ++ " on " ++ showValue r ++ " in " ++ showValue originalArg -- TODO: Use in-interpreter error handling
+                 else error $ "Field " ++ showLabel a ++ " is not present on " ++ showValue  r -- TODO: Use in-interpreter error handling
+interpGetLens originalArg (VList fields) soFar ((VLInt label):as) =
+  case drop (fromInteger label) fields of
+    []    -> error $ "Tried to access the  " ++ show label ++ "th element of a list with only " ++ show (length fields) ++ " elements at " ++ showValue (VLens $ reverse soFar) ++ " in " ++ showValue originalArg -- TODO: Use in-interpreter error handling
+    (a:_) -> interpGetLens originalArg a soFar as
+interpGetLens originalArg a soFar (label:as) =
+  if a /= originalArg
+    then error $ "Tried to access " ++ showLabel label ++ " at " ++ showValue (VLens $ reverse soFar) ++ " on " ++ showValue a ++ " in " ++ showValue originalArg -- TODO: Use in-interpreter error handling
+    else error $ "Tried to access " ++ showLabel label ++ " on " ++ showValue a -- TODO: Use in-interpreter error handling
 
 addBinding name core = do
   value <- interp core
@@ -103,18 +119,28 @@ showValue (VReal a)  = show a
 showValue (VUtf16 a) = show a
 showValue (VList as) = "[" ++ intercalate ", " (map showValue as) ++ "]"
 showValue (VRec as)  = "{" ++ intercalate ", " (map showRecField $ Map.toList as) ++ "}"
+showValue (VLens as) = intercalate "." ("#" : map showLabel as)
 showValue (VClosure p body _) = showCode (CLam p body emptySpan)
 showValue (VThunk   body _)   = showCode (CThunk body emptySpan)
 
+showCode (CSym a _)      = unpack a
+showCode (CInt a _)      = show a
+showCode (CReal a _)     = show a
+showCode (CUtf16 a _)    = unpack a
+showCode (CList  a _)    = "[" ++ intercalate "," (map showCode a) ++ "]"
+showCode (CRec   a _)    = "{" ++ intercalate "," (map (\(k, v) -> showCoreLabel k ++ ": " ++ showCode v) a) ++ "}"
+showCode (CLet a b _)    = "let " ++ intercalate "; " (map (\(k, v) -> showBind k ++ " = " ++ showCode v) a) ++ " in " ++ showCode b
 showCode (CThunk body _) = "(# " ++ showCode body ++ ")"
 showCode (CLam p body _) = "(# " ++ showBind p ++ " = " ++ showCode body ++ ")"
-showCode (CSym a _) = unpack a
-showCode (CInt a _) = show a
--- TODO: Implement this for other syntactic constructs
--- TODO: This should probably use a reversable parser
-showCode a = show a
+showCode (CApp a b _)    = "(" ++ showCode a ++ " " ++ showCode b ++ ")"
+showCode (CLens a _)     = intercalate "." ("#" : map showCode a)
 
 showBind (CoreBind name) = unpack name
 
-showRecField (VLSym name, value) = unpack name ++ ": " ++ showValue value
-showRecField (VLInt name, value) = show name   ++ ": " ++ showValue value
+showRecField (label, value) = showLabel label ++ ": " ++ showValue value
+
+showLabel (VLInt name) = show name
+showLabel (VLSym name) = unpack name
+
+showCoreLabel (CLInt label) = show label
+showCoreLabel (CLSym label) = unpack label

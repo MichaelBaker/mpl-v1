@@ -16,6 +16,7 @@ data Core =
   | CThunk Core                    Span
   | CLam   CoreBind Core           Span
   | CApp   Core Core               Span
+  | CLens  [Core]                  Span
   deriving (Generic, Eq)
 
 type RecordImpl = [(CoreLabel, Core)]

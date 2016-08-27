@@ -29,6 +29,7 @@ thunk   a   = CThunk a   emptySpan
 let_exp a b = CLet   a b emptySpan
 lam     a b = CLam   a b emptySpan
 app     a b = CApp   a b emptySpan
+lens    a   = CLens  a   emptySpan
 
 symlbl a = CLSym a
 intlbl a = CLInt a
@@ -65,6 +66,6 @@ spec = do
 
   describe "application" $ do
     testString "simple application" "a b" (app (sym "a") (sym "b"))
-    testString "multiple arguments"  "(a b c)" (app (app (sym "a") (sym "b")) (sym "c"))
-    -- TODO: testString "int application"    "(3 4)" (app (int 3) (int 4))
-    -- TODO: testString "lens application"   "a.b.c.3" (lensapp (lens [sym "b", sym "c", int 3]) (sym "a"))
+    testString "multiple arguments" "(a b c)" (app (app (sym "a") (sym "b")) (sym "c"))
+    testString "int application"    "(3 4)" (app (int 3) (int 4))
+    testString "lens application"   "a.b.c.3" (app (lens [sym "b", sym "c", int 3]) (sym "a"))
