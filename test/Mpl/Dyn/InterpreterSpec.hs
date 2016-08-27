@@ -4,6 +4,7 @@ import Test.Hspec
 import Mpl.Span             (emptySpan)
 import Mpl.Dyn.AST          (AST(..))
 import Mpl.Dyn.Parser       (ParseType(Exp), parseFile, parseString)
+import Mpl.Dyn.Desugar      (desugar)
 import Mpl.Dyn.Interpreter  (interpret)
 import Text.Trifecta.Result (Result(Success, Failure))
 
@@ -11,13 +12,13 @@ testFile name filename expectedResult = it name $ do
   result <- parseFile Exp ("test/TestCases/Dyn/Interpreter/" ++ filename)
   case result of
     Failure ex -> expectationFailure $ show ex
-    Success a  -> interpret a `shouldBe` expectedResult
+    Success a  -> interpret (desugar a) `shouldBe` expectedResult
 
 testString name string expectedResult = it name $ do
   let result = parseString Exp string
   case result of
     Failure ex -> expectationFailure $ show ex
-    Success a  -> interpret a `shouldBe` expectedResult
+    Success a  -> interpret (desugar a) `shouldBe` expectedResult
 
 -- TODO
 -- Add a test for closures
