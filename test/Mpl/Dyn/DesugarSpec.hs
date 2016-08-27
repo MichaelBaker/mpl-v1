@@ -25,7 +25,10 @@ real    a   = CReal  a   emptySpan
 utf16   a   = CUtf16 a   emptySpan
 list    a   = CList  a   emptySpan
 rec     a   = CRec   a   emptySpan
+thunk   a   = CThunk a   emptySpan
 let_exp a b = CLet   a b emptySpan
+lam     a b = CLam   a b emptySpan
+app     a b = CApp   a b emptySpan
 
 symlbl a = CLSym a
 intlbl a = CLInt a
@@ -54,3 +57,14 @@ spec = do
 
   describe "let" $ do
     testString "simple let" "let a = 1 in a" (let_exp [(bind "a", int 1)] (sym "a"))
+
+  describe "lambda" $ do
+    testString "simple thunk" "(# 5)" (thunk (int 5))
+    testString "simple lambda" "(# a = a)" (lam (bind "a") (sym "a"))
+    testString "multiple params" "(# a b = a)" (lam (bind "a") (lam (bind "b") (sym "a")))
+
+  describe "application" $ do
+    testString "simple application" "a b" (app (sym "a") (sym "b"))
+    testString "multiple arguments"  "(a b c)" (app (app (sym "a") (sym "b")) (sym "c"))
+    -- TODO: testString "int application"    "(3 4)" (app (int 3) (int 4))
+    -- TODO: testString "lens application"   "a.b.c.3" (lensapp (lens [sym "b", sym "c", int 3]) (sym "a"))

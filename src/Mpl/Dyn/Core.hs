@@ -13,6 +13,9 @@ data Core =
   | CList  [Core]                  Span
   | CRec   RecordImpl              Span
   | CLet   [(CoreBind, Core)] Core Span
+  | CThunk Core                    Span
+  | CLam   CoreBind Core           Span
+  | CApp   Core Core               Span
   deriving (Generic, Eq)
 
 type RecordImpl = [(CoreLabel, Core)]
