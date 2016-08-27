@@ -143,6 +143,7 @@ optionalTrailing2 a sep = do
   trailing <- a <* optional sep
   return $ values ++ [trailing]
 
+-- TODO: Pull this into a shared module
 withSpan :: (DeltaParsing m) => m (Span -> a) -> m a
 withSpan parser = do
   startSpan <- position

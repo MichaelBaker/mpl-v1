@@ -32,7 +32,9 @@ library
     Mpl.Dyn.Core,
     Mpl.Dyn.Desugar,
     Mpl.Dyn.Parser,
-    Mpl.Dyn.Interpreter
+    Mpl.Dyn.Interpreter,
+    Mpl.Ty.AST,
+    Mpl.Ty.Parser
   build-depends:
     base >= 4.7 && < 5,
     Earley,
