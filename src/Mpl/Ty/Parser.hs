@@ -62,6 +62,7 @@ literal = ADyn <$>
   (   Dyn.utf16
   <|> try Dyn.real
   <|> Dyn.int
+  <|> Dyn.symbol
   )
   -- -- Parentheticals
   --     try lambda
@@ -72,7 +73,6 @@ literal = ADyn <$>
 
   -- -- Literals
   -- <|> lens
-  -- <|> symbol
 
 withSpan :: (DeltaParsing m) => m (Span -> a) -> m a
 withSpan parser = do

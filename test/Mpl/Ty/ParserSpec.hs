@@ -36,6 +36,7 @@ spec :: Spec
 spec = do
   describe "annotated expression" $ do
     testString "annotated int" "1 : Integer" Exp (ann_exp (int 1)  (ty "Integer"))
+    testString "annotated symbol" "a : Integer" Exp (ann_exp (sym "a")  (ty "Integer"))
     testString "annotated real" "1.0 : Real" Exp (ann_exp (real 1) (ty "Real"))
     testString "annotated utf16" "\"hello\" : UTF16" Exp (ann_exp (utf16 "hello") (ty "UTF16"))
     testString "annotated list" "[1] : List" Exp (ann_exp (list [int 1]) (ty "List"))
