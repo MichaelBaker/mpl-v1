@@ -45,6 +45,7 @@ annotation = symbolic ':' *> whiteSpace *> type_ <?> "type annotation"
 annotatableExpressions =
       literal
   <|> Dyn.list AList expression
+  <|> Dyn.record ARec (Dyn.recordField AField expression)
 
 type_ = withSpan $ (do
   firstChar <- oneOf tyStartChars <?> "start of type"
@@ -71,7 +72,6 @@ literal = ADyn <$>
 
   -- -- Literals
   -- <|> lens
-  -- <|> record
   -- <|> symbol
 
 withSpan :: (DeltaParsing m) => m (Span -> a) -> m a

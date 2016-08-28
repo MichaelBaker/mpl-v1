@@ -52,7 +52,7 @@ expression =
   <|> lens
   <|> try real
   <|> int
-  <|> record
+  <|> record ARec (recordField AField expression)
   <|> list AList expression
   <|> symbol
   <?> "expression"
@@ -66,9 +66,9 @@ recursiveDefinitions = withSpan $ ARecDefs <$> many (definition <* whiteSpace) <
 
 let_exp = withSpan $ ALet <$> (textSymbol "let" *> many (try definition) <* textSymbol "in") <*> expression <?> "let"
 
-record = withSpan $ braces $ ARec <$> sepEndBy recordField (floating $ symbolic ',') <?> "record"
+record cons fieldParser = withSpan $ braces $ cons <$> sepEndBy fieldParser (floating $ symbolic ',') <?> "record"
 
-recordField = withSpan $ AField <$> fieldLabel <* whiteSpace <* symbolic ':' <* whiteSpace <*> expression <?> "record field"
+recordField cons subExpression = withSpan $ cons <$> fieldLabel <* whiteSpace <* symbolic ':' <* whiteSpace <*> subExpression <?> "record field"
 
 fieldLabel = int <|> symbol <?> "field label"
 
