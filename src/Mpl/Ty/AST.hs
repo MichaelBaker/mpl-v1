@@ -12,6 +12,7 @@ data AST =
   | AList   [AST]       Span
   | ARec    [AST]       Span
   | AField  Dyn.AST AST Span
+  | ALens   [AST]       Span
   | ADyn    Dyn.AST
   deriving (Generic, Eq)
 

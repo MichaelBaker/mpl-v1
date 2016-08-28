@@ -43,9 +43,13 @@ expression = (do
 annotation = symbolic ':' *> whiteSpace *> type_ <?> "type annotation"
 
 annotatableExpressions =
-      literal
-  <|> Dyn.list AList expression
+      (ADyn <$> Dyn.utf16)
+  <|> Dyn.makeLens ALens ADyn expression
+  <|> (ADyn <$> try Dyn.real)
+  <|> (ADyn <$> Dyn.int)
   <|> Dyn.record ARec (Dyn.recordField AField expression)
+  <|> Dyn.list AList expression
+  <|> (ADyn <$> Dyn.symbol)
 
 type_ = withSpan $ (do
   firstChar <- oneOf tyStartChars <?> "start of type"
@@ -58,21 +62,12 @@ tyStartChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 tyChars      = "abcdefghijklmnopqrstuvwxyz" ++ tyStartChars ++ digits
 digits       = "0123456789"
 
-literal = ADyn <$>
-  (   Dyn.utf16
-  <|> try Dyn.real
-  <|> Dyn.int
-  <|> Dyn.symbol
-  )
   -- -- Parentheticals
   --     try lambda
   -- <|> parens expressionWithApp
 
   -- -- Other
   -- <|> let_exp
-
-  -- -- Literals
-  -- <|> lens
 
 withSpan :: (DeltaParsing m) => m (Span -> a) -> m a
 withSpan parser = do

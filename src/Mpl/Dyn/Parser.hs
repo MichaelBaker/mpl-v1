@@ -76,9 +76,11 @@ list cons subExpression = withSpan $ brackets $ cons <$> sepEndBy subExpression 
 
 utf16 = withSpan $ AUtf16 <$> stringLiteral <?> "utf16"
 
-lens = withSpan $ ALens <$> some lensPart <?> "lens"
+lens = makeLens ALens id expression
 
-lensPart = symbolic '.' *> (int <|> symbol <|> parens expression)
+makeLens cons partCons subExpression = withSpan $ cons <$> some (makeLensPart partCons subExpression) <?> "lens"
+
+makeLensPart cons subExpression = symbolic '.' *> ((cons <$> int) <|> (cons <$> symbol) <|> parens subExpression)
 
 lambda = withSpan (parens $ do
   symbolic '#'

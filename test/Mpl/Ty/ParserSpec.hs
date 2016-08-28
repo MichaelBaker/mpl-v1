@@ -29,6 +29,7 @@ sym     a   = ADyn (Dyn.ASym a emptySpan)
 real    a   = ADyn (Dyn.AReal a emptySpan)
 utf16   a   = ADyn (Dyn.AUtf16 a emptySpan)
 field   a b = AField a b emptySpan
+lens    a   = ALens  a   emptySpan
 list    a   = AList  a   emptySpan
 rec     a   = ARec   a   emptySpan
 
@@ -38,6 +39,7 @@ spec = do
     testString "annotated int" "1 : Integer" Exp (ann_exp (int 1)  (ty "Integer"))
     testString "annotated symbol" "a : Integer" Exp (ann_exp (sym "a")  (ty "Integer"))
     testString "annotated real" "1.0 : Real" Exp (ann_exp (real 1) (ty "Real"))
+    testString "annotated lens" ".0 : Lens" Exp (ann_exp (lens [int 0]) (ty "Lens"))
     testString "annotated utf16" "\"hello\" : UTF16" Exp (ann_exp (utf16 "hello") (ty "UTF16"))
     testString "annotated list" "[1] : List" Exp (ann_exp (list [int 1]) (ty "List"))
     testString "annotated record" "{a:1} : Record" Exp (ann_exp (rec [field (Dyn.ASym "a" emptySpan) (int 1)]) (ty "Record"))
