@@ -8,7 +8,7 @@ import Data.Text                 (pack)
 import Data.ByteString.Char8     (unpack)
 import Text.Parser.Char          (oneOf)
 import Text.Parser.Token         (whiteSpace, symbolic)
-import Text.Parser.Combinators   ((<?>), optional)
+import Text.Parser.Combinators   ((<?>), try, optional)
 import Text.Trifecta.Delta       (Delta(Directed, Columns, Tab, Lines))
 import Text.Trifecta.Result      (Result())
 import Text.Trifecta.Parser      (parseFromFileEx)
@@ -31,7 +31,7 @@ parseString Exp  string = Parser.parseString expression Dyn.zeroDelta string
 
 expression = (do
   startSpan <- position
-  dynExp    <- literal
+  dynExp    <- annotatableExpressions
   maybeTy   <- optional annotation
   case maybeTy of
     Nothing -> return dynExp
@@ -42,6 +42,10 @@ expression = (do
 
 annotation = symbolic ':' *> whiteSpace *> type_ <?> "type annotation"
 
+annotatableExpressions =
+      literal
+  <|> Dyn.list AList expression
+
 type_ = withSpan $ (do
   firstChar <- oneOf tyStartChars <?> "start of type"
   rest      <- (many $ oneOf tyChars) <?> "tail of type"
@@ -50,9 +54,14 @@ type_ = withSpan $ (do
   return $ ATySym $ pack name) <?> "type"
 
 tyStartChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-tyChars      = "abcdefghijklmnopqrstuvwxyz" ++ tyStartChars
+tyChars      = "abcdefghijklmnopqrstuvwxyz" ++ tyStartChars ++ digits
+digits       = "0123456789"
 
-literal = ADyn <$> Dyn.int
+literal = ADyn <$>
+  (   Dyn.utf16
+  <|> try Dyn.real
+  <|> Dyn.int
+  )
   -- -- Parentheticals
   --     try lambda
   -- <|> parens expressionWithApp
@@ -61,12 +70,8 @@ literal = ADyn <$> Dyn.int
   -- <|> let_exp
 
   -- -- Literals
-  -- <|> utf16
   -- <|> lens
-  -- <|> try real
-  -- <|> int
   -- <|> record
-  -- <|> list
   -- <|> symbol
 
 withSpan :: (DeltaParsing m) => m (Span -> a) -> m a

@@ -9,6 +9,7 @@ import qualified Mpl.Dyn.AST as Dyn
 
 data AST =
     AAnnExp AST TyAST Span
+  | AList   [AST]     Span
   | ADyn    Dyn.AST
   deriving (Generic, Eq)
 
@@ -25,3 +26,4 @@ instance PrettyVal TyAST
 
 instance Show TyAST where
   show = dumpStr
+

@@ -53,7 +53,7 @@ expression =
   <|> try real
   <|> int
   <|> record
-  <|> list
+  <|> list AList expression
   <|> symbol
   <?> "expression"
 
@@ -72,7 +72,7 @@ recordField = withSpan $ AField <$> fieldLabel <* whiteSpace <* symbolic ':' <* 
 
 fieldLabel = int <|> symbol <?> "field label"
 
-list = withSpan $ brackets $ AList <$> sepEndBy expression (floating $ symbolic ',') <?> "list"
+list cons subExpression = withSpan $ brackets $ cons <$> sepEndBy subExpression (floating $ symbolic ',') <?> "list"
 
 utf16 = withSpan $ AUtf16 <$> stringLiteral <?> "utf16"
 
