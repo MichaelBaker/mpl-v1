@@ -78,7 +78,6 @@ test-suite mpl-test
   main-is:
     Spec.hs
   other-modules:
-    ASTHelpers,
     Helper.AST
   default-extensions:
     OverloadedStrings
