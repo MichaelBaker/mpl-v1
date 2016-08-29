@@ -3,7 +3,7 @@ module Mpl.Dyn.Core where
 import GHC.Generics     (Generic)
 import Data.Text        (Text)
 import Text.Show.Pretty (Value(String), PrettyVal, prettyVal, dumpStr)
-import Mpl.Span         (Span)
+import Mpl.Parse        (Span)
 
 data Core =
     CSym   Text                    Span

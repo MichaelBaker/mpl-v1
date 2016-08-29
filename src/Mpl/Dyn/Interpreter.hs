@@ -2,7 +2,7 @@ module Mpl.Dyn.Interpreter where
 
 import Prelude hiding (concat, span)
 
-import Mpl.Span      (emptySpan)
+import Mpl.Parse     (emptySpan)
 import Mpl.Dyn.Core  (Core(..), CoreLabel(..), CoreBind(..))
 import Data.Text     (Text, pack, unpack, concat)
 import Data.List     (foldl', intercalate)

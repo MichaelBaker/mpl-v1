@@ -2,34 +2,28 @@
 
 module Mpl.Dyn.Parser where
 
-import Prelude hiding (span)
-
-import Mpl.Span                  (withSpan, makeSpan, zeroDelta, getPosition)
-import Mpl.Dyn.AST               (AST(..), span)
+import Mpl.Dyn.AST               (AST(..))
 import Control.Applicative       ((<|>), many, some)
 import Data.Text                 (pack)
 import Text.Parser.Char          (oneOf)
 import Text.Parser.Token         (TokenParsing(), integer, whiteSpace, someSpace, double, parens, brackets, braces, symbolic, stringLiteral, textSymbol)
 import Text.Parser.Combinators   ((<?>), try, optional, sepEndBy, sepEndBy1, manyTill)
-import Text.Trifecta.Result      (Result())
-import Text.Trifecta.Parser      (parseFromFileEx)
 
-import qualified Text.Trifecta.Delta  as Delta
-import qualified Text.Trifecta.Parser as Parser
+import qualified Mpl.Parse as Parse
 
 data ParseType = Exp | Prog | Def
 
-parseFile :: ParseType -> String -> IO (Result AST)
-parseFile Exp  filepath = parseFromFileEx expressionWithApp filepath
-parseFile Prog filepath = parseFromFileEx program           filepath
-parseFile Def  filepath = parseFromFileEx definition        filepath
+parseFile :: Parse.FileParser ParseType AST
+parseFile Exp  filepath = Parse.parseFromFile expressionWithApp filepath
+parseFile Prog filepath = Parse.parseFromFile program           filepath
+parseFile Def  filepath = Parse.parseFromFile definition        filepath
 
-parseString :: ParseType -> String -> Result AST
-parseString Exp  string = Parser.parseString expressionWithApp zeroDelta string
-parseString Prog string = Parser.parseString program           zeroDelta string
-parseString Def  string = Parser.parseString definition        zeroDelta string
+parseString :: Parse.StringParser ParseType AST
+parseString Exp  string = Parse.parseFromString expressionWithApp Parse.zeroDelta string
+parseString Prog string = Parse.parseFromString program           Parse.zeroDelta string
+parseString Def  string = Parse.parseFromString definition        Parse.zeroDelta string
 
-program = withSpan $ AProg <$> recursiveDefinitions <?> "program"
+program = Parse.withSpan $ AProg <$> recursiveDefinitions <?> "program"
 
 expressionWithApp = makeExpressionWithApp AApp ALensApp expression lens
 
@@ -56,40 +50,40 @@ expression =
   <|> symbol
   <?> "expression"
 
-application cons expression = withSpan $ cons <$> expression <*> some expression <?> "application"
+application cons expression = Parse.withSpan $ cons <$> expression <*> some expression <?> "application"
 
-lensApplication cons expression lens = withSpan $ flip cons <$> expression <*> lens <?> "lens application"
+lensApplication cons expression lens = Parse.withSpan $ flip cons <$> expression <*> lens <?> "lens application"
 
-recursiveDefinitions = withSpan $ ARecDefs <$> many (definition <* whiteSpace) <?> "recursive definitions"
+recursiveDefinitions = Parse.withSpan $ ARecDefs <$> many (definition <* whiteSpace) <?> "recursive definitions"
 
 let_exp = makeLetExp ALet definition expression
 
 makeLetExp cons definition expression =
-      withSpan
+      Parse.withSpan
    $  cons
   <$> (textSymbol "let" *> many (try definition) <* textSymbol "in")
   <*> expression
   <?> "let"
 
-record cons fieldParser = withSpan $ braces $ cons <$> sepEndBy fieldParser (floating $ symbolic ',') <?> "record"
+record cons fieldParser = Parse.withSpan $ braces $ cons <$> sepEndBy fieldParser (floating $ symbolic ',') <?> "record"
 
-recordField cons subExpression = withSpan $ cons <$> fieldLabel <* whiteSpace <* symbolic ':' <* whiteSpace <*> subExpression <?> "record field"
+recordField cons subExpression = Parse.withSpan $ cons <$> fieldLabel <* whiteSpace <* symbolic ':' <* whiteSpace <*> subExpression <?> "record field"
 
 fieldLabel = int <|> symbol <?> "field label"
 
-list cons subExpression = withSpan $ brackets $ cons <$> sepEndBy subExpression (floating $ symbolic ',') <?> "list"
+list cons subExpression = Parse.withSpan $ brackets $ cons <$> sepEndBy subExpression (floating $ symbolic ',') <?> "list"
 
-utf16 = withSpan $ AUtf16 <$> stringLiteral <?> "utf16"
+utf16 = Parse.withSpan $ AUtf16 <$> stringLiteral <?> "utf16"
 
 lens = makeLens ALens id expression
 
-makeLens cons partCons subExpression = withSpan $ cons <$> some (makeLensPart partCons subExpression) <?> "lens"
+makeLens cons partCons subExpression = Parse.withSpan $ cons <$> some (makeLensPart partCons subExpression) <?> "lens"
 
 makeLensPart cons subExpression = symbolic '.' *> ((cons <$> int) <|> (cons <$> symbol) <|> parens subExpression)
 
 lambda = makeLambda ALam binding expression
 
-makeLambda cons binding expression = withSpan (parens $ do
+makeLambda cons binding expression = Parse.withSpan (parens $ do
   symbolic '#'
   whiteSpace
   argFun <- optional (try binding)
@@ -99,9 +93,9 @@ makeLambda cons binding expression = withSpan (parens $ do
       body <- expression
       return $ cons [] body) <?> "lambda"
 
-int = withSpan $ AInt <$> integer <?> "integer"
+int = Parse.withSpan $ AInt <$> integer <?> "integer"
 
-real = withSpan $ (do
+real = Parse.withSpan $ (do
   neg <- optional (symbolic '-')
   val <- double
   return $ case neg of
@@ -110,15 +104,15 @@ real = withSpan $ (do
 
 definition = makeDefinition ADef ALam binding
 
-makeDefinition cons lamCons binding = withSpan $ (do
-  startSpan <- getPosition
+makeDefinition cons lamCons binding = Parse.withSpan $ (do
+  startSpan <- Parse.getPosition
   sym <- symbol
   whiteSpace
   (args, body) <- binding
-  endSpan <- getPosition
+  endSpan <- Parse.getPosition
   return $ if null args
     then cons sym body
-    else cons sym (lamCons args body $ makeSpan startSpan endSpan)) <?> "definition"
+    else cons sym (lamCons args body $ Parse.makeSpan startSpan endSpan)) <?> "definition"
 
 binding = makeBinding expression
 
@@ -127,7 +121,7 @@ makeBinding expression = do
   body <- expression
   return $ (args, body)
 
-symbol = withSpan $ (do
+symbol = Parse.withSpan $ (do
   firstChar <- oneOf symStartChars <?> "start of symbol"
   rest      <- (many $ oneOf symChars) <?> "tail of symbol"
   whiteSpace

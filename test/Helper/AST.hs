@@ -1,6 +1,6 @@
 module Helper.AST where
 
-import Mpl.Span (emptySpan)
+import Mpl.Parse (emptySpan)
 
 import qualified Mpl.Dyn.AST as Dyn
 import qualified Mpl.Ty.AST  as Ty

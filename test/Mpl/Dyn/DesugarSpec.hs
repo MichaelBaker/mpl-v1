@@ -2,7 +2,7 @@ module Mpl.Dyn.DesugarSpec where
 
 import Test.Hspec
 import Helper.Test
-import Mpl.Span             (emptySpan)
+import Mpl.Parse            (emptySpan)
 import Mpl.Dyn.Core         (Core(..), CoreLabel(..), CoreBind(..))
 import Mpl.Dyn.Parser       (ParseType(Exp), parseFile, parseString)
 import Mpl.Dyn.Desugar      (desugar)

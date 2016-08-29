@@ -20,7 +20,7 @@ library
     TemplateHaskell,
     DeriveGeneric
   exposed-modules:
-    Mpl.Span,
+    Mpl.Parse,
     Mpl.Dyn.AST,
     Mpl.Dyn.Core,
     Mpl.Dyn.Desugar,

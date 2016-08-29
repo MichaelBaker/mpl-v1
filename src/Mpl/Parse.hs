@@ -1,4 +1,4 @@
-module Mpl.Span where
+module Mpl.Parse where
 
 import Text.Show.Pretty          (Value(String), PrettyVal, prettyVal)
 import Data.Int                  (Int64(..))
@@ -6,6 +6,9 @@ import Text.Trifecta.Combinators (DeltaParsing(), position)
 import Data.ByteString.Char8     (unpack)
 import Text.Trifecta.Delta       (Delta(Directed, Columns, Tab, Lines))
 import Text.Trifecta.Combinators (DeltaParsing())
+import Text.Trifecta.Parser      (Parser(), parseFromFileEx, parseString)
+import Text.Trifecta.Result      (Result())
+import Control.Monad.IO.Class    (MonadIO())
 
 data Span = Span
   { filePath  :: String
@@ -19,8 +22,16 @@ instance Eq Span where
 instance PrettyVal Span where
   prettyVal = String . show
 
-emptySpan = Span "" 0 0
-zeroDelta = Columns 0 0
+emptySpan       = Span "" 0 0
+zeroDelta       = Columns 0 0
+
+type FileParser   a b = a -> String -> IO (Result b)
+type StringParser a b = a -> String -> Result b
+
+parseFromFile :: (MonadIO m) => Parser a -> String -> m (Result a)
+parseFromFile = parseFromFileEx
+
+parseFromString = parseString
 
 getPosition :: (DeltaParsing m) => m Delta
 getPosition = position
