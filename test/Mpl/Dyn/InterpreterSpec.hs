@@ -1,24 +1,13 @@
 module Mpl.Dyn.InterpreterSpec where
 
 import Test.Hspec
-import Mpl.Span             (emptySpan)
-import Mpl.Dyn.AST          (AST(..))
+import Helper.Test
 import Mpl.Dyn.Parser       (ParseType(Exp), parseFile, parseString)
 import Mpl.Dyn.Desugar      (desugar)
 import Mpl.Dyn.Interpreter  (interpret)
-import Text.Trifecta.Result (Result(Success, Failure))
 
-testFile name filename expectedResult = it name $ do
-  result <- parseFile Exp ("test/TestCases/Dyn/Interpreter/" ++ filename)
-  case result of
-    Failure ex -> expectationFailure $ show ex
-    Success a  -> interpret (desugar a) `shouldBe` expectedResult
-
-testString name string expectedResult = it name $ do
-  let result = parseString Exp string
-  case result of
-    Failure ex -> expectationFailure $ show ex
-    Success a  -> interpret (desugar a) `shouldBe` expectedResult
+testFile   = makeTestFile "test/TestCases/Dyn/Interpreter/" parseFile (interpret . desugar)
+testString = makeTestString parseString (interpret . desugar)
 
 -- TODO
 -- Add a test for closures
@@ -27,33 +16,33 @@ testString name string expectedResult = it name $ do
 spec :: Spec
 spec = do
   describe "integer" $ do
-    testString "simple integer" "234" "234"
+    testString "simple integer" "234" Exp "234"
 
   describe "real" $ do
-    testString "simple real" "234.123" "234.123"
+    testString "simple real" "234.123" Exp "234.123"
 
   describe "symbol" $ do
-    testString "undefined symbol" "a" "\"<Undefined symbol 'a'>\""
+    testString "undefined symbol" "a" Exp "\"<Undefined symbol 'a'>\""
 
   describe "list" $ do
-    testString "list of ints" "[1,2,3]" "[1, 2, 3]"
+    testString "list of ints" "[1,2,3]" Exp "[1, 2, 3]"
 
   describe "record" $ do
-    testString "two field record" "{ 1: \"a\", wat: \"yep\" }" "{wat: \"yep\", 1: \"a\"}"
+    testString "two field record" "{ 1: \"a\", wat: \"yep\" }" Exp "{wat: \"yep\", 1: \"a\"}"
 
   describe "utf16" $ do
-    testString "simple utf16 string" "\"hello\"" "\"hello\""
+    testString "simple utf16 string" "\"hello\"" Exp "\"hello\""
 
   describe "let" $ do
-    testString "simple let" "let a = 5 in a" "5"
-    testFile   "two bindings" "let-00.mpldyn" "6"
+    testString "simple let" "let a = 5 in a" Exp "5"
+    testFile   "two bindings" "let-00.mpldyn" Exp "6"
 
   describe "lambda" $ do
-    testString "simple thunk" "(# 5)" "(# 5)"
-    testString "simple lambda" "(# a = a)" "(# a = a)"
+    testString "simple thunk" "(# 5)" Exp "(# 5)"
+    testString "simple lambda" "(# a = a)" Exp "(# a = a)"
 
   describe "application" $ do
-    testString "simple application" "let f a = a in f 5" "5"
+    testString "simple application" "let f a = a in f 5" Exp "5"
 
   describe "lensApplication" $ do
-    testString "lens application" "let a = {b: \"hello\"} in a.b" "\"hello\""
+    testString "lens application" "let a = {b: \"hello\"} in a.b" Exp "\"hello\""

@@ -1,21 +1,12 @@
 module Mpl.Dyn.ParserSpec where
 
 import Test.Hspec
-import Mpl.Dyn.Parser       (ParseType(..), parseFile, parseString)
-import Text.Trifecta.Result (Result(Success, Failure))
 import Helper.AST
+import Helper.Test
+import Mpl.Dyn.Parser (ParseType(..), parseFile, parseString)
 
-testFile name filename parseType expectedResult = it name $ do
-  result <- parseFile parseType ("test/TestCases/Dyn/Parser/" ++ filename)
-  case result of
-    Failure ex -> expectationFailure $ show ex
-    Success a  -> a `shouldBe` expectedResult
-
-testString name string parseType expectedResult = it name $ do
-  let result = parseString parseType string
-  case result of
-    Failure ex -> expectationFailure $ show ex
-    Success a  -> a `shouldBe` expectedResult
+testFile   = makeTestFile "test/TestCases/Dyn/Parser/" parseFile id
+testString = makeTestString parseString id
 
 spec :: Spec
 spec = do

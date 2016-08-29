@@ -180,4 +180,3 @@ makeSpan startSpan endSpan = Span (unpack filePath) startByte endByte
                     Directed _ _ _ bytes _ -> bytes
 
 zeroDelta = Delta.Columns 0 0
-
