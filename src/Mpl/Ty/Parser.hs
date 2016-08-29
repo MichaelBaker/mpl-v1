@@ -17,17 +17,13 @@ import Text.Trifecta.Combinators (DeltaParsing(), position)
 import qualified Mpl.Dyn.Parser as Dyn
 import qualified Text.Trifecta.Parser as Parser
 
-data ParseType = Exp -- | Prog | Def
+data ParseType = Exp
 
 parseFile :: ParseType -> String -> IO (Result AST)
-parseFile Exp  filepath = parseFromFileEx expression filepath
--- parseFile Prog filepath = parseFromFileEx program           filepath
--- parseFile Def  filepath = parseFromFileEx definition        filepath
+parseFile Exp filepath = parseFromFileEx expression filepath
 
 parseString :: ParseType -> String -> Result AST
-parseString Exp  string = Parser.parseString expression Dyn.zeroDelta string
--- parseString Prog string = Parser.parseString program           zeroDelta string
--- parseString Def  string = Parser.parseString definition        zeroDelta string
+parseString Exp string = Parser.parseString expression Dyn.zeroDelta string
 
 expression = (do
   startSpan <- position
@@ -42,10 +38,10 @@ expression = (do
 
 annotation = symbolic ':' *> whiteSpace *> type_ <?> "type annotation"
 
+-- TODO: Application
 annotatableExpressions =
-  -- -- Parentheticals
-  --     try lambda
-      parens expression
+      try lambda
+  <|> parens expression
   <|> Dyn.makeLetExp ALet definition expression
   <|> (ADyn <$> Dyn.utf16)
   <|> Dyn.makeLens ALens ADyn expression
@@ -57,6 +53,7 @@ annotatableExpressions =
 
 definition = Dyn.makeDefinition ADef ALam binding
 binding    = Dyn.makeBinding expression
+lambda     = Dyn.makeLambda ALam binding expression
 
 type_ = withSpan $ (do
   firstChar <- oneOf tyStartChars <?> "start of type"

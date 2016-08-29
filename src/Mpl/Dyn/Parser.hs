@@ -89,15 +89,17 @@ makeLens cons partCons subExpression = withSpan $ cons <$> some (makeLensPart pa
 
 makeLensPart cons subExpression = symbolic '.' *> ((cons <$> int) <|> (cons <$> symbol) <|> parens subExpression)
 
-lambda = withSpan (parens $ do
+lambda = makeLambda ALam binding expression
+
+makeLambda cons binding expression = withSpan (parens $ do
   symbolic '#'
   whiteSpace
   argFun <- optional (try binding)
   case argFun of
-    Just (args, body) -> return $ ALam args body
+    Just (args, body) -> return $ cons args body
     Nothing -> do
       body <- expression
-      return $ ALam [] body) <?> "lambda"
+      return $ cons [] body) <?> "lambda"
 
 int = withSpan $ AInt <$> integer <?> "integer"
 
