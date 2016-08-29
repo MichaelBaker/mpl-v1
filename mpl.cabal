@@ -20,13 +20,6 @@ library
     TemplateHaskell,
     DeriveGeneric
   exposed-modules:
-    Mpl.AST,
-    Mpl.ASTToCore,
-    Mpl.Compiler,
-    Mpl.Core,
-    Mpl.Interpreter,
-    Mpl.Parser,
-    Mpl.Typing,
     Mpl.Span,
     Mpl.Dyn.AST,
     Mpl.Dyn.Core,
