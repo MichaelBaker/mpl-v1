@@ -20,12 +20,12 @@ import qualified Text.Trifecta.Parser as Parser
 data ParseType = Exp
 
 parseFile :: ParseType -> String -> IO (Result AST)
-parseFile Exp filepath = parseFromFileEx expression filepath
+parseFile Exp filepath = parseFromFileEx expressionWithApp filepath
 
 parseString :: ParseType -> String -> Result AST
-parseString Exp string = Parser.parseString expression Dyn.zeroDelta string
+parseString Exp string = Parser.parseString expressionWithApp Dyn.zeroDelta string
 
-expression = (do
+maybeAnnotateExpression annotatableExpressions = (do
   startSpan <- position
   dynExp    <- annotatableExpressions
   maybeTy   <- optional annotation
@@ -38,22 +38,24 @@ expression = (do
 
 annotation = symbolic ':' *> whiteSpace *> type_ <?> "type annotation"
 
--- TODO: Application
-annotatableExpressions =
-      try lambda
-  <|> parens expression
+expression = maybeAnnotateExpression
+   (  try lambda
+  <|> parens expressionWithApp
   <|> Dyn.makeLetExp ALet definition expression
   <|> (ADyn <$> Dyn.utf16)
-  <|> Dyn.makeLens ALens ADyn expression
+  <|> lens
   <|> (ADyn <$> try Dyn.real)
   <|> (ADyn <$> Dyn.int)
   <|> Dyn.record ARec (Dyn.recordField AField expression)
   <|> Dyn.list AList expression
   <|> (ADyn <$> Dyn.symbol)
+   )
 
-definition = Dyn.makeDefinition ADef ALam binding
-binding    = Dyn.makeBinding expression
-lambda     = Dyn.makeLambda ALam binding expression
+definition        = Dyn.makeDefinition ADef ALam binding
+binding           = Dyn.makeBinding expression
+lambda            = Dyn.makeLambda ALam binding expression
+expressionWithApp = maybeAnnotateExpression $ Dyn.makeExpressionWithApp AApp ALensApp expression lens
+lens              = Dyn.makeLens ALens ADyn expression
 
 type_ = withSpan $ (do
   firstChar <- oneOf tyStartChars <?> "start of type"

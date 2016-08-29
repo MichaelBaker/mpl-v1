@@ -34,9 +34,11 @@ parseString Def  string = Parser.parseString definition        zeroDelta string
 
 program = withSpan $ AProg <$> recursiveDefinitions <?> "program"
 
-expressionWithApp =
-      try lensApplication
-  <|> try application
+expressionWithApp = makeExpressionWithApp AApp ALensApp expression lens
+
+makeExpressionWithApp appCons lensCons expression lens =
+      try (lensApplication lensCons expression lens)
+  <|> try (application appCons expression)
   <|> expression
 
 expression =
@@ -57,10 +59,9 @@ expression =
   <|> symbol
   <?> "expression"
 
-application = withSpan $ AApp <$> expression <*> some expression <?> "application"
+application cons expression = withSpan $ cons <$> expression <*> some expression <?> "application"
 
-lensApplication = withSpan $ cons <$> expression <*> lens <?> "lens application"
-  where cons exp lens = ALensApp lens exp
+lensApplication cons expression lens = withSpan $ flip cons <$> expression <*> lens <?> "lens application"
 
 recursiveDefinitions = withSpan $ ARecDefs <$> many (definition <* whiteSpace) <?> "recursive definitions"
 

@@ -22,19 +22,21 @@ testString name string parseType expectedResult = it name $ do
     Success a  -> a `shouldBe` expectedResult
 
 -- TODO: Pull helpers into a shared module
-ann_exp a b = AAnnExp a b emptySpan
-ty      a   = ATySym  a   emptySpan
-int     a   = ADyn (Dyn.AInt a emptySpan)
-sym     a   = ADyn (Dyn.ASym a emptySpan)
-real    a   = ADyn (Dyn.AReal a emptySpan)
+int     a   = ADyn (Dyn.AInt   a emptySpan)
+sym     a   = ADyn (Dyn.ASym   a emptySpan)
+real    a   = ADyn (Dyn.AReal  a emptySpan)
 utf16   a   = ADyn (Dyn.AUtf16 a emptySpan)
-field   a b = AField a b emptySpan
-let_exp a b = ALet   a b emptySpan
-def     a b = ADef   a b emptySpan
-lam     a b = ALam   a b emptySpan
-lens    a   = ALens  a   emptySpan
-list    a   = AList  a   emptySpan
-rec     a   = ARec   a   emptySpan
+ty      a   = ATySym   a   emptySpan
+lens    a   = ALens    a   emptySpan
+list    a   = AList    a   emptySpan
+rec     a   = ARec     a   emptySpan
+ann_exp a b = AAnnExp  a b emptySpan
+field   a b = AField   a b emptySpan
+let_exp a b = ALet     a b emptySpan
+def     a b = ADef     a b emptySpan
+lam     a b = ALam     a b emptySpan
+app     a b = AApp     a b emptySpan
+lensapp a b = ALensApp a b emptySpan
 
 spec :: Spec
 spec = do
@@ -48,3 +50,5 @@ spec = do
     testString "annotated record" "{a:1} : Record" Exp (ann_exp (rec [field (Dyn.ASym "a" emptySpan) (int 1)]) (ty "Record"))
     testString "annotated let" "(let a = 1 in a) : Type" Exp (ann_exp (let_exp [def (Dyn.ASym "a" emptySpan) (int 1)] (sym "a")) (ty "Type"))
     testString "annotated lambda" "(# a = a) : Lambda" Exp (ann_exp (lam [Dyn.ASym "a" emptySpan] (sym "a")) (ty "Lambda"))
+    testString "annotated application" "(a b) : Integer" Exp (ann_exp (app (sym "a") [sym "b"]) (ty "Integer"))
+    testString "annotated lens application" "a.b : Integer" Exp (ann_exp (lensapp (lens [sym "b"]) (sym "a")) (ty "Integer"))

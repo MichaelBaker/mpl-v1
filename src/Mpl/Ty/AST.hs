@@ -8,15 +8,17 @@ import Mpl.Span         (Span)
 import qualified Mpl.Dyn.AST as Dyn
 
 data AST =
-    AAnnExp AST TyAST     Span
-  | AList   [AST]         Span
-  | ARec    [AST]         Span
-  | AField  Dyn.AST AST   Span
-  | ALens   [AST]         Span
-  | ALet    [AST] AST     Span
-  | ADef    Dyn.AST AST   Span
-  | ALam    [Dyn.AST] AST Span
-  | ADyn    Dyn.AST
+    ADyn     Dyn.AST
+  | AAnnExp  AST TyAST     Span
+  | AList    [AST]         Span
+  | ARec     [AST]         Span
+  | AField   Dyn.AST AST   Span
+  | ALens    [AST]         Span
+  | ALet     [AST] AST     Span
+  | ADef     Dyn.AST AST   Span
+  | ALam     [Dyn.AST] AST Span
+  | AApp     AST [AST]     Span
+  | ALensApp AST AST       Span
   deriving (Generic, Eq)
 
 data TyAST =
