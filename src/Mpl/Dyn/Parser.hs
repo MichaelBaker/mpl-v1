@@ -64,7 +64,14 @@ lensApplication = withSpan $ cons <$> expression <*> lens <?> "lens application"
 
 recursiveDefinitions = withSpan $ ARecDefs <$> many (definition <* whiteSpace) <?> "recursive definitions"
 
-let_exp = withSpan $ ALet <$> (textSymbol "let" *> many (try definition) <* textSymbol "in") <*> expression <?> "let"
+let_exp = makeLetExp ALet definition expression
+
+makeLetExp cons definition expression =
+      withSpan
+   $  cons
+  <$> (textSymbol "let" *> many (try definition) <* textSymbol "in")
+  <*> expression
+  <?> "let"
 
 record cons fieldParser = withSpan $ braces $ cons <$> sepEndBy fieldParser (floating $ symbolic ',') <?> "record"
 
@@ -101,17 +108,21 @@ real = withSpan $ (do
     Nothing -> AReal val
     Just _  -> AReal (-val)) <?> "real number"
 
-definition = withSpan $ (do
+definition = makeDefinition ADef ALam binding
+
+makeDefinition cons lamCons binding = withSpan $ (do
   startSpan <- position
   sym <- symbol
   whiteSpace
   (args, body) <- binding
   endSpan <- position
   return $ if null args
-    then ADef sym body
-    else ADef sym (ALam args body $ makeSpan startSpan endSpan)) <?> "definition"
+    then cons sym body
+    else cons sym (lamCons args body $ makeSpan startSpan endSpan)) <?> "definition"
 
-binding = do
+binding = makeBinding expression
+
+makeBinding expression = do
   args <- manyTill symbol (symbolic '=')
   body <- expression
   return $ (args, body)

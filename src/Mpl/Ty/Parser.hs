@@ -7,7 +7,7 @@ import Control.Applicative       ((<|>), many, some)
 import Data.Text                 (pack)
 import Data.ByteString.Char8     (unpack)
 import Text.Parser.Char          (oneOf)
-import Text.Parser.Token         (whiteSpace, symbolic)
+import Text.Parser.Token         (whiteSpace, symbolic, parens)
 import Text.Parser.Combinators   ((<?>), try, optional)
 import Text.Trifecta.Delta       (Delta(Directed, Columns, Tab, Lines))
 import Text.Trifecta.Result      (Result())
@@ -43,13 +43,20 @@ expression = (do
 annotation = symbolic ':' *> whiteSpace *> type_ <?> "type annotation"
 
 annotatableExpressions =
-      (ADyn <$> Dyn.utf16)
+  -- -- Parentheticals
+  --     try lambda
+      parens expression
+  <|> Dyn.makeLetExp ALet definition expression
+  <|> (ADyn <$> Dyn.utf16)
   <|> Dyn.makeLens ALens ADyn expression
   <|> (ADyn <$> try Dyn.real)
   <|> (ADyn <$> Dyn.int)
   <|> Dyn.record ARec (Dyn.recordField AField expression)
   <|> Dyn.list AList expression
   <|> (ADyn <$> Dyn.symbol)
+
+definition = Dyn.makeDefinition ADef ALam binding
+binding    = Dyn.makeBinding expression
 
 type_ = withSpan $ (do
   firstChar <- oneOf tyStartChars <?> "start of type"
@@ -61,13 +68,6 @@ type_ = withSpan $ (do
 tyStartChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 tyChars      = "abcdefghijklmnopqrstuvwxyz" ++ tyStartChars ++ digits
 digits       = "0123456789"
-
-  -- -- Parentheticals
-  --     try lambda
-  -- <|> parens expressionWithApp
-
-  -- -- Other
-  -- <|> let_exp
 
 withSpan :: (DeltaParsing m) => m (Span -> a) -> m a
 withSpan parser = do

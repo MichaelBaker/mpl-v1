@@ -29,6 +29,8 @@ sym     a   = ADyn (Dyn.ASym a emptySpan)
 real    a   = ADyn (Dyn.AReal a emptySpan)
 utf16   a   = ADyn (Dyn.AUtf16 a emptySpan)
 field   a b = AField a b emptySpan
+let_exp a b = ALet   a b emptySpan
+def     a b = ADef   a b emptySpan
 lens    a   = ALens  a   emptySpan
 list    a   = AList  a   emptySpan
 rec     a   = ARec   a   emptySpan
@@ -43,3 +45,4 @@ spec = do
     testString "annotated utf16" "\"hello\" : UTF16" Exp (ann_exp (utf16 "hello") (ty "UTF16"))
     testString "annotated list" "[1] : List" Exp (ann_exp (list [int 1]) (ty "List"))
     testString "annotated record" "{a:1} : Record" Exp (ann_exp (rec [field (Dyn.ASym "a" emptySpan) (int 1)]) (ty "Record"))
+    testString "annotated let" "(let a = 1 in a) : Type" Exp (ann_exp (let_exp [def (Dyn.ASym "a" emptySpan) (int 1)] (sym "a")) (ty "Type"))
