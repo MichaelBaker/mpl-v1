@@ -4,18 +4,15 @@ module Mpl.Dyn.Parser where
 
 import Prelude hiding (span)
 
-import Mpl.Span                  (Span(..))
+import Mpl.Span                  (withSpan, makeSpan, zeroDelta, getPosition)
 import Mpl.Dyn.AST               (AST(..), span)
 import Control.Applicative       ((<|>), many, some)
 import Data.Text                 (pack)
-import Data.ByteString.Char8     (unpack)
 import Text.Parser.Char          (oneOf)
 import Text.Parser.Token         (TokenParsing(), integer, whiteSpace, someSpace, double, parens, brackets, braces, symbolic, stringLiteral, textSymbol)
 import Text.Parser.Combinators   ((<?>), try, optional, sepEndBy, sepEndBy1, manyTill)
-import Text.Trifecta.Delta       (Delta(Directed, Columns, Tab, Lines))
 import Text.Trifecta.Result      (Result())
 import Text.Trifecta.Parser      (parseFromFileEx)
-import Text.Trifecta.Combinators (DeltaParsing(), position)
 
 import qualified Text.Trifecta.Delta  as Delta
 import qualified Text.Trifecta.Parser as Parser
@@ -114,11 +111,11 @@ real = withSpan $ (do
 definition = makeDefinition ADef ALam binding
 
 makeDefinition cons lamCons binding = withSpan $ (do
-  startSpan <- position
+  startSpan <- getPosition
   sym <- symbol
   whiteSpace
   (args, body) <- binding
-  endSpan <- position
+  endSpan <- getPosition
   return $ if null args
     then cons sym body
     else cons sym (lamCons args body $ makeSpan startSpan endSpan)) <?> "definition"
@@ -130,7 +127,6 @@ makeBinding expression = do
   body <- expression
   return $ (args, body)
 
-symbol :: (Monad m, TokenParsing m, DeltaParsing m) => m AST
 symbol = withSpan $ (do
   firstChar <- oneOf symStartChars <?> "start of symbol"
   rest      <- (many $ oneOf symChars) <?> "tail of symbol"
@@ -158,25 +154,3 @@ optionalTrailing2 a sep = do
   values   <- some $ try (a <* sep)
   trailing <- a <* optional sep
   return $ values ++ [trailing]
-
--- TODO: Pull this into a shared module
-withSpan :: (DeltaParsing m) => m (Span -> a) -> m a
-withSpan parser = do
-  startSpan <- position
-  item      <- parser
-  endSpan   <- position
-  return $ item (makeSpan startSpan endSpan)
-
-makeSpan startSpan endSpan = Span (unpack filePath) startByte endByte
-  where (filePath, startByte) = case startSpan of
-                                  Columns _ bytes           -> ("<no file>", bytes)
-                                  Tab _ _ bytes             -> ("<no file>", bytes)
-                                  Lines _ _ bytes _         -> ("<no file>", bytes)
-                                  Directed file _ _ bytes _ -> (file, bytes)
-        endByte = case endSpan of
-                    Columns _ bytes        -> bytes
-                    Tab _ _ bytes          -> bytes
-                    Lines _ _ bytes _      -> bytes
-                    Directed _ _ _ bytes _ -> bytes
-
-zeroDelta = Delta.Columns 0 0

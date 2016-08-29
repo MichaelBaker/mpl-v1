@@ -2,17 +2,14 @@ module Mpl.Ty.Parser where
 
 import Mpl.Ty.AST (AST(..), TyAST(..))
 
-import Mpl.Span                  (Span(..))
+import Mpl.Span                  (zeroDelta, withSpan, makeSpan, getPosition)
 import Control.Applicative       ((<|>), many, some)
 import Data.Text                 (pack)
-import Data.ByteString.Char8     (unpack)
 import Text.Parser.Char          (oneOf)
 import Text.Parser.Token         (whiteSpace, symbolic, parens)
 import Text.Parser.Combinators   ((<?>), try, optional)
-import Text.Trifecta.Delta       (Delta(Directed, Columns, Tab, Lines))
 import Text.Trifecta.Result      (Result())
 import Text.Trifecta.Parser      (parseFromFileEx)
-import Text.Trifecta.Combinators (DeltaParsing(), position)
 
 import qualified Mpl.Dyn.Parser as Dyn
 import qualified Text.Trifecta.Parser as Parser
@@ -23,16 +20,16 @@ parseFile :: ParseType -> String -> IO (Result AST)
 parseFile Exp filepath = parseFromFileEx expressionWithApp filepath
 
 parseString :: ParseType -> String -> Result AST
-parseString Exp string = Parser.parseString expressionWithApp Dyn.zeroDelta string
+parseString Exp string = Parser.parseString expressionWithApp zeroDelta string
 
 maybeAnnotateExpression annotatableExpressions = (do
-  startSpan <- position
+  startSpan <- getPosition
   dynExp    <- annotatableExpressions
   maybeTy   <- optional annotation
   case maybeTy of
     Nothing -> return dynExp
     Just ty -> do
-      endSpan <- position
+      endSpan <- getPosition
       return $ AAnnExp dynExp ty (makeSpan startSpan endSpan)
   ) <?> "expression"
 
@@ -67,22 +64,3 @@ type_ = withSpan $ (do
 tyStartChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 tyChars      = "abcdefghijklmnopqrstuvwxyz" ++ tyStartChars ++ digits
 digits       = "0123456789"
-
-withSpan :: (DeltaParsing m) => m (Span -> a) -> m a
-withSpan parser = do
-  startSpan <- position
-  item      <- parser
-  endSpan   <- position
-  return $ item (makeSpan startSpan endSpan)
-
-makeSpan startSpan endSpan = Span (unpack filePath) startByte endByte
-  where (filePath, startByte) = case startSpan of
-                                  Columns _ bytes           -> ("<no file>", bytes)
-                                  Tab _ _ bytes             -> ("<no file>", bytes)
-                                  Lines _ _ bytes _         -> ("<no file>", bytes)
-                                  Directed file _ _ bytes _ -> (file, bytes)
-        endByte = case endSpan of
-                    Columns _ bytes        -> bytes
-                    Tab _ _ bytes          -> bytes
-                    Lines _ _ bytes _      -> bytes
-                    Directed _ _ _ bytes _ -> bytes
