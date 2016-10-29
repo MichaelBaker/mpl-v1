@@ -1,0 +1,15 @@
+resolver: lts-6.23
+
+packages:
+- '.'
+
+extra-deps:
+- llvm-general-3.5.1.2
+- llvm-general-pure-3.5.1.0
+
+flags: {}
+
+extra-package-dbs: []
+
+extra-lib-dirs:
+- /usr/local/Cellar/libffi/3.0.13/lib/
