@@ -1,8 +1,7 @@
 module Mpl.Common.Syntax where
 
-import Data.Text             (Text())
-import GHC.Generics          (Generic)
-import Data.Functor.Foldable (Fix(..))
+import Data.Text    (Text)
+import GHC.Generics (Generic)
 
 data SyntaxF r =
     Literal Literal
@@ -11,11 +10,3 @@ data SyntaxF r =
   deriving (Show, Generic, Functor, Eq)
 
 data Literal = IntegerLiteral Integer deriving (Show, Generic, Eq)
-
-type Syntax = Fix SyntaxF
-
-literal          = Fix . Literal
-symbol           = Fix . Symbol
-application a as = Fix (Application a as)
-
-int = literal . IntegerLiteral

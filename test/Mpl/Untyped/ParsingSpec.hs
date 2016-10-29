@@ -1,14 +1,10 @@
-module Mpl.Common.ParsingSpec where
+module Mpl.Untyped.ParsingSpec where
 
-import Mpl.Common.Parsing      (parseExpressionText)
-import Mpl.Common.Syntax       (int, symbol, application)
-import Mpl.Common.ParsingUtils (Result(Success, Failure))
-import Test.Hspec              (describe, it, shouldBe)
+import Mpl.Untyped.Parsing (parseExpressionText)
+import Mpl.Untyped.Syntax  (int, symbol, application)
+import TestUtils           (describe, it, shouldBe, mkParsesTo)
 
-parsesTo text expected =
-  case parseExpressionText text of
-    Success a -> a `shouldBe` expected
-    Failure e -> fail $ show e
+parsesTo = mkParsesTo parseExpressionText
 
 spec = do
   describe "Parsing" $ do
@@ -43,3 +39,11 @@ spec = do
           , int 4
           , application (symbol "h") [int 5]
           ])
+
+    it "parses subexpression prefixes" $ do
+      "(f 1 2) 1" `parsesTo`
+        (application
+          (application
+            (symbol "f")
+            [int 1, int 2])
+          [(int 1)])

@@ -1,9 +1,9 @@
 module Mpl.Common.Parsing where
 
-import Data.Text         (Text)
-import Mpl.Common.Syntax (Syntax, int, symbol, application)
 import Mpl.Common.ParsingUtils
-  ( Result()
+  ( Text
+  , Result
+  , Parser
   , (<?>)
   , (<|>)
   , parseFromString
@@ -16,36 +16,36 @@ import Mpl.Common.ParsingUtils
   , whiteSpace
   , try
   , parens
+  , symbolChars
+  , symbolStartChars
   )
 
-parseExpressionText :: Text -> Result Syntax
-parseExpressionText = parseFromString parser . textToString
+data Context a = Context
+  { mkInt           :: Integer -> a
+  , mkSymbol        :: Text -> a
+  , mkApplication   :: a -> [a] -> a
+  , mkExpression    :: Parser a -> Parser a -> Parser a
+  }
 
-parser = applicationOrExpression
+mkParser = parseApplicationOrExpression
 
-applicationOrExpression =
-      try parseApplication
-  <|> parseExpression
+parseExpression context = (mkExpression context) (parseFlatExpression context) (parens $ parseApplicationOrExpression context)
+parseApplicationOrExpression context = (mkExpression context) (try $ parseApplication context) (parseExpression context)
 
-parseExpression =
-      parseInt
-  <|> parseSymbol
-  <|> parens applicationOrExpression
+parseFlatExpression context =
+      (parseInt context)
+  <|> (parseSymbol context)
 
-parseInt = int <$> integer
+parseInt context = (mkInt context) <$> integer
 
-parseSymbol = (symbol <$> do
+parseSymbol context = ((mkSymbol context) <$> do
   firstChar <- oneOf symbolStartChars     <?> "start of symbol"
   rest      <- (many $ oneOf symbolChars) <?> "tail of symbol"
   whiteSpace
   return $ stringToText (firstChar : rest)) <?> "symbol"
 
-parseApplication = application <$> parseSymbol <*> some parseExpression <?> "application"
-
-symbolStartChars =
-  ['<', '>', '?', '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '_', '+', '\\', '/', '|'] ++
-  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-symbolChars = symbolStartChars ++ digits
-
-digits = "0123456789"
+parseApplication context =
+      (mkApplication context)
+  <$> (parseExpression context)
+  <*> some (parseExpression context)
+  <?> "application"

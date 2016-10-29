@@ -20,7 +20,10 @@ library
     Mpl.Common.Syntax,
     Mpl.Common.Parsing,
     Mpl.Common.ParsingUtils,
-    Mpl.Typed.Parsing
+    Mpl.Typed.Syntax,
+    Mpl.Typed.Parsing,
+    Mpl.Untyped.Syntax,
+    Mpl.Untyped.Parsing
 
   build-depends:
     base >= 4.7 && < 5,
