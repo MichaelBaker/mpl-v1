@@ -2,9 +2,11 @@
 
 ## Compiler Structure
 
+```
 File --Parse--> Syntax --Desugar--> Term --CodeGen--> Module --Linker----> Executable
                                                                       |
                                                                        --> Interpret
+```
 
 ## Concerns to Maintain
 
