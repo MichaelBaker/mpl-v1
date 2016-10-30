@@ -9,7 +9,7 @@ import qualified Mpl.Common.Syntax as CS
 data SyntaxF r =
     Common (CS.SyntaxF r)
   | TypeAnnotation r Type
-  deriving (Show, Generic, Eq)
+  deriving (Show, Generic, Functor, Eq)
 
 data Type = TypeSymbol Text deriving (Show, Generic, Eq)
 

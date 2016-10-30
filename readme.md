@@ -2,11 +2,20 @@
 
 ## Compiler Structure
 
+### Compilation Phases
+
 ```
-File --Parse--> Syntax --Desugar--> Term --CodeGen--> Module --Linker----> Executable
-                                                                      |
-                                                                       --> Interpret
+InFile --Parse--> Syntax --Backend--> Outfile
 ```
+
+### Shared Structures
+
+```
+Common -----> Untyped
+         |
+          --> Typed
+```
+
 
 ## Concerns to Maintain
 

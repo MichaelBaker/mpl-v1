@@ -6,7 +6,7 @@ import Data.Functor.Foldable (Fix(..))
 
 import qualified Mpl.Common.Syntax as CS
 
-data SyntaxF r = Common (CS.SyntaxF r) deriving (Show, Generic, Eq)
+data SyntaxF r = Common (CS.SyntaxF r) deriving (Show, Generic, Functor, Eq)
 
 type Syntax = Fix SyntaxF
 
