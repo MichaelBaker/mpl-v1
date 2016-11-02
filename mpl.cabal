@@ -21,12 +21,14 @@ library
     Mpl.Common.Parsing,
     Mpl.Common.ParsingUtils,
     Mpl.Common.BackendJS,
+    Mpl.Common.BackendLLVM,
     Mpl.Typed.Syntax,
     Mpl.Typed.Parsing,
     Mpl.Typed.BackendJS,
     Mpl.Untyped.Syntax,
     Mpl.Untyped.Parsing,
-    Mpl.Untyped.BackendJS
+    Mpl.Untyped.BackendJS,
+    Mpl.Untyped.BackendLLVM
 
   build-depends:
     base >= 4.7 && < 5,
@@ -71,7 +73,16 @@ test-suite mpl-test
     mpl,
     hspec,
     QuickCheck,
+    llvm-general,
+    transformers,
+    mtl,
     language-javascript
+  other-modules:
+    Mpl.Typed.BackendJSSpec,
+    Mpl.Typed.ParsingSpec,
+    Mpl.Untyped.BackendJSSpec,
+    Mpl.Untyped.ParsingSpec
+    TestUtils
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-extensions:  OverloadedStrings
   default-language:    Haskell2010

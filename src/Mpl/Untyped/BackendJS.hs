@@ -2,8 +2,8 @@ module Mpl.Untyped.BackendJS where
 
 import Language.JavaScript.Parser
 
-import Data.Functor.Foldable (Base, cata)
 import Mpl.Untyped.Syntax    (Syntax, SyntaxF(..))
+import Data.Functor.Foldable (Base, cata)
 
 import qualified Mpl.Common.BackendJS as CBE
 

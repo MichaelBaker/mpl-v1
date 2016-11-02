@@ -1,8 +1,8 @@
 module Mpl.Common.BackendJS where
 
+import Mpl.Common.Syntax
 import Language.JavaScript.Parser
 import Language.JavaScript.Parser.AST
-import Mpl.Common.Syntax
 
 import Data.Text (unpack)
 import Data.List (foldl')
