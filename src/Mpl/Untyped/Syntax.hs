@@ -1,5 +1,9 @@
 module Mpl.Untyped.Syntax where
 
+-- A dynamic lanugage with as few compile-time restrictions as possible.
+-- For experienced programmers, this should provide a language in which to do fast scripting and experimentation.
+-- For beginning programmers, it should provide a fertile learning environment where there are relatively few concepts to learn.
+
 import Data.Text             (Text)
 import GHC.Generics          (Generic)
 import Data.Functor.Foldable (Fix(..))

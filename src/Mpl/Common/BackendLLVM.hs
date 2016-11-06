@@ -4,6 +4,10 @@ import Mpl.Common.Syntax
 import LLVM.General.AST
 import LLVM.General.AST.Global
 
+data LLVMState = LLVMState Integer
+
+emptyLLVMState = LLVMState 0
+
 mainFunction = functionDefaults
   { returnType = VoidType
   , name = Name "myFunction"
@@ -16,6 +20,3 @@ testModule = Module
   , moduleDefinitions  = [GlobalDefinition mainFunction]
   }
 
-translate (Literal _) = testModule
-translate (Symbol _) = testModule
-translate (Application _ _) = testModule
