@@ -26,9 +26,7 @@ import Data.Text               (Text, pack, unpack)
 import Text.Parser.Combinators ((<?>), try, optional)
 import Control.Applicative     ((<|>), many, some)
 import Text.Parser.Char        (oneOf)
-
-textToString = unpack
-stringToText = pack
+import Mpl.Utils               (textToString, stringToText)
 
 parseFromString parser = parseString parser zeroDelta
 

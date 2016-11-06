@@ -32,7 +32,7 @@ mkTranslatesToJS parseExpressionText translateToJS mplCode jsCode =
     Failure e -> fail $ show e
     Success a -> renderToText (translateToJS a) `shouldBe` renderToText (readJs jsCode)
 
-mkTranslatesToLLVM parseExpressionText translateToLLVM mplCode expected= do
+mkTranslatesToLLVM parseExpressionText translateToLLVM mplCode expected = do
   case parseExpressionText mplCode of
     Failure e -> fail $ show e
     Success a -> do

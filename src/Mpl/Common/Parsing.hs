@@ -1,14 +1,11 @@
 module Mpl.Common.Parsing where
 
 import Mpl.Common.ParsingUtils
-  ( Text
-  , Result
+  ( Result
   , Parser
   , (<?>)
   , (<|>)
   , parseFromString
-  , textToString
-  , stringToText
   , integer
   , many
   , some
@@ -18,6 +15,12 @@ import Mpl.Common.ParsingUtils
   , parens
   , symbolChars
   , symbolStartChars
+  )
+
+import Mpl.Utils
+  ( Text
+  , textToString
+  , stringToText
   )
 
 data Context a = Context

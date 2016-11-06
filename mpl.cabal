@@ -17,12 +17,13 @@ library
     src
 
   exposed-modules:
+    Mpl.Utils,
+    Mpl.Annotation,
     Mpl.Common.Syntax,
     Mpl.Common.Parsing,
     Mpl.Common.ParsingUtils,
     Mpl.Common.BackendJS,
     Mpl.Common.BackendLLVM,
-    Mpl.Common.Annotation,
     Mpl.Typed.Syntax,
     Mpl.Typed.Parsing,
     Mpl.Typed.BackendJS,
@@ -89,10 +90,12 @@ test-suite mpl-test
     language-javascript
 
   other-modules:
+    Mpl.AnnotationSpec,
     Mpl.Typed.BackendJSSpec,
     Mpl.Typed.ParsingSpec,
     Mpl.Untyped.BackendJSSpec,
-    Mpl.Untyped.ParsingSpec
+    Mpl.Untyped.ParsingSpec,
+    Mpl.Untyped.BackendLLVMSpec,
     TestUtils
 
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N

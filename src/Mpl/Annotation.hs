@@ -1,5 +1,5 @@
-module Mpl.Common.Annotation
-  ( module Mpl.Common.Annotation
+module Mpl.Annotation
+  ( module Mpl.Annotation
   , Cofree((:<))
   ) where
 
@@ -7,10 +7,10 @@ module Mpl.Common.Annotation
 
 import Prelude hiding (Foldable)
 
-import GHC.Generics               (Generic)
-import Data.Functor.Foldable      (Base, Foldable(project), cata)
-import Control.Monad.State.Strict (State, get, modify, evalState)
-import Control.Comonad.Cofree     (Cofree((:<)))
+import GHC.Generics             (Generic)
+import Data.Functor.Foldable    (Base, Foldable(project), cata)
+import Control.Monad.State.Lazy (State, get, modify, evalState)
+import Control.Comonad.Cofree   (Cofree((:<)))
 
 type Annotated a b = Cofree a b
 
@@ -32,3 +32,6 @@ annotateState modifyState =
     annotation <- get
     modify modifyState
     return annotation
+
+number :: (Traversable (Base f), Foldable f) => f -> Annotated (Base f) Integer
+number = annotateWithState 0 (+ 1)

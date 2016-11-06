@@ -3,13 +3,10 @@ module Mpl.Typed.Parsing where
 import Mpl.Typed.Syntax (Syntax, int, symbol, application, typeAnnotation, typeSymbol)
 import Mpl.Common.Parsing (Context(..), mkParser)
 import Mpl.Common.ParsingUtils
-  ( Text
-  , Result(Success)
+  ( Result(Success)
   , (<?>)
   , (<|>)
   , parseFromString
-  , textToString
-  , stringToText
   , many
   , oneOf
   , whiteSpace
@@ -17,6 +14,12 @@ import Mpl.Common.ParsingUtils
   , optional
   , upcaseChars
   , symbolChars
+  )
+
+import Mpl.Utils
+  ( Text
+  , textToString
+  , stringToText
   )
 
 parseExpressionText :: Text -> Result Syntax

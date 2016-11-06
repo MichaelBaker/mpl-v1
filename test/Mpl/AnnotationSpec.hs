@@ -1,9 +1,9 @@
-module Mpl.Common.AnnotationSpec where
+module Mpl.AnnotationSpec where
 
 import TestUtils (describe, it, shouldBe)
 
 import GHC.Generics (Generic)
-import Mpl.Common.Annotation
+import Mpl.Annotation
 import Data.Functor.Foldable (Fix(..), cata)
 
 data Flat r = A | B r r deriving (Show, Functor, Generic, Eq, Foldable, Traversable)

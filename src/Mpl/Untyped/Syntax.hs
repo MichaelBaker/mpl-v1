@@ -4,13 +4,11 @@ module Mpl.Untyped.Syntax where
 -- For experienced programmers, this should provide a language in which to do fast scripting and experimentation.
 -- For beginning programmers, it should provide a fertile learning environment where there are relatively few concepts to learn.
 
-import Data.Text             (Text)
-import GHC.Generics          (Generic)
-import Data.Functor.Foldable (Fix(..))
+import Mpl.Utils (Generic, Fix(..))
 
 import qualified Mpl.Common.Syntax as CS
 
-data SyntaxF r = Common (CS.SyntaxF r) deriving (Show, Generic, Functor, Eq)
+data SyntaxF r = Common (CS.SyntaxF r) deriving (Show, Generic, Functor, Eq, Traversable, Foldable)
 
 type Syntax = Fix SyntaxF
 
