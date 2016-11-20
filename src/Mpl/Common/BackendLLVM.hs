@@ -24,9 +24,11 @@ testModule = Module
   , moduleDefinitions  = [GlobalDefinition mainFunction]
   }
 
-translate :: Integer -> SyntaxF a -> ([()], Operand)
-translate name (Literal literal) = translateLiteral literal
-translate name (Symbol sym) = ([], LocalReference (IntegerType 32) $ Name (show name ++ textToString sym))
-translate _ _ = ([], ConstantOperand (Int 32 123))
+translate (Literal literal) = [translateLiteral literal]
+translate (Symbol sym) = [LocalReference (IntegerType 32) $ Name (textToString sym)]
+translate (Application f as) = concat (tag f : map tag as)
 
-translateLiteral (IntegerLiteral i) = ([], ConstantOperand (Int 32 i))
+translateLiteral (IntegerLiteral i) = ConstantOperand (Int 32 i)
+
+tag (i :< _, [LocalReference a (Name name)]) = [LocalReference a $ Name (name ++ "_" ++ show i)]
+tag (_, a) = a

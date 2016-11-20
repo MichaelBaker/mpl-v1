@@ -54,3 +54,13 @@ spec = do
       cata countNest (numbered simpleAst) `shouldBe` cata countNest simpleAst
       cata countNest (numbered ast)       `shouldBe` cata countNest ast
       cata countNest (numbered bigAst)    `shouldBe` cata countNest bigAst
+
+    describe "envcata" $ do
+      it "makes the annotation available at each step of recursion" $ do
+        let nameNest i (N f)     = nameFlat i f
+            nameFlat i A         = show i
+            nameFlat i (B c1 c2) = "(" ++ show i ++ " " ++ c1 ++ " " ++ c2 ++ ")"
+
+        envcata nameNest (numbered simpleAst) `shouldBe` "0"
+        envcata nameNest (numbered ast)       `shouldBe` "(0 1 2)"
+        envcata nameNest (numbered bigAst)    `shouldBe` "(0 (1 2 3) (4 5 6))"

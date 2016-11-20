@@ -8,17 +8,23 @@ module Mpl.Annotation
 import Prelude hiding (Foldable)
 
 import GHC.Generics             (Generic)
-import Data.Functor.Foldable    (Base, Foldable(project), cata)
+import Data.Functor.Foldable    (Base, Fix(..), Foldable(project), cata)
 import Control.Monad.State.Lazy (State, get, modify, evalState)
+import Control.Comonad          (Comonad, extract)
 import Control.Comonad.Cofree   (Cofree((:<)))
 
 type Annotated a b = Cofree a b
 
 type instance Base (Annotated f b) = f
+
 instance (Functor f) => Foldable (Annotated f a) where
   project (_ :< f) = f
 
 annotation (a :< _) = a
+
+-- Makes both the environment and node of a Foldable Comonad available during a catamorphism
+envcata :: (Functor s, Foldable (x s a), Comonad (x s)) => (a -> (Base (x s a)) c -> c) -> x s a -> c
+envcata f x = f (extract x) $ fmap (envcata f) (project x)
 
 annotateWithState :: (Traversable (Base f), Foldable f) => a -> (a -> a) -> f -> Annotated (Base f) a
 annotateWithState initialState modifyState ast =

@@ -9,4 +9,4 @@ translatesToLLVM = mkTranslatesToLLVM parseExpressionText translateToLLVM
 spec = do
   describe "BackendLLVM" $ do
     it "parses integers" $ do
-      "1" `translatesToLLVM` "wat"
+      "f a 2 b" `translatesToLLVM` "wat"
