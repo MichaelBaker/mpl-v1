@@ -3,7 +3,7 @@
 ## TODO Chunks
 
 [X] Write iterator over Cofree that makes the annotation available at each stage
-[ ] Generate a complete LLVM module
+[X] Generate a complete LLVM module
 [ ] Generate valid JS for Untyped
 [ ] Generate valid LLVM for Untyped
 [ ] Create automated test for generated JS
@@ -11,6 +11,7 @@
 [ ] Create JS REPL
 [ ] Create JIT LLVM REPL
 [ ] Abstract REPL over backend
+[ ] Move errors into the compiler functions, rather than using Haskell's `error`
 [ ] Generate valid JS for Typed
 [ ] Generate valid LLVM for Typed
 [ ] Add typechecking phase for Typed
@@ -21,7 +22,15 @@
 [ ] Create the base Unmanaged parser
 [ ] JS backend for Unmanaged
 [ ] LLVM backend for Unmanaged
-[ ] Add incremental parsing for Untyped (only parsing changed parts of a file and updating the otherwise already processed tree)
+
+## TODO Think about
+
+[ ] How to handle FFI
+[ ] How to structure incremental parsing (only parsing changed parts of a file and updating the otherwise already processed tree)
+[ ] How should the memory API be for Unmanaged. What guarantees should its type system encode?
+[ ] How can Untyped code call Typed code without any extra ceremony?
+[ ] How can Typed code call Unmanaged code without any extra ceremony?
+[ ] How can Untyped code call Unmanaged code without any extra ceremony?
 
 ## Language Facilities
 

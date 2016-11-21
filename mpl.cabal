@@ -80,14 +80,14 @@ test-suite mpl-test
 
   build-depends:
     base,
-    mpl,
-    hspec,
     QuickCheck,
+    hspec,
+    language-javascript,
     llvm-general,
-    transformers,
+    mpl,
     mtl,
     recursion-schemes,
-    language-javascript
+    transformers
 
   other-modules:
     Mpl.AnnotationSpec,
