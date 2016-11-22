@@ -2,4 +2,6 @@
 
 set -e
 
+export TEST_CONFIG_FILE=config/Example.hs
+
 stack test

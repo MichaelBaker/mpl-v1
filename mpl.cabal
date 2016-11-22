@@ -79,13 +79,14 @@ test-suite mpl-test
   main-is:             Spec.hs
 
   build-depends:
-    base,
     QuickCheck,
+    base,
     hspec,
     language-javascript,
     llvm-general,
     mpl,
     mtl,
+    process,
     recursion-schemes,
     transformers
 

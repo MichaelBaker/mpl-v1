@@ -5,8 +5,8 @@
 [X] Write iterator over Cofree that makes the annotation available at each stage
 [X] Generate a complete LLVM module
 [ ] Generate valid JS for Untyped
-[ ] Generate valid LLVM for Untyped
 [ ] Create automated test for generated JS
+[ ] Generate valid LLVM for Untyped
 [ ] Create automated test for generated LLVM
 [ ] Create JS REPL
 [ ] Create JIT LLVM REPL
@@ -75,9 +75,13 @@ Common -----> Untyped
 
 ## Notes
 
-Boundary Quadrants
+### Boundary Quadrants
 
 * Bounded in time and space:         Statically determined termination and allocation.
 * Bounded in space but not time:     Infinite tail call recursion and loops.
 * Bounded in time but not space:     Doesn't exist?
 * Bounded in neither time nor space: Infinite non-tail call recursion.
+
+### Hot Swapping
+
+Global support for changing bindings at runtime gives you a rapid feedback loop, live experimentation, and a facility for zero downtime upgrades.
