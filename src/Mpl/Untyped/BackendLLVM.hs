@@ -12,7 +12,7 @@ import qualified Mpl.Common.BackendLLVM as CBE
 
 translateToLLVM :: Syntax -> Module
 translateToLLVM syntax =
-  let (instructions, _) = syntax & number & envcata translate
+  let (instructions, operand) = syntax & number & envcata translate
       mainFunction =
         functionDefaults
           { returnType = VoidType
@@ -21,7 +21,7 @@ translateToLLVM syntax =
               [BasicBlock
                 (Name "_0")
                 (reverse instructions)
-                (Do $ Ret Nothing [])]
+                (Do $ Ret (Just operand) [])]
           }
   in
     Module

@@ -40,9 +40,9 @@ mkTranslatesToLLVM parseExpressionText translateToLLVM mplCode expected = do
     Failure e -> fail $ show e
     Success a -> do
       let result = show (translateToLLVM a)
-      -- result <- withContext $ \context -> do
-      --   liftError $ withModuleFromAST context (translateToLLVM a) $ \llvmModule -> do
-      --     liftIO $ moduleLLVMAssembly llvmModule
+      result <- withContext $ \context -> do
+        liftError $ withModuleFromAST context (translateToLLVM a) $ \llvmModule -> do
+          liftIO $ moduleLLVMAssembly llvmModule
       result `shouldBe` expected
 
 liftError :: ExceptT String IO a -> IO a
