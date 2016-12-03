@@ -1,5 +1,11 @@
 # MPL
 
+## Dependendies
+
+* v8: stable 5.1.281.47
+* libffi: stable 3.0.13
+* llvm: 3.5
+
 ## TODO Chunks
 
 - [X] Write iterator over Cofree that makes the annotation available at each stage
@@ -9,11 +15,15 @@
 - [X] Generate valid LLVM for Untyped
 - [X] Display state line in REPL
 - [X] Handle wrapping correctly in REPL
-- [ ] Create JIT LLVM REPL
-- [ ] Create JS REPL (Maybe with V8 bindings?)
-- [ ] Abstract REPL over backend
-- [ ] Create automated test for generated LLVM
-- [ ] Move errors into the compiler functions, rather than using Haskell's `error`
+- [X] Create JIT LLVM REPL
+- [X] Create JS REPL (Maybe with V8 bindings?)
+- [X] Create automated test for generated LLVM
+- [ ] Add lambda syntax to Common
+- [ ] Add bindings for top level identifiers to Common
+- [ ] Add name resolution for Untyped
+- [ ] Add parsing for infix functions to Common (`+ for left associative and +` for right associative)
+- [ ] Add native functions (functions with literal js/llvm output)
+- [ ] Generate nice syntax errors
 - [ ] Generate valid JS for Typed
 - [ ] Generate valid LLVM for Typed
 - [ ] Add typechecking phase for Typed
@@ -24,6 +34,7 @@
 - [ ] Create the base Unmanaged parser
 - [ ] JS backend for Unmanaged
 - [ ] LLVM backend for Unmanaged
+- [ ] Move errors into the compiler functions, rather than using Haskell's `error`
 
 ## TODO Think about
 
@@ -77,6 +88,15 @@ Common -----> Untyped
 
 ## Notes
 
+### Metrics for what makes a "good" language
+
+* Is it easy to understand the performance impact of a decision?
+* Is it easy to understand the memory impact of a decision?
+* Is it efficient to write? How much effort and code need to be expended on conerns not related to the programmer's problem?
+* Is it efficient to read? Can ideas be represented at different levels of fidelity in order to make grasping intent easier?
+* Are the defaults safe? Does it mitigate how bad unintentional errors can be?
+* Is it modular? Can independent pieces of software be understood in isolation?
+
 ### Boundary Quadrants
 
 * Bounded in time and space:         Statically determined termination and allocation.
@@ -87,3 +107,14 @@ Common -----> Untyped
 ### Hot Swapping
 
 Global support for changing bindings at runtime gives you a rapid feedback loop, live experimentation, and a facility for zero downtime upgrades. The ability to change any binding at runtime needs to be assumeda at the language level for it to be convenient.
+
+### Garbage Collection
+
+* Overhead/Throughput: How much of the execution time is spent on garbage collection?
+  * overhead = operations per object * cost per operation
+  * Finding a way to make the operations per object sublinear would be the biggest win.
+  * Allocate and free in large chunks to reduce the number of operations per object.
+  * Use very cheap operations for allocation and freeing to reduce the time per operation.
+* Latency: How long will the main program need to wait between operations for the garbage collector to run?
+  * Running collection concurrently with the main program means more, shorter pauses.
+* Predictability: Can you tell or control where pauses will happen?

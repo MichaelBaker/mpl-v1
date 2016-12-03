@@ -14,7 +14,7 @@ spec = do
         intercalate "\n"
           [ "; ModuleID = 'Main'"
           , ""
-          , "define void @main() {"
+          , "define i32 @main() {"
           , "_0:"
           , "  ret i32 2"
           , "}"

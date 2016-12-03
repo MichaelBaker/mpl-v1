@@ -7,11 +7,13 @@ module TestUtils
 
 import Test.Hspec                 (Expectation, describe, it, shouldBe, runIO)
 import Mpl.Common.ParsingUtils    (Result(Success, Failure))
-import Mpl.Utils                  (lazyTextToString, llvmIR, jsIR)
+import Mpl.Utils                  (lazyTextToString, jsIR, stringToText)
+import Mpl.LLVMUtils              (llvmIR)
 import Language.JavaScript.Parser (readJs)
 import Control.Monad.IO.Class     (liftIO)
 import System.Environment         (lookupEnv)
-import System.Process             (readProcess)
+
+import qualified V8
 
 mkParsesTo parseExpressionText text expected =
   case parseExpressionText text of
@@ -53,6 +55,7 @@ mkEvalsJSTo config parseExpressionText translateToJS mplCode expected =
   case parseExpressionText mplCode of
     Failure e -> fail $ show e
     Success a -> do
-      let jsCode = lazyTextToString $ renderToText (translateToJS a)
-      result <- liftIO $ readProcess (nodePath config) ["-p", jsCode] ""
-      result `shouldBe` (expected ++ "\n")
+      let jsCode = lazyTextToString $ jsIR (translateToJS a)
+      result <- V8.withContext $ \context -> do
+        V8.eval context (stringToText jsCode)
+      result `shouldBe` expected

@@ -15,7 +15,7 @@ translateToLLVM syntax =
   let (instructions, operand) = syntax & number & envcata translate
       mainFunction =
         functionDefaults
-          { returnType = VoidType
+          { returnType = IntegerType 32
           , name = Name "main"
           , basicBlocks =
               [BasicBlock

@@ -4,4 +4,4 @@ set -e
 
 export TEST_CONFIG_FILE=config/Example.hs
 
-stack test && .stack-work/dist/x86_64-osx/Cabal-1.22.5.0/build/mpl-test/mpl-test
+stack test && .stack-work/dist/x86_64-osx/Cabal-1.22.5.0/build/mpl-test/mpl-test --verbose

@@ -12,10 +12,12 @@ data Language =
   deriving (Show, Read, Enum)
 
 data Mode =
-    AST
+    PrintAST
   | Echo
-  | LLVM
-  | JS
+  | PrintLLVM
+  | PrintJS
+  | EvalLLVM
+  | EvalJS
   deriving (Show, Read, Enum)
 
 data StateLineItem =
@@ -45,6 +47,6 @@ maxWidth = maximum . map (length . show) . enumFrom
 defaultState =
   State
     { language         = Untyped
-    , mode             = AST
+    , mode             = PrintAST
     , defaultTermWidth = 80
     }

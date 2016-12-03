@@ -17,37 +17,39 @@ library
     src
 
   exposed-modules:
-    Mpl.Utils,
     Mpl.Annotation,
-    Mpl.Common.Syntax,
-    Mpl.Common.Parsing,
-    Mpl.Common.ParsingUtils,
     Mpl.Common.BackendJS,
     Mpl.Common.BackendLLVM,
-    Mpl.Typed.Syntax,
-    Mpl.Typed.Parsing,
+    Mpl.Common.Parsing,
+    Mpl.Common.ParsingUtils,
+    Mpl.Common.Syntax,
+    Mpl.LLVMUtils,
     Mpl.Typed.BackendJS,
-    Mpl.Untyped.Syntax,
-    Mpl.Untyped.Parsing,
+    Mpl.Typed.Parsing,
+    Mpl.Typed.Syntax,
     Mpl.Untyped.BackendJS,
-    Mpl.Untyped.BackendLLVM
+    Mpl.Untyped.BackendLLVM,
+    Mpl.Untyped.Parsing,
+    Mpl.Untyped.Syntax,
+    Mpl.Utils,
+    V8
 
   build-depends:
     base >= 4.7 && < 5,
-    text,
-    containers,
-    lens,
-    mtl,
-    comonad,
-    free,
-    trifecta,
-    parsers,
     bytestring,
-    transformers,
+    comonad,
+    containers,
+    free,
+    language-javascript,
+    lens,
     llvm-general,
     llvm-general-pure,
+    mtl,
+    parsers,
     recursion-schemes,
-    language-javascript
+    text,
+    transformers,
+    trifecta
 
   ghc-options:
     -fwarn-incomplete-patterns
@@ -61,6 +63,19 @@ library
     DeriveTraversable,
     TypeFamilies,
     TypeSynonymInstances
+
+  include-dirs:
+    vendor/v8/include
+
+  c-sources:
+    cbits/haskell-v8.cc
+
+  extra-libraries:
+    v8,
+    v8_base,
+    v8_libbase,
+    v8_snapshot,
+    v8_libplatform
 
   default-language:
     Haskell2010
