@@ -7,13 +7,9 @@ module TestUtils
 
 import Test.Hspec                 (Expectation, describe, it, shouldBe, runIO)
 import Mpl.Common.ParsingUtils    (Result(Success, Failure))
-import Mpl.Utils                  (lazyTextToString)
-import Language.JavaScript.Parser (readJs, renderToText)
-import Control.Monad              ((>=>))
+import Mpl.Utils                  (lazyTextToString, llvmIR, jsIR)
+import Language.JavaScript.Parser (readJs)
 import Control.Monad.IO.Class     (liftIO)
-import Control.Monad.Except       (ExceptT, runExceptT)
-import LLVM.General.Context       (withContext)
-import LLVM.General.Module        (withModuleFromAST, moduleLLVMAssembly)
 import System.Environment         (lookupEnv)
 import System.Process             (readProcess)
 
@@ -33,20 +29,14 @@ mkIsSameAs parseExpressionText a b =
 mkTranslatesToJS parseExpressionText translateToJS mplCode jsCode =
   case parseExpressionText mplCode of
     Failure e -> fail $ show e
-    Success a -> renderToText (translateToJS a) `shouldBe` renderToText (readJs jsCode)
+    Success a -> jsIR (translateToJS a) `shouldBe` jsIR (readJs jsCode)
 
 mkTranslatesToLLVM parseExpressionText translateToLLVM mplCode expected = do
   case parseExpressionText mplCode of
     Failure e -> fail $ show e
     Success a -> do
-      let result = show (translateToLLVM a)
-      result <- withContext $ \context -> do
-        liftError $ withModuleFromAST context (translateToLLVM a) $ \llvmModule -> do
-          liftIO $ moduleLLVMAssembly llvmModule
+      result <- llvmIR (translateToLLVM a)
       result `shouldBe` expected
-
-liftError :: ExceptT String IO a -> IO a
-liftError = runExceptT >=> either fail return
 
 data Config = Config
   { nodePath :: String -- The filepath to a node executable for running javascript programs
