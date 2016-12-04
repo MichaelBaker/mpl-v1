@@ -1,6 +1,6 @@
 module Mpl.Untyped.Parsing where
 
-import Mpl.Untyped.Syntax (Syntax, int, symbol, application)
+import Mpl.Untyped.Syntax (Syntax, int, symbol, application, function, leftAssociative, rightAssociative)
 import Mpl.Common.Parsing (Context(..), mkParser)
 import Mpl.Common.ParsingUtils
   ( Result
@@ -26,10 +26,13 @@ parseExpressionText :: Text -> Result Syntax
 parseExpressionText = parseFromString parser . textToString
 
 untypedContext = Context
-  { mkInt         = int
-  , mkSymbol      = symbol
-  , mkApplication = application
-  , mkExpression  = (<|>)
+  { mkInt              = int
+  , mkSymbol           = symbol
+  , mkFunction         = function
+  , mkApplication      = application
+  , mkExpression       = (<|>)
+  , mkLeftAssociative  = leftAssociative
+  , mkRightAssociative = rightAssociative
   }
 
 parser = mkParser untypedContext

@@ -6,9 +6,12 @@ module Mpl.Common.Syntax where
 import Mpl.Utils (Text, Generic, Fix(..))
 
 data SyntaxF r =
-    Literal     Literal
-  | Symbol      Text
-  | Application r [r]
+    Literal          Literal
+  | Symbol           Text
+  | Function         [r] r
+  | Application      r [r]
+  | LeftAssociative  r
+  | RightAssociative r
   deriving (Show, Generic, Functor, Eq, Traversable, Foldable)
 
 data Literal = IntegerLiteral Integer deriving (Show, Generic, Eq)

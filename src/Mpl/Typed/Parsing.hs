@@ -1,6 +1,6 @@
 module Mpl.Typed.Parsing where
 
-import Mpl.Typed.Syntax (Syntax, int, symbol, application, typeAnnotation, typeSymbol)
+import Mpl.Typed.Syntax (Syntax, int, symbol, application, typeAnnotation, typeSymbol, function, leftAssociative, rightAssociative)
 import Mpl.Common.Parsing (Context(..), mkParser)
 import Mpl.Common.ParsingUtils
   ( Result(Success)
@@ -26,10 +26,13 @@ parseExpressionText :: Text -> Result Syntax
 parseExpressionText = parseFromString parser . textToString
 
 typedContext = Context
-  { mkInt         = int
-  , mkSymbol      = symbol
-  , mkApplication = application
-  , mkExpression  = expression
+  { mkInt              = int
+  , mkSymbol           = symbol
+  , mkFunction         = function
+  , mkApplication      = application
+  , mkExpression       = expression
+  , mkLeftAssociative  = leftAssociative
+  , mkRightAssociative = rightAssociative
   }
 
 parser = mkParser typedContext

@@ -18,10 +18,15 @@
 - [X] Create JIT LLVM REPL
 - [X] Create JS REPL (Maybe with V8 bindings?)
 - [X] Create automated test for generated LLVM
-- [ ] Add lambda syntax to Common
+- [X] Add lambda syntax to Common
+- [X] Add syntax for multiple arguments
+- [X] Add parsing for infix functions to Common (`+ for left associative and +` for right associative)
+- [ ] Convert custom parser into a Monad to extract all of the context passing
+- [ ] Make all syntax constructors parametric in their fixed points
+- [ ] Add original source locations to AST nodes
+- [ ] Preprocess AST to resolve associativity
 - [ ] Add bindings for top level identifiers to Common
 - [ ] Add name resolution for Untyped
-- [ ] Add parsing for infix functions to Common (`+ for left associative and +` for right associative)
 - [ ] Add native functions (functions with literal js/llvm output)
 - [ ] Generate nice syntax errors
 - [ ] Generate valid JS for Typed

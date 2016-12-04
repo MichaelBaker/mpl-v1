@@ -15,9 +15,18 @@ data Type = TypeSymbol Text deriving (Show, Generic, Eq)
 
 type Syntax = Fix SyntaxF
 
-literal          = Fix . Common . CS.Literal
-symbol           = Fix . Common . CS.Symbol
-application a as = Fix . Common $ CS.Application a as
+literal =
+  Fix . Common . CS.Literal
+symbol =
+  Fix . Common . CS.Symbol
+function parameters body =
+  Fix . Common $ CS.Function parameters body
+application func arguments =
+  Fix . Common $ CS.Application func arguments
+leftAssociative =
+  Fix . Common . CS.LeftAssociative
+rightAssociative =
+  Fix . Common . CS.RightAssociative
 
 int                = literal . CS.IntegerLiteral
 typeAnnotation a t = Fix (TypeAnnotation a t)
