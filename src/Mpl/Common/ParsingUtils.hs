@@ -19,16 +19,16 @@ module Mpl.Common.ParsingUtils
   )
 where
 
-import Prelude ((++))
+import Control.Applicative     ((<|>), many, some)
+import Data.Text               (Text, pack, unpack)
+import Mpl.Utils               (textToString, stringToText)
+import Prelude                 ((++))
+import Text.Parser.Char        (oneOf, char)
+import Text.Parser.Combinators ((<?>), try, optional, notFollowedBy)
+import Text.Parser.Token       (whiteSpace, parens, symbolic, symbol)
+import Text.Trifecta.Delta     (Delta(Columns))
 import Text.Trifecta.Parser    (Parser, parseString)
 import Text.Trifecta.Result    (Result(Success, Failure))
-import Text.Trifecta.Delta     (Delta(Columns))
-import Text.Parser.Token       (whiteSpace, parens, symbolic, symbol)
-import Data.Text               (Text, pack, unpack)
-import Text.Parser.Combinators ((<?>), try, optional, notFollowedBy)
-import Control.Applicative     ((<|>), many, some)
-import Text.Parser.Char        (oneOf, char)
-import Mpl.Utils               (textToString, stringToText)
 
 parseFromString parser = parseString parser zeroDelta
 
