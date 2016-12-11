@@ -3,7 +3,7 @@ module Main where
 import System.Console.Haskeline (runInputT, defaultSettings, getInputLine, outputStrLn, outputStr)
 import Mpl.Utils                (stringToText, textToString, lazyTextToString, jsIR)
 import Mpl.LLVMUtils            (llvmIR, llvmJIT)
-import Mpl.Common.ParsingUtils  (Result(Success, Failure))
+import Mpl.ParsingUtils         (Result(Success, Failure))
 import Control.Monad.IO.Class   (liftIO)
 import Repl.State               (State(..), StateLineItem(..), Mode(..), defaultState, toStateLineItem, showStateLine, strLineItem)
 import Control.Monad            (replicateM_)

@@ -1,11 +1,25 @@
 module Mpl.Typed.Parsing where
 
-import Mpl.Typed.Syntax (Syntax, int, symbol, application, typeAnnotation, typeSymbol, function, leftAssociative, rightAssociative)
-import Mpl.Common.Parsing (Context(..), mkParser)
-import Mpl.Common.ParsingUtils
+import Mpl.Typed.Syntax
+  ( SyntaxF
+  , int
+  , symbol
+  , function
+  , application
+  , leftAssociative
+  , rightAssociative
+  , typeAnnotation
+  , typeSymbol
+  )
+
+import Mpl.Common.Parsers (commonParser)
+
+import Mpl.ParsingUtils
   ( Result(Success)
-  , (<?>)
+  , SyntaxConstructors(..)
+  , Parsed
   , (<|>)
+  , annotate
   , parseFromString
   , many
   , oneOf
@@ -14,6 +28,7 @@ import Mpl.Common.ParsingUtils
   , optional
   , upcaseChars
   , symbolChars
+  , lookAhead
   )
 
 import Mpl.Utils
@@ -22,37 +37,40 @@ import Mpl.Utils
   , stringToText
   )
 
-parseExpressionText :: Text -> Result Syntax
-parseExpressionText = parseFromString parser . textToString
+import qualified Mpl.Common.Syntax as CS
 
-typedContext = Context
-  { mkInt              = int
-  , mkSymbol           = symbol
-  , mkFunction         = function
-  , mkApplication      = application
-  , mkExpression       = expression
-  , mkLeftAssociative  = leftAssociative
-  , mkRightAssociative = rightAssociative
-  }
+parseExpressionText :: Text -> Result (Parsed SyntaxF)
+parseExpressionText = parseFromString syntaxConstructors commonParser . textToString
 
-parser = mkParser typedContext
-
-expression parseExpression alternative =
-      parseTypeAnnotation parseExpression
-  <|> alternative
+syntaxConstructors =
+  SyntaxConstructors
+    { consInt              = int
+    , consSymbol           = symbol
+    , consFunction         = function
+    , consApplication      = application
+    , consExpression       = parseTypeAnnotation
+    , consLeftAssociative  = leftAssociative
+    , consRightAssociative = rightAssociative
+    }
 
 parseTypeAnnotation parseExpression = do
   expression <- parseExpression
-  annotation <- optional $ do
-    symbolic ':'
-    whiteSpace
-    parseType
-  return $ case annotation of
-    Nothing  -> expression
-    Just ann -> typeAnnotation expression ann
+  annotation <- lookAhead (optional $ symbolic ':')
+  case annotation of
+    Nothing  -> return expression
+    Just _   ->
+      annotate
+        "Type annotation"
+        ["a: Integer", "123 : Integer"]
+        (do
+          symbolic ':'
+          whiteSpace
+          annotation <- parseType
+          return $ typeAnnotation expression annotation)
 
-parseType = (typeSymbol <$> do
-  firstChar <- oneOf upcaseChars          <?> "start of type symbol"
-  rest      <- (many $ oneOf symbolChars) <?> "tail of type symbol"
-  whiteSpace
-  return $ stringToText (firstChar : rest)) <?> "type symbol"
+parseType =
+  typeSymbol <$> do
+    firstChar <- oneOf upcaseChars
+    rest      <- (many $ oneOf symbolChars)
+    whiteSpace
+    return $ stringToText (firstChar : rest)

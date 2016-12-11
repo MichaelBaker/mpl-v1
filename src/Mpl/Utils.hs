@@ -7,6 +7,7 @@ module Mpl.Utils
   , textToString
   , stringToText
   , lazyTextToString
+  , byteStringToString
   , jsIR
   ) where
 
@@ -17,10 +18,12 @@ import Data.Functor.Foldable      (Fix(..))
 import GHC.Generics               (Generic)
 import Language.JavaScript.Parser (renderToText)
 
+import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Text.Lazy as LT
 
 textToString = unpack
 stringToText = pack
+byteStringToString = UTF8.toString
 
 lazyTextToString = LT.unpack
 

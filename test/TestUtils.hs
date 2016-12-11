@@ -5,20 +5,32 @@ module TestUtils
   , shouldBe
   ) where
 
-import Test.Hspec                 (Expectation, describe, it, shouldBe, runIO)
-import Mpl.Common.ParsingUtils    (Result(Success, Failure))
-import Mpl.Utils                  (lazyTextToString, jsIR, stringToText)
-import Mpl.LLVMUtils              (llvmIR)
-import Language.JavaScript.Parser (readJs)
 import Control.Monad.IO.Class     (liftIO)
+import Data.Functor.Foldable      (Base, Fix, Foldable)
+import Language.JavaScript.Parser (readJs)
+import Mpl.Annotation             (Fixed, discardAnnotation)
+import Mpl.ParsingUtils           (Parsed, Result(Success, Failure))
+import Mpl.LLVMUtils              (llvmIR)
+import Mpl.Utils                  (lazyTextToString, jsIR, stringToText)
+import Mpl.ParserResult           (errorMessage)
 import System.Environment         (lookupEnv)
+import Test.Hspec                 (Expectation, describe, it, shouldBe, runIO)
+
+import Prelude hiding (Foldable)
 
 import qualified V8
 
+mkParsesTo :: (Eq (Fixed a), Show (Fixed a), Foldable a) => (t -> Result a) -> t -> Fixed a -> IO ()
 mkParsesTo parseExpressionText text expected =
   case parseExpressionText text of
     Failure e -> fail $ show e
-    Success a -> a `shouldBe` expected
+    Success a -> (discardAnnotation a) `shouldBe` expected
+
+mkParserErrorsWith :: (Show t) => (t -> Result a) -> t -> String -> IO ()
+mkParserErrorsWith parseExpressionText text expected =
+  case parseExpressionText text of
+    Failure e -> errorMessage e `shouldBe` expected
+    Success a -> fail $ "Successfully parsed " ++ show text
 
 mkIsSameAs parseExpressionText a b =
   case parseExpressionText a of
@@ -26,7 +38,7 @@ mkIsSameAs parseExpressionText a b =
     Success a' ->
       case parseExpressionText b of
         Failure e  -> fail $ show e
-        Success b' -> a' `shouldBe` b'
+        Success b' -> (discardAnnotation a') `shouldBe` (discardAnnotation b')
 
 mkTranslatesToJS parseExpressionText translateToJS mplCode jsCode =
   case parseExpressionText mplCode of

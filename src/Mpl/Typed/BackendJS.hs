@@ -2,16 +2,17 @@ module Mpl.Typed.BackendJS where
 
 import Language.JavaScript.Parser
 
-import Data.Text             (unpack)
-import Data.Functor.Foldable (Base, cata)
-import Mpl.Typed.Syntax      (Syntax, SyntaxF(..), Type(..))
+import Data.Text               (unpack)
+import Data.Functor.Foldable   (Base, cata)
+import Mpl.Typed.Syntax        (SyntaxF(..), Type(..))
+import Mpl.ParsingUtils        (Parsed)
 
 import qualified Mpl.Common.BackendJS as CBE
 
 translateToJS syntax = JSAstExpression expression JSNoAnnot
   where expression = translateToJSExpression syntax
 
-translateToJSExpression :: Syntax -> JSExpression
+translateToJSExpression :: Parsed SyntaxF -> JSExpression
 translateToJSExpression = cata translate
 
 translate (Common common) = CBE.translate common

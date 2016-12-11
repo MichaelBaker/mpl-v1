@@ -21,14 +21,19 @@
 - [X] Add lambda syntax to Common
 - [X] Add syntax for multiple arguments
 - [X] Add parsing for infix functions to Common (`+ for left associative and +` for right associative)
-- [ ] Convert custom parser into a Monad to extract all of the context passing
-- [ ] Make all syntax constructors parametric in their fixed points
-- [ ] Add original source locations to AST nodes
+- [X] Convert custom parser into a Monad to extract all of the context passing
+- [X] Make all syntax constructors parametric in their fixed points
+- [X] Add original source locations to AST nodes
+- [ ] Generate nice syntax errors
+  - [ ] Add `Unparse` typeclass for generating code from an AST
+  - [ ] Convert all Strings to Docs for highlighting
+  - [ ] Change Err to ParserError
+  - [X] Add function to process errors
+  - [X] Add suggestion to Err
 - [ ] Preprocess AST to resolve associativity
 - [ ] Add bindings for top level identifiers to Common
 - [ ] Add name resolution for Untyped
 - [ ] Add native functions (functions with literal js/llvm output)
-- [ ] Generate nice syntax errors
 - [ ] Generate valid JS for Typed
 - [ ] Generate valid LLVM for Typed
 - [ ] Add typechecking phase for Typed
@@ -43,6 +48,10 @@
 
 ## TODO Think about
 
+- [ ] Information hiding and backwards compatibility. Should breaking backwards compatibilty be impossible or at least exception rather than rule?
+- [ ] What is the ideal place for errors to arise? I'm currently thinking that parsing should be almost sure to succeed that way you have a lot of context for producing nice errors.
+- [ ] How to make _everything_ ad hoc/inlineable (like lambdas are ad hoc functions as opposed to being already declared)
+- [ ] Syntax as algebra. How to make a syntax that allows for easily thinking about composition and transformation.
 - [ ] How to handle FFI
 - [ ] How to structure incremental parsing (only parsing changed parts of a file and updating the otherwise already processed tree)
 - [ ] How should the memory API be for Unmanaged. What guarantees should its type system encode?

@@ -3,6 +3,7 @@ resolver: lts-6.23
 packages:
 - '.'
 - 'vendor/tabl'
+- 'vendor/trifecta'
 
 extra-deps:
 - llvm-general-3.5.1.2

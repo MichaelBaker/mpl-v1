@@ -1,11 +1,18 @@
 module Mpl.Typed.ParsingSpec where
 
-import Mpl.Typed.Parsing (parseExpressionText)
-import Mpl.Typed.Syntax  (symbol, typeSymbol, typeAnnotation, application)
-import TestUtils         (describe, it, shouldBe, mkParsesTo, mkIsSameAs)
+import Data.Functor.Foldable (Fix(..))
+import Mpl.Typed.Parsing     (parseExpressionText)
+import TestUtils             (describe, it, shouldBe, mkParsesTo, mkIsSameAs)
+
+import qualified Mpl.Typed.Syntax as S
 
 parsesTo = mkParsesTo parseExpressionText
 isSameAs = mkIsSameAs parseExpressionText
+
+typeAnnotation a b = Fix $ S.typeAnnotation a b
+symbol             = Fix . S.symbol
+typeSymbol         = S.typeSymbol
+application a b    = Fix $ S.application a b
 
 spec = do
   describe "Parsing" $ do

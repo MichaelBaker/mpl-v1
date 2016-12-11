@@ -1,8 +1,7 @@
 module Mpl.Typed.Syntax where
 
-import Data.Text             (Text)
-import GHC.Generics          (Generic)
-import Data.Functor.Foldable (Fix(..))
+import Data.Text    (Text)
+import GHC.Generics (Generic)
 
 import qualified Mpl.Common.Syntax as CS
 
@@ -13,21 +12,13 @@ data SyntaxF r =
 
 data Type = TypeSymbol Text deriving (Show, Generic, Eq)
 
-type Syntax = Fix SyntaxF
 
-literal =
-  Fix . Common . CS.Literal
-symbol =
-  Fix . Common . CS.Symbol
-function parameters body =
-  Fix . Common $ CS.Function parameters body
-application func arguments =
-  Fix . Common $ CS.Application func arguments
-leftAssociative =
-  Fix . Common . CS.LeftAssociative
-rightAssociative =
-  Fix . Common . CS.RightAssociative
-
-int                = literal . CS.IntegerLiteral
-typeAnnotation a t = Fix (TypeAnnotation a t)
-typeSymbol         = TypeSymbol
+literal                    = Common . CS.literal
+symbol                     = Common . CS.symbol
+function parameters body   = Common $ CS.function parameters body
+application func arguments = Common $ CS.application func arguments
+leftAssociative            = Common . CS.leftAssociative
+rightAssociative           = Common . CS.rightAssociative
+int                        = Common . CS.int
+typeAnnotation             = TypeAnnotation
+typeSymbol                 = TypeSymbol

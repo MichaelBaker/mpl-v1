@@ -1,10 +1,10 @@
-module Mpl.Untyped.ParsingSpec where
+module Mpl.Common.ParsingSpec where
 
 import Data.Functor.Foldable (Fix(..))
-import Mpl.Untyped.Parsing   (parseExpressionText)
+import Mpl.Common.Parsing    (parseExpressionText)
 import TestUtils             (describe, it, shouldBe, mkParsesTo)
 
-import qualified Mpl.Untyped.Syntax as S
+import qualified Mpl.Common.Syntax as S
 
 parsesTo = mkParsesTo parseExpressionText
 

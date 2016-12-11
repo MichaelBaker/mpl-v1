@@ -2,15 +2,16 @@ module Mpl.Untyped.BackendLLVM where
 
 import LLVM.General.AST
 
-import Mpl.Untyped.Syntax    (Syntax, SyntaxF(..))
-import Mpl.Annotation        (Cofree((:<)), number, envcata)
-import Data.Function         ((&))
+import Data.Function           ((&))
 import LLVM.General.AST
 import LLVM.General.AST.Global
+import Mpl.Annotation          (Cofree((:<)), number, envcata)
+import Mpl.ParsingUtils        (Parsed)
+import Mpl.Untyped.Syntax      (SyntaxF(..))
 
 import qualified Mpl.Common.BackendLLVM as CBE
 
-translateToLLVM :: Syntax -> Module
+translateToLLVM :: Parsed SyntaxF -> Module
 translateToLLVM syntax =
   let (instructions, operand) = syntax & number & envcata translate
       mainFunction =

@@ -1,38 +1,41 @@
 module Mpl.Untyped.Parsing where
 
-import Mpl.Untyped.Syntax (Syntax, int, symbol, application, function, leftAssociative, rightAssociative)
-import Mpl.Common.Parsing (Context(..), mkParser)
-import Mpl.Common.ParsingUtils
+import Mpl.Untyped.Syntax
+  ( SyntaxF
+  , int
+  , symbol
+  , function
+  , application
+  , leftAssociative
+  , rightAssociative
+  )
+
+import Mpl.Common.Parsers (commonParser)
+
+import Mpl.ParsingUtils
   ( Result
-  , (<?>)
-  , (<|>)
+  , SyntaxConstructors(..)
+  , Parsed
   , parseFromString
-  , many
-  , oneOf
-  , whiteSpace
-  , symbolic
-  , optional
-  , upcaseChars
-  , symbolChars
   )
 
 import Mpl.Utils
   ( Text
   , textToString
-  , stringToText
   )
 
-parseExpressionText :: Text -> Result Syntax
-parseExpressionText = parseFromString parser . textToString
+import qualified Mpl.Common.Syntax as CS
 
-untypedContext = Context
-  { mkInt              = int
-  , mkSymbol           = symbol
-  , mkFunction         = function
-  , mkApplication      = application
-  , mkExpression       = (<|>)
-  , mkLeftAssociative  = leftAssociative
-  , mkRightAssociative = rightAssociative
-  }
+parseExpressionText :: Text -> Result (Parsed SyntaxF)
+parseExpressionText = parseFromString syntaxConstructors commonParser . textToString
 
-parser = mkParser untypedContext
+syntaxConstructors =
+  SyntaxConstructors
+    { consInt              = int
+    , consSymbol           = symbol
+    , consFunction         = function
+    , consApplication      = application
+    , consExpression       = id
+    , consLeftAssociative  = leftAssociative
+    , consRightAssociative = rightAssociative
+    }

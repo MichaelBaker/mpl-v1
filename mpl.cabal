@@ -20,10 +20,14 @@ library
     Mpl.Annotation,
     Mpl.Common.BackendJS,
     Mpl.Common.BackendLLVM,
+    Mpl.Common.Parsers,
     Mpl.Common.Parsing,
-    Mpl.Common.ParsingUtils,
     Mpl.Common.Syntax,
     Mpl.LLVMUtils,
+    Mpl.Parser,
+    Mpl.ParserDescription,
+    Mpl.ParserResult,
+    Mpl.ParsingUtils,
     Mpl.Typed.BackendJS,
     Mpl.Typed.Parsing,
     Mpl.Typed.Syntax,
@@ -47,6 +51,10 @@ library
     mtl,
     parsers,
     recursion-schemes,
+    reducers,
+    utf8-string,
+    semigroups,
+    ansi-wl-pprint,
     text,
     transformers,
     trifecta
@@ -56,11 +64,12 @@ library
     -Werror
 
   default-extensions:
-    OverloadedStrings,
+    ConstraintKinds,
     DeriveFunctor,
     DeriveGeneric,
-    FlexibleContexts,
     DeriveTraversable,
+    FlexibleContexts,
+    OverloadedStrings,
     TypeFamilies,
     TypeSynonymInstances
 
@@ -127,12 +136,15 @@ test-suite mpl-test
 
   other-modules:
     Mpl.AnnotationSpec,
+    Mpl.Common.ParsingSpec,
+    Mpl.ParsingSpec,
     Mpl.Typed.BackendJSSpec,
     Mpl.Typed.ParsingSpec,
     Mpl.Untyped.BackendJSSpec,
-    Mpl.Untyped.ParsingSpec,
     Mpl.Untyped.BackendLLVMSpec,
-    TestUtils
+    Mpl.Untyped.ParsingSpec,
+    TestUtils,
+    V8Spec
 
   ghc-options:
     -threaded -rtsopts -with-rtsopts=-N
@@ -141,7 +153,8 @@ test-suite mpl-test
     OverloadedStrings,
     DeriveFunctor,
     DeriveGeneric,
-    DeriveTraversable
+    DeriveTraversable,
+    FlexibleContexts
 
   default-language:    Haskell2010
 
