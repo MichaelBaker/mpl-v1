@@ -8,6 +8,9 @@ module Mpl.Utils
   , stringToText
   , lazyTextToString
   , byteStringToString
+  , stringToByteString
+  , byteStringSlice
+  , byteStringToText
   , jsIR
   ) where
 
@@ -21,9 +24,14 @@ import Language.JavaScript.Parser (renderToText)
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Text.Lazy as LT
 
-textToString = unpack
-stringToText = pack
+textToString       = unpack
+stringToText       = pack
 byteStringToString = UTF8.toString
+stringToByteString = UTF8.fromString
+byteStringToText   = stringToText . byteStringToString
+
+byteStringSlice startChar endChar byteString = UTF8.take spanSize $ UTF8.drop startChar byteString
+  where spanSize = endChar - startChar
 
 lazyTextToString = LT.unpack
 

@@ -5,7 +5,7 @@ import Language.JavaScript.Parser
 import Data.Text               (unpack)
 import Data.Functor.Foldable   (Base, cata)
 import Mpl.Typed.Syntax        (SyntaxF(..), Type(..))
-import Mpl.ParsingUtils        (Parsed)
+import Mpl.ParserUtils         (Parsed)
 
 import qualified Mpl.Common.BackendJS as CBE
 

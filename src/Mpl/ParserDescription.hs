@@ -1,5 +1,7 @@
 module Mpl.ParserDescription where
 
+import Text.PrettyPrint.ANSI.Leijen as Pretty hiding ((<>), (<$>))
+
 data ParserDescription =
     NameDescription
     { name :: String }
@@ -7,14 +9,6 @@ data ParserDescription =
     { name     :: String
     , examples :: [String]
     }
-  deriving (Show, Eq)
-
-data ParserSuggestion =
-  ParserSuggestion
-  { itemName    :: String
-  , expectation :: String
-  , example     :: String
-  }
   deriving (Show, Eq)
 
 instance Ord ParserDescription where

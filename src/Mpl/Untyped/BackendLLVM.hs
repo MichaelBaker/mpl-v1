@@ -6,7 +6,7 @@ import Data.Function           ((&))
 import LLVM.General.AST
 import LLVM.General.AST.Global
 import Mpl.Annotation          (Cofree((:<)), number, envcata)
-import Mpl.ParsingUtils        (Parsed)
+import Mpl.ParserUtils         (Parsed)
 import Mpl.Untyped.Syntax      (SyntaxF(..))
 
 import qualified Mpl.Common.BackendLLVM as CBE

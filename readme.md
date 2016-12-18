@@ -24,12 +24,11 @@
 - [X] Convert custom parser into a Monad to extract all of the context passing
 - [X] Make all syntax constructors parametric in their fixed points
 - [X] Add original source locations to AST nodes
-- [ ] Generate nice syntax errors
-  - [ ] Add `Unparse` typeclass for generating code from an AST
-  - [ ] Convert all Strings to Docs for highlighting
-  - [ ] Change Err to ParserError
+- [X] Generate nice syntax errors
+  - [X] Convert all Strings to Docs for highlighting
   - [X] Add function to process errors
   - [X] Add suggestion to Err
+  - [X] Be able to gather all text from start of a perser up to the error
 - [ ] Preprocess AST to resolve associativity
 - [ ] Add bindings for top level identifiers to Common
 - [ ] Add name resolution for Untyped
@@ -45,6 +44,7 @@
 - [ ] JS backend for Unmanaged
 - [ ] LLVM backend for Unmanaged
 - [ ] Move errors into the compiler functions, rather than using Haskell's `error`
+- [ ] Handle syntax suggestions in the middle of a line
 
 ## TODO Think about
 

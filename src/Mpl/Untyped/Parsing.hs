@@ -12,7 +12,7 @@ import Mpl.Untyped.Syntax
 
 import Mpl.Common.Parsers (commonParser)
 
-import Mpl.ParsingUtils
+import Mpl.ParserUtils
   ( Result
   , SyntaxConstructors(..)
   , Parsed

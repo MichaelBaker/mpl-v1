@@ -9,12 +9,12 @@ import Control.Monad.IO.Class     (liftIO)
 import Data.Functor.Foldable      (Base, Fix, Foldable)
 import Language.JavaScript.Parser (readJs)
 import Mpl.Annotation             (Fixed, discardAnnotation)
-import Mpl.ParsingUtils           (Parsed, Result(Success, Failure))
+import Mpl.ParserUtils            (Parsed, Result(Success, Failure))
 import Mpl.LLVMUtils              (llvmIR)
 import Mpl.Utils                  (lazyTextToString, jsIR, stringToText)
-import Mpl.ParserResult           (errorMessage)
+import Mpl.SyntaxErrorMessage     (errorMessage)
 import System.Environment         (lookupEnv)
-import Test.Hspec                 (Expectation, describe, it, shouldBe, runIO)
+import Test.Hspec                 (Expectation, describe, it, shouldBe, runIO, expectationFailure)
 
 import Prelude hiding (Foldable)
 
@@ -29,7 +29,19 @@ mkParsesTo parseExpressionText text expected =
 mkParserErrorsWith :: (Show t) => (t -> Result a) -> t -> String -> IO ()
 mkParserErrorsWith parseExpressionText text expected =
   case parseExpressionText text of
-    Failure e -> errorMessage e `shouldBe` expected
+    Failure e ->
+      if errorMessage e == expected
+        then return ()
+        else do
+          expectationFailure $ concat
+            [ "\n"
+            , "==== Expected " ++ show text ++ " to produce the error: \n\n"
+            , expected
+            , "\n\n"
+            , "==== But this was the error that was produced:\n\n"
+            , errorMessage e
+            , "\n"
+            ]
     Success a -> fail $ "Successfully parsed " ++ show text
 
 mkIsSameAs parseExpressionText a b =

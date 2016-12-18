@@ -1,6 +1,6 @@
 module Mpl.Common.Parsers where
 
-import Mpl.ParsingUtils
+import Mpl.ParserUtils
   ( Result
   , Parser
   , Parsed
@@ -8,9 +8,13 @@ import Mpl.ParsingUtils
   , MplAnnotatable
   , Parsable
   , ParserDescription(..)
-  , ParserSuggestion(..)
-  , Err(..)
-  , (!>)
+  , SyntaxError(..)
+  , SpecificError(..)
+  , Delta
+  , ErrorParts(..)
+  , handleError
+  , position
+  , originalString
   , makeInt
   , makeSymbol
   , makeFunction
@@ -36,6 +40,13 @@ import Mpl.ParsingUtils
   , char
   , lookAhead
   )
+
+import Data.Function ((&))
+import Data.Text     (dropWhileEnd)
+
+import qualified Text.PrettyPrint.ANSI.Leijen as P
+
+import Mpl.Rendering
 
 import Mpl.Utils
   ( Text
@@ -124,24 +135,76 @@ parseFunction =
     "anonymous function"
     ["#(a = a + 1)", "#(a b f = f a b 3)"]
     (do
+      startDelta <- position
       symbol "#("
       parameters <- (some $ parseSymbol <* whiteSpace)
-      symbolic '=' !> (missingEqual parameters)
-      body <- parseApplicationOrExpression
-      symbolic ')'
+      symbolic '='                         & handleError startDelta (missingEqual parameters)
+      body <- parseApplicationOrExpression & handleError startDelta (invalidBody  parameters)
+      symbolic ')'                         & handleError startDelta invalidParen
       makeFunction parameters body)
-  where missingEqual :: (Show a) => [a] -> ParserDescription -> Err -> Err
-        missingEqual params parentDescription error =
-          let paramList     = intercalate " " $ map show params
-              body          = show $ head params
-              customExample = concat ["#(", paramList, " = ", body, ")"]
-              suggestion    =
-                ParserSuggestion
-                { itemName    = name parentDescription
-                , expectation = "The parser expected to find an equal sign, but the function just ended."
-                , example     = customExample
-                }
-          in error { _errSuggestion = Just suggestion }
+  where missingEqual :: [Parsed a] -> ErrorParts -> ParserDescription -> SyntaxError -> SyntaxError
+        missingEqual params parts parentDescription error =
+          let addition      = suggestedAddition $ " = " ++ (originalString $ head params)
+              customExample =
+                    renderText (outerPrefix parts)
+                <~> renderText (innerPrefix parts)
+                <~> addition
+                <~> renderText (innerSuffix parts)
+                <~> renderText (outerSuffix parts)
+              original =
+                    renderText (outerPrefix parts)
+                <~> renderText (innerPrefix parts)
+                <~> problem    (innerSuffix parts)
+                <~> renderText (outerSuffix parts)
+              specificError    =
+                SuggestionError
+                  (P.text $ name parentDescription)
+                  "The parser expected to find an equal sign, but the function just ended."
+                  customExample
+                  original
+          in error { errSpecific = specificError }
+
+        invalidBody params parts parentDescription error =
+          let addition      = " " <~> suggestedAddition (originalString $ head params)
+              customExample =
+                    renderText (outerPrefix parts)
+                <~> renderText (innerPrefix parts)
+                <~> addition
+                <~> renderText (innerSuffix parts)
+                <~> renderText (outerSuffix parts)
+              original =
+                    renderText (outerPrefix parts)
+                <~> renderText (innerPrefix parts)
+                <~> problem    (innerSuffix parts)
+                <~> renderText (outerSuffix parts)
+              specificError    =
+                SuggestionError
+                  (P.text $ name parentDescription)
+                  "The parser expected to find an expression in the body, but the function just ended."
+                  customExample
+                  original
+          in error { errSpecific = specificError }
+
+        invalidParen parts parentDescription error =
+          let addition      = suggestedAddition_ ")"
+              customExample =
+                    renderText (outerPrefix parts)
+                <~> renderText (innerPrefix parts)
+                <~> addition
+                <~> renderText (innerSuffix parts)
+                <~> renderText (outerSuffix parts)
+              original =
+                    renderText (outerPrefix parts)
+                <~> renderText (innerPrefix parts)
+                <~> problem    (innerSuffix parts)
+                <~> renderText (outerSuffix parts)
+              specificError    =
+                SuggestionError
+                  (P.text $ name parentDescription)
+                  "The parser expected to find a closing parenthesis after the function body, but there wasn't one."
+                  customExample
+                  original
+          in error { errSpecific = specificError }
 
 parseApplication :: (Parsable f) => MplParser f
 parseApplication =

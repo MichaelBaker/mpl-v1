@@ -10,7 +10,7 @@ import Mpl.Common.Syntax
   , rightAssociative
   )
 
-import Mpl.ParsingUtils
+import Mpl.ParserUtils
   ( Result
   , SyntaxConstructors(..)
   , Parsed

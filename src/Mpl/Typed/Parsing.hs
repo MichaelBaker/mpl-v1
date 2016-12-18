@@ -14,7 +14,7 @@ import Mpl.Typed.Syntax
 
 import Mpl.Common.Parsers (commonParser)
 
-import Mpl.ParsingUtils
+import Mpl.ParserUtils
   ( Result(Success)
   , SyntaxConstructors(..)
   , Parsed

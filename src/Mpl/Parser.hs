@@ -28,7 +28,7 @@ module Mpl.Parser
   ( Parser(..)
   , manyAccum
   , Step(..)
-  , mapError
+  , captureError
   , feed
   , starve
   , stepParser
@@ -40,6 +40,7 @@ module Mpl.Parser
   , parseByteString
   , parseTest
   , addDescription
+  , getSlice
   ) where
 
 import Control.Applicative as Alternative
@@ -69,11 +70,11 @@ import Text.Trifecta.Util.It
 -- The first four arguments are behavior continuations:
 --
 --   * epsilon success: the parser has consumed no input and has a result
---     as well as a possible Err; the position and chunk are unchanged
+--     as well as a possible SyntaxError; the position and chunk are unchanged
 --     (see `pure`)
 --
 --   * epsilon failure: the parser has consumed no input and is failing
---     with the given Err; the position and chunk are unchanged (see
+--     with the given SyntaxError; the position and chunk are unchanged (see
 --     `empty`)
 --
 --   * committed success: the parser has consumed input and is yielding
@@ -82,7 +83,7 @@ import Text.Trifecta.Util.It
 --     continuation.
 --
 --   * committed failure: the parser has consumed input and is failing with
---     a given Err
+--     a given SyntaxError
 --
 -- The remaining two arguments are
 --
@@ -100,10 +101,10 @@ import Text.Trifecta.Util.It
 --
 newtype Parser a = Parser
   { unparser :: forall r.
-    (a -> Err -> It Rope r) ->
-    (Err -> It Rope r) ->
+    (a -> SyntaxError -> It Rope r) ->
+    (SyntaxError -> It Rope r) ->
     (a -> Set ParserDescription -> Delta -> ByteString -> It Rope r) -> -- committed success
-    (Err -> It Rope r) ->                                               -- committed err
+    (SyntaxError -> It Rope r) ->                                       -- committed err
     Delta -> ByteString -> It Rope r
   }
 
@@ -157,17 +158,10 @@ instance Monad Parser where
          -- (after m), yielding the result from (k a) and merging the
          -- expected sets (i.e. things that could have resulted in a longer
          -- parse)
-         (\b e' -> co b (es <> _expected e') d' bs')
+         (\b e' -> co b (es <> errExpected e') d' bs')
          -- epsilon failure is now a committed failure at the new position
          -- (after m); compute the error to display to the user
-         (\e ->
-           ce $
-             e { _finalDeltas   = (d' : _finalDeltas e)
-               , _expected      = _expected e <> es
-               , _errDelta      = Just d'
-               , _errByteString = Just bs'
-               }
-         )
+         (\e -> ce $ e { errExpected = errExpected e <> es })
          -- committed behaviors as given; nothing exciting here
          co ce
          -- new position and remaining chunk after m
@@ -177,22 +171,18 @@ instance Monad Parser where
   {-# INLINE (>>=) #-}
   (>>) = (*>)
   {-# INLINE (>>) #-}
-  fail s = Parser $ \ _ ee _ _ d bs -> ee (failed s d bs)
+  fail s = Parser $ \ _ ee _ _ d bs -> ee (failed s d)
   {-# INLINE fail #-}
 
--- | Failure handling
---
--- mapError Allows you to register a handler that will be given a chance
--- to transform the current error before it gets returned.
-mapError (Parser m) handle = Parser $ \ eo ee co ce d bs ->
+captureError (Parser m) = Parser $ \ eo ee co ce d bs ->
   m
-    (\a e -> eo a $ handle e)
-    (\e -> ee $ handle e)
-    co
-    (\e -> ce $ handle e)
+    (\a e -> eo (Right a) e)
+    (\e   -> eo (Left e) e)
+    (\a   -> co (Right a))
+    (\e   -> eo (Left e) e)
     d
     bs
-{-# INLINE mapError #-}
+{-# INLINE captureError #-}
 
 instance MonadPlus Parser where
   mzero = empty
@@ -202,15 +192,13 @@ instance MonadPlus Parser where
 
 manyAccum :: (a -> [a] -> [a]) -> Parser a -> Parser [a]
 manyAccum f (Parser p) = Parser $ \eo _ co ce d bs ->
-  let walk xs x es d' bs' = p (manyErr d' bs' es) (\e -> co (f x xs) (_expected e <> es) d' bs') (walk (f x xs)) ce d' bs'
-      manyErr d' bs' es _ e  =
+  let walk xs x es d' bs' = p (manyErr d' es) (\e -> co (f x xs) (errExpected e <> es) d' bs') (walk (f x xs)) ce d' bs'
+      manyErr d' es _ e  =
         ce $ mempty
-          { _expected      = es
-          , _finalDeltas   = [d']
-          , _errDelta      = Just d'
-          , _errByteString = Just bs'
+          { errExpected = es
+          , errDelta    = d'
           }
-  in p (manyErr d bs mempty) (eo []) (walk []) ce d bs
+  in p (manyErr d mempty) (eo []) (walk []) ce d bs
 
 liftIt :: It Rope a -> Parser a
 liftIt m = Parser $ \ eo _ _ _ _ _ -> do
@@ -225,7 +213,7 @@ instance Parsing Parser where
   {-# INLINE (<?>) #-}
   skipMany p = () <$ manyAccum (\_ _ -> []) p
   {-# INLINE skipMany #-}
-  unexpected s = Parser $ \ _ ee _ _ d bs -> ee $ failed ("unexpected " ++ s) d bs
+  unexpected s = Parser $ \ _ ee _ _ d bs -> ee $ failed ("unexpected " ++ s) d
   {-# INLINE unexpected #-}
   eof = notFollowedBy anyChar <?> "end of input"
   {-# INLINE eof #-}
@@ -233,10 +221,10 @@ instance Parsing Parser where
   {-# INLINE notFollowedBy #-}
 
 addDescription desc (Parser m) = Parser $ \ eo ee ->
-  let err e = e { _expected = Set.singleton desc }
+  let err e = e { errExpected = errExpected e <> Set.singleton desc }
   in m
-   (\a e -> eo a (if isJust (_reason e) then err e else e))
-   (\e -> ee $ err e)
+   (\a e -> eo a $ err e)
+   (\e   -> ee $ err e)
 {-# INLINE addDescription #-}
 
 instance Errable Parser where
@@ -250,9 +238,9 @@ instance LookAheadParsing Parser where
 instance CharParsing Parser where
   satisfy f = Parser $ \ _ ee co _ d bs ->
     case UTF8.uncons $ Strict.drop (fromIntegral (columnByte d)) bs of
-      Nothing        -> ee (failed "unexpected EOF" d bs)
+      Nothing -> ee (failed "unexpected EOF" d)
       Just (c, xs)
-        | not (f c)       -> ee mempty
+        | not (f c)       -> ee (mempty { errDelta = d <> delta c })
         | Strict.null xs  -> let !ddc = d <> delta c
                              in join $ fillIt (co c mempty ddc (if c == '\n' then mempty else bs))
                                               (co c mempty)
@@ -276,6 +264,9 @@ instance DeltaParsing Parser where
     f a <$> liftIt (sliceIt m r)
   {-# INLINE slicedWith #-}
 
+getSlice startDelta endDelta = liftIt (sliceIt startDelta endDelta)
+{-# INLINE getSlice #-}
+
 instance MarkParsing Delta Parser where
   mark = position
   {-# INLINE mark #-}
@@ -291,7 +282,7 @@ instance MarkParsing Delta Parser where
 
 data Step a
   = StepDone !Rope a
-  | StepFail !Rope Err
+  | StepFail !Rope SyntaxError
   | StepCont !Rope (Result a) (Rope -> Step a)
 
 instance Show a => Show (Step a) where
@@ -331,10 +322,10 @@ stepIt = go mempty where
 {-# INLINE stepIt #-}
 
 data Stepping a
-  = EO a Err
-  | EE Err
+  = EO a SyntaxError
+  | EE SyntaxError
   | CO a (Set ParserDescription) Delta ByteString
-  | CE Err
+  | CE SyntaxError
 
 stepParser :: Parser a -> Delta -> ByteString -> Step a
 stepParser (Parser p) d0 bs0 = go mempty $ p eo ee co ce d0 bs0 where
@@ -343,16 +334,12 @@ stepParser (Parser p) d0 bs0 = go mempty $ p eo ee co ce d0 bs0 where
   co a es d bs = Pure (CO a es d bs)
   ce errInf    = Pure (CE errInf)
   go r (Pure (EO a _))     = StepDone r a
-  go r (Pure (EE e))       = StepFail r $ e { _errDelta = Just d0, _errByteString = Just bs0 }
+  go r (Pure (EE e))       = StepFail r e
   go r (Pure (CO a _ _ _)) = StepDone r a
   go r (Pure (CE d))       = StepFail r d
   go r (It ma k)           = StepCont r (case ma of
                                 EO a _     -> Success a
-                                EE e       -> Failure $
-                                  e { _errDelta      = Just d0
-                                    , _errByteString = Just bs0
-                                    , _finalDeltas   = d0 : _finalDeltas e
-                                    }
+                                EE e       -> Failure e
                                 CO a _ _ _ -> Success a
                                 CE d       -> Failure d
                               ) (go <*> k)

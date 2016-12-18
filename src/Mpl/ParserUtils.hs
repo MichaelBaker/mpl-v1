@@ -1,11 +1,12 @@
-module Mpl.ParsingUtils
-  ( module Mpl.ParsingUtils
+module Mpl.ParserUtils
+  ( module Mpl.ParserUtils
   , Text
   , Result(Success, Failure)
   , Parser
   , ParserDescription(..)
-  , ParserSuggestion(..)
-  , Err(..)
+  , SyntaxError(..)
+  , SpecificError(..)
+  , Delta
   , (<|>)
   , many
   , some
@@ -19,27 +20,29 @@ module Mpl.ParsingUtils
   , notFollowedBy
   , char
   , lookAhead
+  , position
   )
 where
 
 import Control.Applicative        ((<|>), many, some)
 import Control.Monad.Trans.Reader (ReaderT, runReaderT, mapReaderT, asks, local)
+import Control.Monad.Trans.Class  (lift)
 import Data.Functor.Foldable      (Base)
 import Data.Semigroup.Reducer     (Reducer, snoc)
 import Data.Text                  (Text, pack, unpack)
-import Mpl.Annotation             (Annotated, Cofree((:<)))
-import Mpl.ParserDescription      (ParserDescription(..), ParserSuggestion(..))
-import Mpl.ParserResult           (Result(Success, Failure), Err(..))
-import Mpl.Parser                 (Parser(..), mapError, parseString, addDescription)
-import Mpl.Utils                  (textToString, stringToText)
-import Prelude                    (Show, Maybe(..), (++), (.), ($), (<*>), (*>), Integer, String, return, mempty)
+import Mpl.Annotation             (Annotated, Cofree((:<)), annotation)
+import Mpl.ParserDescription      (ParserDescription(..))
+import Mpl.ParserResult           (Result(Success, Failure), SyntaxError(..), SpecificError(..), raiseErr)
+import Mpl.Parser                 (Parser(..), captureError, parseString, addDescription, getSlice)
+import Mpl.Utils                  (textToString, stringToText, byteStringToString, byteStringSlice, byteStringToText)
+import Prelude                    (Show, Maybe(..), Either(..), (++), (.), ($), (<*>), (*>), Integer, String, show, fromIntegral, return, mempty)
 import Text.Parser.Char           (oneOf, char)
 import Text.Parser.Combinators    (try, optional, notFollowedBy)
 import Text.Parser.LookAhead      (lookAhead)
 import Text.Parser.Token          (whiteSpace, parens, symbolic, symbol)
-import Text.Trifecta.Combinators  (MarkParsing(release), spanned)
-import Text.Trifecta.Delta        (Delta(Columns))
-import Text.Trifecta.Rendering    (Span, Spanned((:~)))
+import Text.Trifecta.Combinators  (MarkParsing(release), spanned, position, line)
+import Text.Trifecta.Delta        (Delta(Columns), column, rewind, columnByte)
+import Text.Trifecta.Rendering    (Span(..), Spanned((:~)))
 import Text.Trifecta.Rope
 import Text.Trifecta.Util.It
 
@@ -90,20 +93,48 @@ annotate name examples parser = do
     case result of
       value :~ span -> return (span :< value)
 
+originalByteString annotatedElement =
+  case annotation annotatedElement of
+    Span startDelta endDelta  byteString ->
+      let startChar = fromIntegral $ column startDelta
+          endChar   = fromIntegral $ column endDelta
+      in byteStringSlice startChar endChar byteString
+
+originalString = byteStringToString . originalByteString
+
 setDescription description env = env { currentDescription = Just description }
 
-infixr 5 !>
-parser !> handle = do
+data ErrorParts =
+  ErrorParts
+    { outerPrefix :: Text
+    , innerPrefix :: Text
+    , innerSuffix :: Text
+    , outerSuffix :: Text
+    }
+
+handleError startDelta handler parser = do
   maybeDescription <- asks currentDescription
   case maybeDescription of
     Nothing ->
       parser
-    Just description ->
-      mapReaderT (`mapError` handle description) parser
-
-parser !?> handle = do
-  description <- asks currentDescription
-  mapReaderT (`mapError` handle description) parser
+    Just description -> do
+      innerPosition <- position
+      result        <- mapReaderT captureError parser
+      case result of
+        Right value -> return value
+        Left  capturedError -> lift $ do
+          let endDelta = errDelta capturedError
+          currentLine <- line
+          outerPrefix <- getSlice (rewind startDelta) startDelta
+          innerPrefix <- getSlice startDelta innerPosition
+          innerSuffix <- getSlice innerPosition endDelta
+          let outerSuffix = BS.drop (fromIntegral $ columnByte endDelta) currentLine
+          let errorParts = ErrorParts
+                (byteStringToText outerPrefix)
+                (byteStringToText innerPrefix)
+                (byteStringToText innerSuffix)
+                (byteStringToText outerSuffix)
+          raiseErr (handler errorParts description capturedError)
 
 makeInt int = do
   constructor <- asks (consInt . syntaxConstructors)
