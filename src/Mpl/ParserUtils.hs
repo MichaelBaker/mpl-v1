@@ -12,15 +12,17 @@ module Mpl.ParserUtils
   , some
   , oneOf
   , whiteSpace
+  , sepEndBy1
+  , someSpace
   , try
   , parens
-  , symbolic
   , optional
   , symbol
   , notFollowedBy
   , char
   , lookAhead
   , position
+  , fileEnd
   )
 where
 
@@ -37,9 +39,9 @@ import Mpl.Parser                 (Parser(..), captureError, parseString, addDes
 import Mpl.Utils                  (textToString, stringToText, byteStringToString, byteStringSlice, byteStringToText)
 import Prelude                    (Show, Maybe(..), Either(..), (++), (.), ($), (<*>), (*>), Integer, String, show, fromIntegral, return, mempty)
 import Text.Parser.Char           (oneOf, char)
-import Text.Parser.Combinators    (try, optional, notFollowedBy)
+import Text.Parser.Combinators    (Parsing, try, optional, notFollowedBy, sepEndBy1, between, eof)
 import Text.Parser.LookAhead      (lookAhead)
-import Text.Parser.Token          (whiteSpace, parens, symbolic, symbol)
+import Text.Parser.Token          (TokenParsing, whiteSpace, symbolic, symbol, someSpace)
 import Text.Trifecta.Combinators  (MarkParsing(release), spanned, position, line)
 import Text.Trifecta.Delta        (Delta(Columns), column, rewind, columnByte)
 import Text.Trifecta.Rendering    (Span(..), Spanned((:~)))
@@ -99,6 +101,9 @@ originalByteString annotatedElement =
       let startChar = fromIntegral $ column startDelta
           endChar   = fromIntegral $ column endDelta
       in byteStringSlice startChar endChar byteString
+
+parens :: TokenParsing m => m a -> m a
+parens = between (symbolic '(') (char ')')
 
 originalString = byteStringToString . originalByteString
 
@@ -175,3 +180,6 @@ upcaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 symbolChars = symbolStartChars ++ digits
 
 digits = "0123456789"
+
+fileEnd :: (TokenParsing m, Parsing m) => m ()
+fileEnd = eof <|> (someSpace *> eof)

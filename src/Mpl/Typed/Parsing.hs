@@ -24,11 +24,11 @@ import Mpl.ParserUtils
   , many
   , oneOf
   , whiteSpace
-  , symbolic
   , optional
   , upcaseChars
   , symbolChars
   , lookAhead
+  , char
   )
 
 import Mpl.Utils
@@ -55,7 +55,7 @@ syntaxConstructors =
 
 parseTypeAnnotation parseExpression = do
   expression <- parseExpression
-  annotation <- lookAhead (optional $ symbolic ':')
+  annotation <- lookAhead (optional $ char ':')
   case annotation of
     Nothing  -> return expression
     Just _   ->
@@ -63,7 +63,7 @@ parseTypeAnnotation parseExpression = do
         "Type annotation"
         ["a: Integer", "123 : Integer"]
         (do
-          symbolic ':'
+          char ':'
           whiteSpace
           annotation <- parseType
           return $ typeAnnotation expression annotation)

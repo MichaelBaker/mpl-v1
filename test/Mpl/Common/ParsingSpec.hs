@@ -123,4 +123,3 @@ spec = do
           , leftAssociative (symbol "+")
           , int 3
           ])
-

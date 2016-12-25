@@ -28,17 +28,19 @@ import Mpl.ParserUtils
   , some
   , oneOf
   , whiteSpace
+  , someSpace
+  , sepEndBy1
   , try
   , parens
   , symbolChars
   , symbolStartChars
-  , symbolic
   , symbol
   , notFollowedBy
   , optional
   , digits
   , char
   , lookAhead
+  , fileEnd
   )
 
 import Data.Function ((&))
@@ -58,7 +60,7 @@ import Mpl.Utils
 import Data.List (intercalate)
 
 commonParser :: (Parsable f) => MplParser f
-commonParser = parseApplicationOrExpression
+commonParser = parseApplicationOrExpression <* fileEnd
 
 parseExpression :: (Parsable f) => MplParser f
 parseExpression = makeExpression (parseAssociative parseFlatExpression) <|> (parseAssociative $ parens parseApplicationOrExpression)
@@ -77,11 +79,10 @@ parseLeftAssociative parser =
     "left associative expression"
     ["`x", "`#(a = a + 1)"]
     (do
-      symbolic '`'
-      notFollowedBy (symbolic '`')
+      char '`'
+      notFollowedBy (char '`')
       item <- parser
-      notFollowedBy (symbolic '`')
-      whiteSpace
+      notFollowedBy (char '`')
       makeLeftAssociative item)
 
 parseMaybeRightAssociative :: (Parsable f) => MplParser f -> MplParser f
@@ -89,14 +90,13 @@ parseMaybeRightAssociative parser = do
   item <- parser
   hasBacktick <- lookAhead (optional $ char '`')
   case hasBacktick of
-    Nothing -> whiteSpace >> return item
+    Nothing -> return item
     Just _  ->
       annotate
         "right associative expression"
         ["x`", "#(a = a + 1)`"]
         (do
-          backticks <- many (symbolic '`')
-          whiteSpace
+          backticks <- many (char '`')
           if length backticks > 1
             then fail ("A right associative expression has the form x`, not x" ++ backticks)
             else makeRightAssociative item)
@@ -137,10 +137,13 @@ parseFunction =
     (do
       startDelta <- position
       symbol "#("
-      parameters <- (some $ parseSymbol <* whiteSpace)
-      symbolic '='                         & handleError startDelta (missingEqual parameters)
+      whiteSpace
+      parameters <- sepEndBy1 parseSymbol someSpace
+      char '='                             & handleError startDelta (missingEqual parameters)
+      whiteSpace
       body <- parseApplicationOrExpression & handleError startDelta (invalidBody  parameters)
-      symbolic ')'                         & handleError startDelta invalidParen
+      whiteSpace
+      char ')'                             & handleError startDelta invalidParen
       makeFunction parameters body)
   where missingEqual :: [Parsed a] -> ErrorParts -> ParserDescription -> SyntaxError -> SyntaxError
         missingEqual params parts parentDescription error =
@@ -213,5 +216,6 @@ parseApplication =
     ["f 1", "#(a = a + 1) 1"]
     (do
       function  <- parseExpression
-      arguments <- some parseExpression
+      someSpace
+      arguments <- sepEndBy1 parseExpression someSpace
       makeApplication function arguments)

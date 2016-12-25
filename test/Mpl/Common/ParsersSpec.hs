@@ -41,5 +41,5 @@ spec = do
           ("#(a = a" <~> suggestedAddition_ ")")
           ("#(a = a" <~> problem_ ""))
 
-    -- it "explains the rules of symbols" $ do
-    --   "0a" `errorsWith`
+    it "explains the rules of symbols" $ do
+      "0a" `errorsWith` "whoops"
