@@ -27,6 +27,7 @@ import Mpl.ParserUtils
   , many
   , some
   , oneOf
+  , noneOf
   , whiteSpace
   , someSpace
   , sepEndBy1
@@ -149,16 +150,16 @@ parseFunction =
         missingEqual params parts parentDescription error =
           let addition      = suggestedAddition $ " = " ++ (originalString $ head params)
               customExample =
-                    renderText (outerPrefix parts)
-                <~> renderText (innerPrefix parts)
+                    toDoc (outerPrefix parts)
+                <~> toDoc (innerPrefix parts)
                 <~> addition
-                <~> renderText (innerSuffix parts)
-                <~> renderText (outerSuffix parts)
+                <~> toDoc (innerSuffix parts)
+                <~> toDoc (outerSuffix parts)
               original =
-                    renderText (outerPrefix parts)
-                <~> renderText (innerPrefix parts)
+                    toDoc (outerPrefix parts)
+                <~> toDoc (innerPrefix parts)
                 <~> problem    (innerSuffix parts)
-                <~> renderText (outerSuffix parts)
+                <~> toDoc (outerSuffix parts)
               specificError    =
                 SuggestionError
                   (P.text $ name parentDescription)
@@ -170,16 +171,16 @@ parseFunction =
         invalidBody params parts parentDescription error =
           let addition      = " " <~> suggestedAddition (originalString $ head params)
               customExample =
-                    renderText (outerPrefix parts)
-                <~> renderText (innerPrefix parts)
+                    toDoc (outerPrefix parts)
+                <~> toDoc (innerPrefix parts)
                 <~> addition
-                <~> renderText (innerSuffix parts)
-                <~> renderText (outerSuffix parts)
+                <~> toDoc (innerSuffix parts)
+                <~> toDoc (outerSuffix parts)
               original =
-                    renderText (outerPrefix parts)
-                <~> renderText (innerPrefix parts)
+                    toDoc (outerPrefix parts)
+                <~> toDoc (innerPrefix parts)
                 <~> problem    (innerSuffix parts)
-                <~> renderText (outerSuffix parts)
+                <~> toDoc (outerSuffix parts)
               specificError    =
                 SuggestionError
                   (P.text $ name parentDescription)
@@ -191,16 +192,16 @@ parseFunction =
         invalidParen parts parentDescription error =
           let addition      = suggestedAddition_ ")"
               customExample =
-                    renderText (outerPrefix parts)
-                <~> renderText (innerPrefix parts)
+                    toDoc (outerPrefix parts)
+                <~> toDoc (innerPrefix parts)
                 <~> addition
-                <~> renderText (innerSuffix parts)
-                <~> renderText (outerSuffix parts)
+                <~> toDoc (innerSuffix parts)
+                <~> toDoc (outerSuffix parts)
               original =
-                    renderText (outerPrefix parts)
-                <~> renderText (innerPrefix parts)
+                    toDoc (outerPrefix parts)
+                <~> toDoc (innerPrefix parts)
                 <~> problem    (innerSuffix parts)
-                <~> renderText (outerSuffix parts)
+                <~> toDoc (outerSuffix parts)
               specificError    =
                 SuggestionError
                   (P.text $ name parentDescription)

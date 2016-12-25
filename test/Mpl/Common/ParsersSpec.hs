@@ -3,9 +3,10 @@ module Mpl.Common.ParsersSpec where
 import Data.Functor.Foldable  (Fix(..))
 import Data.List              (intercalate)
 import Mpl.Common.Parsing     (parseExpressionText)
+import Mpl.ParserDescription  (ParserDescription(..))
 import Mpl.ParserResult       (SpecificError(..))
 import Mpl.Rendering
-import Mpl.SyntaxErrorMessage (errorSuggestion)
+import Mpl.SyntaxErrorMessage (errorSuggestion, errorParserDescription)
 import TestUtils              (describe, it, shouldBe, mkParserErrorsWith)
 
 import qualified Mpl.Common.Syntax as S
@@ -42,4 +43,11 @@ spec = do
           ("#(a = a" <~> problem_ ""))
 
     it "explains the rules of symbols" $ do
-      "0a" `errorsWith` "whoops"
+      "0a" `errorsWith`
+        (errorParserDescription $
+          ParserDescriptionError
+            ("0" <~> problem_ "a")
+            (RichDescription
+              { name     = "integer"
+              , examples = ["123", "0123", "-00000123"]
+              }))

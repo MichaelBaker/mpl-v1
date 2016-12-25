@@ -4,6 +4,7 @@ module Mpl.Utils
   , Annotated
   , Fix(..)
   , Cofree((:<))
+  , UTF8.ByteString
   , textToString
   , stringToText
   , lazyTextToString
@@ -22,7 +23,7 @@ import GHC.Generics               (Generic)
 import Language.JavaScript.Parser (renderToText)
 
 import qualified Data.ByteString.UTF8 as UTF8
-import qualified Data.Text.Lazy as LT
+import qualified Data.Text.Lazy       as LT
 
 textToString       = unpack
 stringToText       = pack

@@ -11,6 +11,7 @@ module Mpl.ParserUtils
   , many
   , some
   , oneOf
+  , noneOf
   , whiteSpace
   , sepEndBy1
   , someSpace
@@ -26,25 +27,26 @@ module Mpl.ParserUtils
   )
 where
 
-import Control.Applicative        ((<|>), many, some)
-import Control.Monad.Trans.Reader (ReaderT, runReaderT, mapReaderT, asks, local)
-import Control.Monad.Trans.Class  (lift)
-import Data.Functor.Foldable      (Base)
-import Data.Semigroup.Reducer     (Reducer, snoc)
-import Data.Text                  (Text, pack, unpack)
-import Mpl.Annotation             (Annotated, Cofree((:<)), annotation)
-import Mpl.ParserDescription      (ParserDescription(..))
-import Mpl.ParserResult           (Result(Success, Failure), SyntaxError(..), SpecificError(..), raiseErr)
-import Mpl.Parser                 (Parser(..), captureError, parseString, addDescription, getSlice)
-import Mpl.Utils                  (textToString, stringToText, byteStringToString, byteStringSlice, byteStringToText)
-import Prelude                    (Show, Maybe(..), Either(..), (++), (.), ($), (<*>), (*>), Integer, String, show, fromIntegral, return, mempty)
-import Text.Parser.Char           (oneOf, char)
-import Text.Parser.Combinators    (Parsing, try, optional, notFollowedBy, sepEndBy1, between, eof)
-import Text.Parser.LookAhead      (lookAhead)
-import Text.Parser.Token          (TokenParsing, whiteSpace, symbolic, symbol, someSpace)
-import Text.Trifecta.Combinators  (MarkParsing(release), spanned, position, line)
-import Text.Trifecta.Delta        (Delta(Columns), column, rewind, columnByte)
-import Text.Trifecta.Rendering    (Span(..), Spanned((:~)))
+import Control.Applicative              ((<|>), many, some)
+import Control.Monad.Trans.Class        (lift)
+import Control.Monad.Trans.State.Strict (StateT, evalStateT, gets, get, modify')
+import Data.Functor.Foldable            (Base)
+import Data.Semigroup.Reducer           (Reducer, snoc)
+import Data.Text                        (Text, pack, unpack)
+import Mpl.Annotation                   (Annotated, Cofree((:<)), annotation)
+import Mpl.Parser                       (Parser(..), captureError, captureCommittedError, raiseCommitedError, parseString, addDescription, getSlice)
+import Mpl.ParserDescription            (ParserDescription(..))
+import Mpl.ParserResult                 (Result(Success, Failure), SyntaxError(..), SpecificError(..), raiseErr)
+import Mpl.Rendering
+import Mpl.Utils                        (ByteString, textToString, stringToText, byteStringToString, byteStringSlice, byteStringToText)
+import Prelude                          (Show, Maybe(..), Either(..), (++), (.), ($), (<*>), (*>), Integer, String, show, fromIntegral, return, mempty)
+import Text.Parser.Char                 (noneOf, oneOf, char)
+import Text.Parser.Combinators          (Parsing, try, optional, notFollowedBy, sepEndBy1, between, eof)
+import Text.Parser.LookAhead            (lookAhead)
+import Text.Parser.Token                (TokenParsing, whiteSpace, symbolic, symbol, someSpace)
+import Text.Trifecta.Combinators        (MarkParsing(release), spanned, position, line)
+import Text.Trifecta.Delta              (Delta(Columns), column, rewind, columnByte)
+import Text.Trifecta.Rendering          (Span(..), Spanned((:~)))
 import Text.Trifecta.Rope
 import Text.Trifecta.Util.It
 
@@ -52,9 +54,9 @@ import qualified Data.ByteString as BS
 import qualified Data.Set        as Set
 
 type MplParser f        = MplGenericParser (Parsed f)
-type MplGenericParser f = ReaderT (ParsingContext f) Parser f
-type MplAnnotatable f   = ReaderT (ParsingContext (Parsed f)) Parser (f (Parsed f))
-type Parsed f           = Annotated f Span
+type MplGenericParser f = StateT (ParsingContext f) Parser f
+type MplAnnotatable f   = StateT (ParsingContext (Parsed f)) Parser (f (Parsed f))
+type Parsed f           = Annotated f SourceSpan
 type Parsable f         = (Show (f (Parsed f)))
 
 data ParsingContext a =
@@ -74,9 +76,17 @@ data SyntaxConstructors f =
     , consRightAssociative :: f -> Base f f
     }
 
+data SourceSpan =
+  SourceSpan
+    { startDelta :: Delta
+    , startLine  :: ByteString
+    , endDelta   :: Delta
+    }
+  deriving (Show)
+
 parseFromString :: SyntaxConstructors a -> MplGenericParser a -> String -> Result a
 parseFromString syntaxConstructors mplParser = parseString parser zeroDelta
-  where parser         = runReaderT mplParser parsingContext
+  where parser         = evalStateT mplParser parsingContext
         parsingContext =
           ParsingContext
             { syntaxConstructors = syntaxConstructors
@@ -90,14 +100,39 @@ annotate name examples parser = do
           { name     = name
           , examples = examples
           }
-  local (setDescription description) $ do
-    result <- spanned (mapReaderT (addDescription description) parser)
+  oldDescription <- gets currentDescription
+  modify' (setDescription description)
+
+  startDelta   <- position
+  startLine    <- line
+  currentState <- get
+  let newParser = evalStateT parser currentState
+  result       <- lift $ addDescription description $ captureCommittedError newParser
+  endDelta     <- position
+
+  result <-
     case result of
-      value :~ span -> return (span :< value)
+      Right value -> do
+          return (SourceSpan startDelta startLine endDelta :< value)
+      Left error ->
+        lift $ case errSpecific error of
+          SuggestionError {}        -> raiseCommitedError error
+          ParserDescriptionError {} -> raiseCommitedError error
+          _ -> do
+            let endDelta = errDelta error
+            currentLine <- line
+            lineStart   <- getSlice (rewind startDelta) startDelta
+            errorPart   <- getSlice startDelta endDelta
+            let restOfLine = BS.drop (fromIntegral $ columnByte endDelta) currentLine
+            let code = toDoc lineStart <~> problem errorPart <~> toDoc restOfLine
+            raiseCommitedError $ error { errSpecific = ParserDescriptionError code description}
+
+  modify' (\c -> c { currentDescription = oldDescription })
+  return result
 
 originalByteString annotatedElement =
   case annotation annotatedElement of
-    Span startDelta endDelta  byteString ->
+    SourceSpan startDelta byteString endDelta ->
       let startChar = fromIntegral $ column startDelta
           endChar   = fromIntegral $ column endDelta
       in byteStringSlice startChar endChar byteString
@@ -118,13 +153,15 @@ data ErrorParts =
     }
 
 handleError startDelta handler parser = do
-  maybeDescription <- asks currentDescription
+  maybeDescription <- gets currentDescription
   case maybeDescription of
     Nothing ->
       parser
     Just description -> do
       innerPosition <- position
-      result        <- mapReaderT captureError parser
+      currentState  <- get
+      let newParser = evalStateT parser currentState
+      result <- lift $ captureError newParser
       case result of
         Right value -> return value
         Left  capturedError -> lift $ do
@@ -142,31 +179,31 @@ handleError startDelta handler parser = do
           raiseErr (handler errorParts description capturedError)
 
 makeInt int = do
-  constructor <- asks (consInt . syntaxConstructors)
+  constructor <- gets (consInt . syntaxConstructors)
   return (constructor int)
 
 makeSymbol text = do
-  constructor <- asks (consSymbol . syntaxConstructors)
+  constructor <- gets (consSymbol . syntaxConstructors)
   return (constructor text)
 
 makeFunction parameters body = do
-  constructor <- asks (consFunction . syntaxConstructors)
+  constructor <- gets (consFunction . syntaxConstructors)
   return (constructor parameters body)
 
 makeApplication function arguments = do
-  constructor <- asks (consApplication . syntaxConstructors)
+  constructor <- gets (consApplication . syntaxConstructors)
   return (constructor function arguments)
 
 makeExpression flatExpression = do
-  constructor <- asks (consExpression . syntaxConstructors)
+  constructor <- gets (consExpression . syntaxConstructors)
   constructor flatExpression
 
 makeLeftAssociative expression = do
-  constructor <- asks (consLeftAssociative . syntaxConstructors)
+  constructor <- gets (consLeftAssociative . syntaxConstructors)
   return (constructor expression)
 
 makeRightAssociative expression = do
-  constructor <- asks (consRightAssociative . syntaxConstructors)
+  constructor <- gets (consRightAssociative . syntaxConstructors)
   return (constructor expression)
 
 zeroDelta = Columns 0 0

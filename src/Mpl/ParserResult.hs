@@ -64,13 +64,14 @@ data SpecificError =
     NoError
   | BasicError
       String -- Error Message
+  | ParserDescriptionError
+      Doc -- Original Code
+      ParserDescription
   | SuggestionError
       Doc -- Item Name
       Doc -- Expectation
       Doc -- Example
       Doc -- Original Code
-  | ParserDescriptionError
-      ParserDescription
   deriving (Show)
 
 failed :: String -> Delta -> SyntaxError

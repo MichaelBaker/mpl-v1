@@ -29,6 +29,8 @@ module Mpl.Parser
   , manyAccum
   , Step(..)
   , captureError
+  , captureCommittedError
+  , raiseCommitedError
   , feed
   , starve
   , stepParser
@@ -184,6 +186,16 @@ captureError (Parser m) = Parser $ \ eo ee co ce d bs ->
     bs
 {-# INLINE captureError #-}
 
+captureCommittedError (Parser m) = Parser $ \ eo ee co ce d bs ->
+  m
+    (\a e -> eo (Right a) e)
+    ee
+    (\a   -> co (Right a))
+    (\e   -> eo (Left e) e)
+    d
+    bs
+{-# INLINE captureCommittedError #-}
+
 instance MonadPlus Parser where
   mzero = empty
   {-# INLINE mzero #-}
@@ -220,16 +232,21 @@ instance Parsing Parser where
   notFollowedBy p = try (optional p >>= maybe (pure ()) (unexpected . show))
   {-# INLINE notFollowedBy #-}
 
-addDescription desc (Parser m) = Parser $ \ eo ee ->
+addDescription desc (Parser m) = Parser $ \ eo ee co ce ->
   let err e = e { errExpected = errExpected e <> Set.singleton desc }
   in m
-   (\a e -> eo a $ err e)
-   (\e   -> ee $ err e)
+    eo
+    (\e -> ee $ err e)
+    co
+    (\e -> ce $ err e)
 {-# INLINE addDescription #-}
 
 instance Errable Parser where
   raiseErr e = Parser $ \ _ ee _ _ _ _ -> ee e
   {-# INLINE raiseErr #-}
+
+raiseCommitedError e = Parser $ \ _ _ _ ce _ _ -> ce e
+{-# INLINE raiseCommitedError #-}
 
 instance LookAheadParsing Parser where
   lookAhead (Parser m) = Parser $ \eo ee _ -> m eo ee (\a _ _ _ -> eo a mempty)

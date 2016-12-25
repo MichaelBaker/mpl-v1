@@ -1,6 +1,7 @@
 module Mpl.Rendering
   ( module Mpl.Rendering
   , hardline
+  , toDoc
   )
   where
 
@@ -8,6 +9,8 @@ import Mpl.Utils
 import Text.PrettyPrint.ANSI.Leijen as P
 
 (<~>) = (<>)
+
+stack = vsep
 
 indent = P.indent 2
 
@@ -29,11 +32,14 @@ callout_ = underline
 
 blankLine = hardline <~> hardline
 
-renderByteString = text . byteStringToString
-renderText       = text . textToString
+toDoc :: (Pretty a) => a -> Doc
+toDoc = pretty
 
 render :: (Show a) => a -> String
 render = show
 
 instance Pretty Text where
-  pretty = renderText
+  pretty = pretty . textToString
+
+instance Pretty ByteString where
+  pretty = pretty . byteStringToString
