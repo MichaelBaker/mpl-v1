@@ -1,7 +1,6 @@
 module Mpl.Rendering
   ( module Mpl.Rendering
   , hardline
-  , toDoc
   )
   where
 

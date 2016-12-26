@@ -9,28 +9,10 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE TemplateHaskell #-}
 
------------------------------------------------------------------------------
--- This is a customized version of the Trifecta parser, but I feel compelled
--- to retain the original Copyright statement as a recognition that it is
--- almost entirely copied from the original.
---
--- |
--- Copyright   :  (c) Edward Kmett 2011-2015
--- License     :  BSD3
---
--- Maintainer  :  ekmett@gmail.com
--- Stability   :  experimental
--- Portability :  non-portable
---
------------------------------------------------------------------------------
-
 module Mpl.Parser
   ( Parser(..)
   , manyAccum
   , Step(..)
-  , captureError
-  , captureCommittedError
-  , raiseCommitedError
   , feed
   , starve
   , stepParser
@@ -41,8 +23,6 @@ module Mpl.Parser
   , parseString
   , parseByteString
   , parseTest
-  , addDescription
-  , getSlice
   ) where
 
 import Control.Applicative as Alternative
@@ -54,17 +34,17 @@ import Data.Maybe (isJust)
 import Data.Semigroup
 import Data.Semigroup.Reducer
 import Data.Set as Set hiding (empty, toList)
-import Mpl.ParserResult
-import Mpl.ParserDescription
 import System.IO
-import Text.Parser.Char
 import Text.Parser.Combinators
+import Text.Parser.Char
 import Text.Parser.LookAhead
 import Text.Parser.Token
+import Text.PrettyPrint.ANSI.Leijen as Pretty hiding (line, (<>), (<$>), empty)
 import Text.Trifecta.Combinators
-import Text.Trifecta.Delta as Delta
 import Text.Trifecta.Rendering
+import Text.Trifecta.Result
 import Text.Trifecta.Rope
+import Text.Trifecta.Delta as Delta
 import Text.Trifecta.Util.It
 
 -- | The type of a trifecta parser
@@ -72,11 +52,11 @@ import Text.Trifecta.Util.It
 -- The first four arguments are behavior continuations:
 --
 --   * epsilon success: the parser has consumed no input and has a result
---     as well as a possible SyntaxError; the position and chunk are unchanged
+--     as well as a possible Err; the position and chunk are unchanged
 --     (see `pure`)
 --
 --   * epsilon failure: the parser has consumed no input and is failing
---     with the given SyntaxError; the position and chunk are unchanged (see
+--     with the given Err; the position and chunk are unchanged (see
 --     `empty`)
 --
 --   * committed success: the parser has consumed input and is yielding
@@ -85,7 +65,7 @@ import Text.Trifecta.Util.It
 --     continuation.
 --
 --   * committed failure: the parser has consumed input and is failing with
---     a given SyntaxError
+--     a given ErrInfo (user-facing error message)
 --
 -- The remaining two arguments are
 --
@@ -103,10 +83,10 @@ import Text.Trifecta.Util.It
 --
 newtype Parser a = Parser
   { unparser :: forall r.
-    (a -> SyntaxError -> It Rope r) ->
-    (SyntaxError -> It Rope r) ->
-    (a -> Set ParserDescription -> Delta -> ByteString -> It Rope r) -> -- committed success
-    (SyntaxError -> It Rope r) ->                                       -- committed err
+    (a -> Err -> It Rope r) ->
+    (Err -> It Rope r) ->
+    (a -> Set String -> Delta -> ByteString -> It Rope r) -> -- committed success
+    (ErrInfo -> It Rope r) ->                                -- committed err
     Delta -> ByteString -> It Rope r
   }
 
@@ -160,10 +140,14 @@ instance Monad Parser where
          -- (after m), yielding the result from (k a) and merging the
          -- expected sets (i.e. things that could have resulted in a longer
          -- parse)
-         (\b e' -> co b (es <> errExpected e') d' bs')
+         (\b e' -> co b (es <> _expected e') d' bs')
          -- epsilon failure is now a committed failure at the new position
          -- (after m); compute the error to display to the user
-         (\e -> ce $ e { errExpected = errExpected e <> es })
+         (\e ->
+           let errDoc = explain (renderingCaret d' bs') e { _expected = _expected e <> es }
+               errDelta = _finalDeltas e
+           in  ce $ ErrInfo errDoc (d' : errDelta)
+         )
          -- committed behaviors as given; nothing exciting here
          co ce
          -- new position and remaining chunk after m
@@ -173,28 +157,8 @@ instance Monad Parser where
   {-# INLINE (>>=) #-}
   (>>) = (*>)
   {-# INLINE (>>) #-}
-  fail s = Parser $ \ _ ee _ _ d bs -> ee (failed s d)
+  fail s = Parser $ \ _ ee _ _ _ _ -> ee (failed s)
   {-# INLINE fail #-}
-
-captureError (Parser m) = Parser $ \ eo ee co ce d bs ->
-  m
-    (\a e -> eo (Right a) e)
-    (\e   -> eo (Left e) e)
-    (\a   -> co (Right a))
-    (\e   -> eo (Left e) e)
-    d
-    bs
-{-# INLINE captureError #-}
-
-captureCommittedError (Parser m) = Parser $ \ eo ee co ce d bs ->
-  m
-    (\a e -> eo (Right a) e)
-    ee
-    (\a   -> co (Right a))
-    (\e   -> eo (Left e) e)
-    d
-    bs
-{-# INLINE captureCommittedError #-}
 
 instance MonadPlus Parser where
   mzero = empty
@@ -204,13 +168,10 @@ instance MonadPlus Parser where
 
 manyAccum :: (a -> [a] -> [a]) -> Parser a -> Parser [a]
 manyAccum f (Parser p) = Parser $ \eo _ co ce d bs ->
-  let walk xs x es d' bs' = p (manyErr d' es) (\e -> co (f x xs) (errExpected e <> es) d' bs') (walk (f x xs)) ce d' bs'
-      manyErr d' es _ e  =
-        ce $ mempty
-          { errExpected = es
-          , errDelta    = d'
-          }
-  in p (manyErr d mempty) (eo []) (walk []) ce d bs
+  let walk xs x es d' bs' = p (manyErr d' bs') (\e -> co (f x xs) (_expected e <> es) d' bs') (walk (f x xs)) ce d' bs'
+      manyErr d' bs' _ e  = ce (ErrInfo errDoc [d'])
+        where errDoc = explain (renderingCaret d' bs') (e <> failed "'many' applied to a parser that accepted an empty string")
+  in p (manyErr d bs) (eo []) (walk []) ce d bs
 
 liftIt :: It Rope a -> Parser a
 liftIt m = Parser $ \ eo _ _ _ _ _ -> do
@@ -221,32 +182,22 @@ liftIt m = Parser $ \ eo _ _ _ _ _ -> do
 instance Parsing Parser where
   try (Parser m) = Parser $ \ eo ee co _ -> m eo ee co (\_ -> ee mempty)
   {-# INLINE try #-}
-  p <?> nm = addDescription (NameDescription nm) p
+  Parser m <?> nm = Parser $ \ eo ee -> m
+     (\a e -> eo a (if isJust (_reason e) then e { _expected = Set.singleton nm } else e))
+     (\e -> ee e { _expected = Set.singleton nm })
   {-# INLINE (<?>) #-}
   skipMany p = () <$ manyAccum (\_ _ -> []) p
   {-# INLINE skipMany #-}
-  unexpected s = Parser $ \ _ ee _ _ d bs -> ee $ failed ("unexpected " ++ s) d
+  unexpected s = Parser $ \ _ ee _ _ _ _ -> ee $ failed $ "unexpected " ++ s
   {-# INLINE unexpected #-}
   eof = notFollowedBy anyChar <?> "end of input"
   {-# INLINE eof #-}
   notFollowedBy p = try (optional p >>= maybe (pure ()) (unexpected . show))
   {-# INLINE notFollowedBy #-}
 
-addDescription desc (Parser m) = Parser $ \ eo ee co ce ->
-  let err e = e { errExpected = errExpected e <> Set.singleton desc }
-  in m
-    eo
-    (\e -> ee $ err e)
-    co
-    (\e -> ce $ err e)
-{-# INLINE addDescription #-}
-
 instance Errable Parser where
   raiseErr e = Parser $ \ _ ee _ _ _ _ -> ee e
   {-# INLINE raiseErr #-}
-
-raiseCommitedError e = Parser $ \ _ _ _ ce _ _ -> ce e
-{-# INLINE raiseCommitedError #-}
 
 instance LookAheadParsing Parser where
   lookAhead (Parser m) = Parser $ \eo ee _ -> m eo ee (\a _ _ _ -> eo a mempty)
@@ -255,9 +206,9 @@ instance LookAheadParsing Parser where
 instance CharParsing Parser where
   satisfy f = Parser $ \ _ ee co _ d bs ->
     case UTF8.uncons $ Strict.drop (fromIntegral (columnByte d)) bs of
-      Nothing -> ee (failed "unexpected EOF" d)
+      Nothing        -> ee (failed "unexpected EOF")
       Just (c, xs)
-        | not (f c)       -> ee (mempty { errDelta = d <> delta c })
+        | not (f c)       -> ee mempty
         | Strict.null xs  -> let !ddc = d <> delta c
                              in join $ fillIt (co c mempty ddc (if c == '\n' then mempty else bs))
                                               (co c mempty)
@@ -281,9 +232,6 @@ instance DeltaParsing Parser where
     f a <$> liftIt (sliceIt m r)
   {-# INLINE slicedWith #-}
 
-getSlice startDelta endDelta = liftIt (sliceIt startDelta endDelta)
-{-# INLINE getSlice #-}
-
 instance MarkParsing Delta Parser where
   mark = position
   {-# INLINE mark #-}
@@ -299,7 +247,7 @@ instance MarkParsing Delta Parser where
 
 data Step a
   = StepDone !Rope a
-  | StepFail !Rope SyntaxError
+  | StepFail !Rope ErrInfo
   | StepCont !Rope (Result a) (Rope -> Step a)
 
 instance Show a => Show (Step a) where
@@ -339,10 +287,10 @@ stepIt = go mempty where
 {-# INLINE stepIt #-}
 
 data Stepping a
-  = EO a SyntaxError
-  | EE SyntaxError
-  | CO a (Set ParserDescription) Delta ByteString
-  | CE SyntaxError
+  = EO a Err
+  | EE Err
+  | CO a (Set String) Delta ByteString
+  | CE ErrInfo
 
 stepParser :: Parser a -> Delta -> ByteString -> Step a
 stepParser (Parser p) d0 bs0 = go mempty $ p eo ee co ce d0 bs0 where
@@ -351,12 +299,15 @@ stepParser (Parser p) d0 bs0 = go mempty $ p eo ee co ce d0 bs0 where
   co a es d bs = Pure (CO a es d bs)
   ce errInf    = Pure (CE errInf)
   go r (Pure (EO a _))     = StepDone r a
-  go r (Pure (EE e))       = StepFail r e
+  go r (Pure (EE e))       = StepFail r $
+                              let errDoc = explain (renderingCaret d0 bs0) e
+                              in  ErrInfo errDoc (_finalDeltas e)
   go r (Pure (CO a _ _ _)) = StepDone r a
   go r (Pure (CE d))       = StepFail r d
   go r (It ma k)           = StepCont r (case ma of
                                 EO a _     -> Success a
-                                EE e       -> Failure e
+                                EE e       -> Failure $
+                                  ErrInfo (explain (renderingCaret d0 bs0) e) (d0 : _finalDeltas e)
                                 CO a _ _ _ -> Success a
                                 CE d       -> Failure d
                               ) (go <*> k)
@@ -377,7 +328,7 @@ parseFromFile p fn = do
   case result of
    Success a  -> return (Just a)
    Failure xs -> do
-     liftIO $ print xs
+     liftIO $ displayIO stdout $ renderPretty 0.8 80 $ (_errDoc xs) <> linebreak
      return Nothing
 
 -- | @parseFromFileEx p filePath@ runs a parser @p@ on the
@@ -406,5 +357,5 @@ parseString p d inp = starve $ feed inp $ stepParser (release d *> p) mempty mem
 
 parseTest :: (MonadIO m, Show a) => Parser a -> String -> m ()
 parseTest p s = case parseByteString p mempty (UTF8.fromString s) of
-  Failure xs -> liftIO $ print xs
+  Failure xs -> liftIO $ displayIO stdout $ renderPretty 0.8 80 $ (_errDoc xs) <> linebreak -- TODO: retrieve columns
   Success a  -> liftIO (print a)

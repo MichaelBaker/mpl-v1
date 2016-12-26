@@ -7,14 +7,6 @@ import Mpl.ParserUtils
   , MplParser
   , MplAnnotatable
   , Parsable
-  , ParserDescription(..)
-  , SyntaxError(..)
-  , SpecificError(..)
-  , Delta
-  , ErrorParts(..)
-  , handleError
-  , position
-  , originalString
   , makeInt
   , makeSymbol
   , makeFunction
@@ -136,79 +128,15 @@ parseFunction =
     "anonymous function"
     ["#(a = a + 1)", "#(a b f = f a b 3)"]
     (do
-      startDelta <- position
       symbol "#("
       whiteSpace
       parameters <- sepEndBy1 parseSymbol someSpace
-      char '='                             & handleError startDelta (missingEqual parameters)
+      char '='
       whiteSpace
-      body <- parseApplicationOrExpression & handleError startDelta (invalidBody  parameters)
+      body <- parseApplicationOrExpression
       whiteSpace
-      char ')'                             & handleError startDelta invalidParen
+      char ')'
       makeFunction parameters body)
-  where missingEqual :: [Parsed a] -> ErrorParts -> ParserDescription -> SyntaxError -> SyntaxError
-        missingEqual params parts parentDescription error =
-          let addition      = suggestedAddition $ " = " ++ (originalString $ head params)
-              customExample =
-                    toDoc (outerPrefix parts)
-                <~> toDoc (innerPrefix parts)
-                <~> addition
-                <~> toDoc (innerSuffix parts)
-                <~> toDoc (outerSuffix parts)
-              original =
-                    toDoc (outerPrefix parts)
-                <~> toDoc (innerPrefix parts)
-                <~> problem    (innerSuffix parts)
-                <~> toDoc (outerSuffix parts)
-              specificError    =
-                SuggestionError
-                  (P.text $ name parentDescription)
-                  "The parser expected to find an equal sign, but the function just ended."
-                  customExample
-                  original
-          in error { errSpecific = specificError }
-
-        invalidBody params parts parentDescription error =
-          let addition      = " " <~> suggestedAddition (originalString $ head params)
-              customExample =
-                    toDoc (outerPrefix parts)
-                <~> toDoc (innerPrefix parts)
-                <~> addition
-                <~> toDoc (innerSuffix parts)
-                <~> toDoc (outerSuffix parts)
-              original =
-                    toDoc (outerPrefix parts)
-                <~> toDoc (innerPrefix parts)
-                <~> problem    (innerSuffix parts)
-                <~> toDoc (outerSuffix parts)
-              specificError    =
-                SuggestionError
-                  (P.text $ name parentDescription)
-                  "The parser expected to find an expression in the body, but the function just ended."
-                  customExample
-                  original
-          in error { errSpecific = specificError }
-
-        invalidParen parts parentDescription error =
-          let addition      = suggestedAddition_ ")"
-              customExample =
-                    toDoc (outerPrefix parts)
-                <~> toDoc (innerPrefix parts)
-                <~> addition
-                <~> toDoc (innerSuffix parts)
-                <~> toDoc (outerSuffix parts)
-              original =
-                    toDoc (outerPrefix parts)
-                <~> toDoc (innerPrefix parts)
-                <~> problem    (innerSuffix parts)
-                <~> toDoc (outerSuffix parts)
-              specificError    =
-                SuggestionError
-                  (P.text $ name parentDescription)
-                  "The parser expected to find a closing parenthesis after the function body, but there wasn't one."
-                  customExample
-                  original
-          in error { errSpecific = specificError }
 
 parseApplication :: (Parsable f) => MplParser f
 parseApplication =

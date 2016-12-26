@@ -4,8 +4,6 @@ module Mpl.ParserUtils
   , Result(Success, Failure)
   , Parser
   , ParserDescription(..)
-  , SyntaxError(..)
-  , SpecificError(..)
   , Delta
   , (<|>)
   , many
@@ -16,7 +14,6 @@ module Mpl.ParserUtils
   , sepEndBy1
   , someSpace
   , try
-  , parens
   , optional
   , symbol
   , notFollowedBy
@@ -29,14 +26,14 @@ where
 
 import Control.Applicative              ((<|>), many, some)
 import Control.Monad.Trans.Class        (lift)
-import Control.Monad.Trans.State.Strict (StateT, evalStateT, gets, get, modify')
+import Control.Monad.Trans.Reader       (ReaderT, runReaderT, asks)
+import Control.Monad.Trans.State.Strict (get, modify')
 import Data.Functor.Foldable            (Base)
 import Data.Semigroup.Reducer           (Reducer, snoc)
 import Data.Text                        (Text, pack, unpack)
 import Mpl.Annotation                   (Annotated, Cofree((:<)), annotation)
-import Mpl.Parser                       (Parser(..), captureError, captureCommittedError, raiseCommitedError, parseString, addDescription, getSlice)
+import Mpl.Parser                       (Parser(..), parseString)
 import Mpl.ParserDescription            (ParserDescription(..))
-import Mpl.ParserResult                 (Result(Success, Failure), SyntaxError(..), SpecificError(..), raiseErr)
 import Mpl.Rendering
 import Mpl.Utils                        (ByteString, textToString, stringToText, byteStringToString, byteStringSlice, byteStringToText)
 import Prelude                          (Show, Maybe(..), Either(..), (++), (.), ($), (<*>), (*>), Integer, String, show, fromIntegral, return, mempty)
@@ -49,13 +46,14 @@ import Text.Trifecta.Delta              (Delta(Columns), column, rewind, columnB
 import Text.Trifecta.Rendering          (Span(..), Spanned((:~)))
 import Text.Trifecta.Rope
 import Text.Trifecta.Util.It
+import Text.Trifecta.Result
 
 import qualified Data.ByteString as BS
 import qualified Data.Set        as Set
 
 type MplParser f        = MplGenericParser (Parsed f)
-type MplGenericParser f = StateT (ParsingContext f) Parser f
-type MplAnnotatable f   = StateT (ParsingContext (Parsed f)) Parser (f (Parsed f))
+type MplGenericParser f = ReaderT (ParsingContext f) Parser f
+type MplAnnotatable f   = ReaderT (ParsingContext (Parsed f)) Parser (f (Parsed f))
 type Parsed f           = Annotated f SourceSpan
 type Parsable f         = (Show (f (Parsed f)))
 
@@ -86,7 +84,7 @@ data SourceSpan =
 
 parseFromString :: SyntaxConstructors a -> MplGenericParser a -> String -> Result a
 parseFromString syntaxConstructors mplParser = parseString parser zeroDelta
-  where parser         = evalStateT mplParser parsingContext
+  where parser         = runReaderT mplParser parsingContext
         parsingContext =
           ParsingContext
             { syntaxConstructors = syntaxConstructors
@@ -95,115 +93,41 @@ parseFromString syntaxConstructors mplParser = parseString parser zeroDelta
 
 annotate :: String -> [String] -> MplAnnotatable f -> MplParser f
 annotate name examples parser = do
-  let description =
-        RichDescription
-          { name     = name
-          , examples = examples
-          }
-  oldDescription <- gets currentDescription
-  modify' (setDescription description)
-
   startDelta   <- position
   startLine    <- line
-  currentState <- get
-  let newParser = evalStateT parser currentState
-  result       <- lift $ addDescription description $ captureCommittedError newParser
+  result       <- parser
   endDelta     <- position
-
-  result <-
-    case result of
-      Right value -> do
-          return (SourceSpan startDelta startLine endDelta :< value)
-      Left error ->
-        lift $ case errSpecific error of
-          SuggestionError {}        -> raiseCommitedError error
-          ParserDescriptionError {} -> raiseCommitedError error
-          _ -> do
-            let endDelta = errDelta error
-            currentLine <- line
-            lineStart   <- getSlice (rewind startDelta) startDelta
-            errorPart   <- getSlice startDelta endDelta
-            let restOfLine = BS.drop (fromIntegral $ columnByte endDelta) currentLine
-            let code = toDoc lineStart <~> problem errorPart <~> toDoc restOfLine
-            raiseCommitedError $ error { errSpecific = ParserDescriptionError code description}
-
-  modify' (\c -> c { currentDescription = oldDescription })
-  return result
-
-originalByteString annotatedElement =
-  case annotation annotatedElement of
-    SourceSpan startDelta byteString endDelta ->
-      let startChar = fromIntegral $ column startDelta
-          endChar   = fromIntegral $ column endDelta
-      in byteStringSlice startChar endChar byteString
+  return (SourceSpan startDelta startLine endDelta :< result)
 
 parens :: TokenParsing m => m a -> m a
 parens = between (symbolic '(') (char ')')
 
-originalString = byteStringToString . originalByteString
-
-setDescription description env = env { currentDescription = Just description }
-
-data ErrorParts =
-  ErrorParts
-    { outerPrefix :: Text
-    , innerPrefix :: Text
-    , innerSuffix :: Text
-    , outerSuffix :: Text
-    }
-
-handleError startDelta handler parser = do
-  maybeDescription <- gets currentDescription
-  case maybeDescription of
-    Nothing ->
-      parser
-    Just description -> do
-      innerPosition <- position
-      currentState  <- get
-      let newParser = evalStateT parser currentState
-      result <- lift $ captureError newParser
-      case result of
-        Right value -> return value
-        Left  capturedError -> lift $ do
-          let endDelta = errDelta capturedError
-          currentLine <- line
-          outerPrefix <- getSlice (rewind startDelta) startDelta
-          innerPrefix <- getSlice startDelta innerPosition
-          innerSuffix <- getSlice innerPosition endDelta
-          let outerSuffix = BS.drop (fromIntegral $ columnByte endDelta) currentLine
-          let errorParts = ErrorParts
-                (byteStringToText outerPrefix)
-                (byteStringToText innerPrefix)
-                (byteStringToText innerSuffix)
-                (byteStringToText outerSuffix)
-          raiseErr (handler errorParts description capturedError)
-
 makeInt int = do
-  constructor <- gets (consInt . syntaxConstructors)
+  constructor <- asks (consInt . syntaxConstructors)
   return (constructor int)
 
 makeSymbol text = do
-  constructor <- gets (consSymbol . syntaxConstructors)
+  constructor <- asks (consSymbol . syntaxConstructors)
   return (constructor text)
 
 makeFunction parameters body = do
-  constructor <- gets (consFunction . syntaxConstructors)
+  constructor <- asks (consFunction . syntaxConstructors)
   return (constructor parameters body)
 
 makeApplication function arguments = do
-  constructor <- gets (consApplication . syntaxConstructors)
+  constructor <- asks (consApplication . syntaxConstructors)
   return (constructor function arguments)
 
 makeExpression flatExpression = do
-  constructor <- gets (consExpression . syntaxConstructors)
+  constructor <- asks (consExpression . syntaxConstructors)
   constructor flatExpression
 
 makeLeftAssociative expression = do
-  constructor <- gets (consLeftAssociative . syntaxConstructors)
+  constructor <- asks (consLeftAssociative . syntaxConstructors)
   return (constructor expression)
 
 makeRightAssociative expression = do
-  constructor <- gets (consRightAssociative . syntaxConstructors)
+  constructor <- asks (consRightAssociative . syntaxConstructors)
   return (constructor expression)
 
 zeroDelta = Columns 0 0

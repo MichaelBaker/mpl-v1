@@ -26,10 +26,8 @@ library
     Mpl.LLVMUtils,
     Mpl.Parser,
     Mpl.ParserDescription,
-    Mpl.ParserResult,
     Mpl.ParserUtils,
     Mpl.Rendering,
-    Mpl.SyntaxErrorMessage,
     Mpl.Typed.BackendJS,
     Mpl.Typed.Parsing,
     Mpl.Typed.Syntax,
@@ -139,7 +137,6 @@ test-suite mpl-test
   other-modules:
     Mpl.AnnotationSpec,
     Mpl.Common.ParsingSpec,
-    Mpl.Common.ParsersSpec,
     Mpl.Typed.BackendJSSpec,
     Mpl.Typed.ParsingSpec,
     Mpl.Untyped.BackendJSSpec,
