@@ -11,13 +11,12 @@ spec = do
 
   let evalsTo = mkEvalsJSTo config parseExpressionText translateToJS
 
-  describe "BackendJS" $ do
-    it "parses integers" $ do
-      "1" `translatesToJS` "1"
-      "1" `evalsTo` "1"
+  it "parses integers" $ do
+    "1" `translatesToJS` "1"
+    "1" `evalsTo` "1"
 
-    it "parses symbols" $ do
-      "f" `translatesToJS` "f"
+  it "parses symbols" $ do
+    "f" `translatesToJS` "f"
 
-    it "function application" $ do
-      "f 1 2" `translatesToJS` "f(1)(2)"
+  it "function application" $ do
+    "f 1 2" `translatesToJS` "f(1)(2)"

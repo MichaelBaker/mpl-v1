@@ -13,12 +13,12 @@ data Nest r = N (Flat r) deriving (Show, Functor, Generic, Eq, Foldable, Travers
 n = Fix . N
 
 spec = do
-  describe "Annotation" $ do
-    let simpleAst = n A
-    let ast       = n $ B (n A) (n A)
-    let bigAst    = n $ B (n $ B (n A) (n A)) (n $ B (n A) (n A))
-    let numbered  = annotateWithState (0 :: Int) (+ 1)
+  let simpleAst = n A
+  let ast       = n $ B (n A) (n A)
+  let bigAst    = n $ B (n $ B (n A) (n A)) (n $ B (n A) (n A))
+  let numbered  = annotateWithState (0 :: Int) (+ 1)
 
+  describe "annotateWithState" $ do
     it "annotates a simple AST statefully from top to bottom" $ do
       numbered simpleAst `shouldBe` (0 :< N A)
 
@@ -55,12 +55,12 @@ spec = do
       cata countNest (numbered ast)       `shouldBe` cata countNest ast
       cata countNest (numbered bigAst)    `shouldBe` cata countNest bigAst
 
-    describe "envcata" $ do
-      it "makes the annotation available at each step of recursion" $ do
-        let nameNest i (N f)     = nameFlat i f
-            nameFlat i A         = show i
-            nameFlat i (B c1 c2) = "(" ++ show i ++ " " ++ c1 ++ " " ++ c2 ++ ")"
+  describe "envcata" $ do
+    it "makes the annotation available at each step of recursion" $ do
+      let nameNest i (N f)     = nameFlat i f
+          nameFlat i A         = show i
+          nameFlat i (B c1 c2) = "(" ++ show i ++ " " ++ c1 ++ " " ++ c2 ++ ")"
 
-        envcata nameNest (numbered simpleAst) `shouldBe` "0"
-        envcata nameNest (numbered ast)       `shouldBe` "(0 1 2)"
-        envcata nameNest (numbered bigAst)    `shouldBe` "(0 (1 2 3) (4 5 6))"
+      envcata nameNest (numbered simpleAst) `shouldBe` "0"
+      envcata nameNest (numbered ast)       `shouldBe` "(0 1 2)"
+      envcata nameNest (numbered bigAst)    `shouldBe` "(0 (1 2 3) (4 5 6))"

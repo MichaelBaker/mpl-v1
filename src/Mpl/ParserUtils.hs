@@ -1,7 +1,6 @@
 module Mpl.ParserUtils
   ( module Mpl.ParserUtils
   , Text
-  , Result(Success, Failure)
   , Parser
   , ParserDescription(..)
   , Delta
@@ -20,42 +19,50 @@ module Mpl.ParserUtils
   , char
   , lookAhead
   , position
-  , fileEnd
   )
 where
 
 import Control.Applicative              ((<|>), many, some)
 import Control.Monad.Trans.Class        (lift)
-import Control.Monad.Trans.Reader       (ReaderT, runReaderT, asks)
-import Control.Monad.Trans.State.Strict (get, modify')
+import Control.Monad.Trans.Reader       (ReaderT, runReaderT, mapReaderT, asks)
 import Data.Functor.Foldable            (Base)
+import Data.Semigroup                   (Semigroup, (<>))
 import Data.Semigroup.Reducer           (Reducer, snoc)
 import Data.Text                        (Text, pack, unpack)
 import Mpl.Annotation                   (Annotated, Cofree((:<)), annotation)
-import Mpl.Parser                       (Parser(..), parseString)
+import Mpl.Parser                       (Parser(..), Result, withDescription, parseByteString, getState, modifyingState)
 import Mpl.ParserDescription            (ParserDescription(..))
 import Mpl.Rendering
-import Mpl.Utils                        (ByteString, textToString, stringToText, byteStringToString, byteStringSlice, byteStringToText)
-import Prelude                          (Show, Maybe(..), Either(..), (++), (.), ($), (<*>), (*>), Integer, String, show, fromIntegral, return, mempty)
-import Text.Parser.Char                 (noneOf, oneOf, char)
+import Mpl.Utils                        (ByteString, textToString, stringToText, byteStringToString, stringToByteString, byteStringSlice, byteStringToText)
+import Prelude                          (Bool(..), Show, Maybe(..), (==), Either(..), (++), (.), ($), (<*>), (*>), Integer, String, Monoid, const, drop, mappend, mempty, show, fromIntegral, return, mempty)
+import Text.Parser.Char                 (noneOf, oneOf, char, anyChar)
 import Text.Parser.Combinators          (Parsing, try, optional, notFollowedBy, sepEndBy1, between, eof)
 import Text.Parser.LookAhead            (lookAhead)
 import Text.Parser.Token                (TokenParsing, whiteSpace, symbolic, symbol, someSpace)
 import Text.Trifecta.Combinators        (MarkParsing(release), spanned, position, line)
-import Text.Trifecta.Delta              (Delta(Columns), column, rewind, columnByte)
+import Text.Trifecta.Delta              (Delta(Columns), column, rewind, columnByte, delta)
 import Text.Trifecta.Rendering          (Span(..), Spanned((:~)))
 import Text.Trifecta.Rope
 import Text.Trifecta.Util.It
-import Text.Trifecta.Result
 
 import qualified Data.ByteString as BS
 import qualified Data.Set        as Set
 
 type MplParser f        = MplGenericParser (Parsed f)
-type MplGenericParser f = ReaderT (ParsingContext f) Parser f
-type MplAnnotatable f   = ReaderT (ParsingContext (Parsed f)) Parser (f (Parsed f))
+type MplGenericParser f = ReaderT (ParsingContext f) (Parser ParserState) f
+type MplAnnotatable f   = ReaderT (ParsingContext (Parsed f)) (Parser ParserState) (f (Parsed f))
 type Parsed f           = Annotated f SourceSpan
 type Parsable f         = (Show (f (Parsed f)))
+type ParseResult a      = (ByteString, Result ParserState a)
+
+data ParserState = ParserState { descriptionStack :: [ParserDescription] } deriving (Show)
+
+instance Semigroup ParserState where
+  a <> b = a
+
+instance Monoid ParserState where
+  mappend = (<>)
+  mempty  = ParserState { descriptionStack = [] }
 
 data ParsingContext a =
   ParsingContext
@@ -70,8 +77,6 @@ data SyntaxConstructors f =
     , consFunction         :: [f] -> f -> Base f f
     , consApplication      :: f -> [f] -> Base f f
     , consExpression       :: MplGenericParser f -> MplGenericParser f
-    , consLeftAssociative  :: f -> Base f f
-    , consRightAssociative :: f -> Base f f
     }
 
 data SourceSpan =
@@ -82,22 +87,37 @@ data SourceSpan =
     }
   deriving (Show)
 
-parseFromString :: SyntaxConstructors a -> MplGenericParser a -> String -> Result a
-parseFromString syntaxConstructors mplParser = parseString parser zeroDelta
-  where parser         = runReaderT mplParser parsingContext
+parseFromString :: SyntaxConstructors a -> MplGenericParser a -> String -> ParseResult a
+parseFromString syntaxConstructors mplParser string = (byteString, result)
+  where byteString     = stringToByteString string
+        result         = parseByteString parser zeroDelta byteString mempty
+        parser         = runReaderT mplParser parsingContext
         parsingContext =
           ParsingContext
             { syntaxConstructors = syntaxConstructors
             , currentDescription = Nothing
             }
 
-annotate :: String -> [String] -> MplAnnotatable f -> MplParser f
-annotate name examples parser = do
-  startDelta   <- position
+annotate :: String -> String -> [String] -> MplAnnotatable f -> MplParser f
+annotate name expectation examples parser = do
+  firstChar   <- lookAhead anyChar
+  beforeDelta <- position
+  let startDelta = beforeDelta <> delta firstChar
+  let description =
+        ParserDescription
+          { parserName        = name
+          , parserExamples    = examples
+          , parserDelta       = startDelta
+          , parserExpectation = expectation
+          }
   startLine    <- line
-  result       <- parser
+  result       <- pushingDescription description parser
   endDelta     <- position
   return (SourceSpan startDelta startLine endDelta :< result)
+
+pushingDescription description = mapReaderT (modifyingState (\s -> s { descriptionStack = description : descriptionStack s }))
+
+withExpectation name expectation = mapReaderT (withDescription (ParserDescription name [] mempty expectation))
 
 parens :: TokenParsing m => m a -> m a
 parens = between (symbolic '(') (char ')')
@@ -122,18 +142,10 @@ makeExpression flatExpression = do
   constructor <- asks (consExpression . syntaxConstructors)
   constructor flatExpression
 
-makeLeftAssociative expression = do
-  constructor <- asks (consLeftAssociative . syntaxConstructors)
-  return (constructor expression)
-
-makeRightAssociative expression = do
-  constructor <- asks (consRightAssociative . syntaxConstructors)
-  return (constructor expression)
-
 zeroDelta = Columns 0 0
 
 symbolStartChars =
-  ['<', '>', '?', '~', '!', '@', '#', '$', '%', '^', '&', '*', '-', '_', '+', '\\', '/', '|'] ++
+  ['<', '>', '?', '~', '!', '@', '$', '%', '^', '&', '*', '-', '_', '+', '\\', '/', '|'] ++
   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 upcaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"

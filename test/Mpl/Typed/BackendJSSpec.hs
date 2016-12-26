@@ -7,6 +7,5 @@ import TestUtils           (describe, it, shouldBe, mkTranslatesToJS)
 translatesToJS = mkTranslatesToJS parseExpressionText translateToJS
 
 spec = do
-  describe "BackendJS" $ do
-    it "parses type annotations into comments" $ do
-      "f (a: Integer): Function" `translatesToJS` "f( /* Integer */ a /* Function */ )"
+  it "parses type annotations into comments" $ do
+    "f (a: Integer): Function" `translatesToJS` "f( /* Integer */ a /* Function */ )"

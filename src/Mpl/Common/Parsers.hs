@@ -1,8 +1,7 @@
 module Mpl.Common.Parsers where
 
 import Mpl.ParserUtils
-  ( Result
-  , Parser
+  ( Parser
   , Parsed
   , MplParser
   , MplAnnotatable
@@ -12,8 +11,6 @@ import Mpl.ParserUtils
   , makeFunction
   , makeApplication
   , makeExpression
-  , makeLeftAssociative
-  , makeRightAssociative
   , annotate
   , (<|>)
   , many
@@ -34,6 +31,7 @@ import Mpl.ParserUtils
   , char
   , lookAhead
   , fileEnd
+  , withExpectation
   )
 
 import Data.Function ((&))
@@ -56,43 +54,10 @@ commonParser :: (Parsable f) => MplParser f
 commonParser = parseApplicationOrExpression <* fileEnd
 
 parseExpression :: (Parsable f) => MplParser f
-parseExpression = makeExpression (parseAssociative parseFlatExpression) <|> (parseAssociative $ parens parseApplicationOrExpression)
+parseExpression = makeExpression parseFlatExpression <|> (parens parseApplicationOrExpression)
 
 parseApplicationOrExpression :: (Parsable f) => MplParser f
 parseApplicationOrExpression = makeExpression (try parseApplication) <|> parseExpression
-
-parseAssociative :: (Parsable f) => MplParser f -> MplParser f
-parseAssociative parser = do
-      parseLeftAssociative parser
-  <|> parseMaybeRightAssociative parser
-
-parseLeftAssociative :: (Parsable f) => MplParser f -> MplParser f
-parseLeftAssociative parser =
-  annotate
-    "left associative expression"
-    ["`x", "`#(a = a + 1)"]
-    (do
-      char '`'
-      notFollowedBy (char '`')
-      item <- parser
-      notFollowedBy (char '`')
-      makeLeftAssociative item)
-
-parseMaybeRightAssociative :: (Parsable f) => MplParser f -> MplParser f
-parseMaybeRightAssociative parser = do
-  item <- parser
-  hasBacktick <- lookAhead (optional $ char '`')
-  case hasBacktick of
-    Nothing -> return item
-    Just _  ->
-      annotate
-        "right associative expression"
-        ["x`", "#(a = a + 1)`"]
-        (do
-          backticks <- many (char '`')
-          if length backticks > 1
-            then fail ("A right associative expression has the form x`, not x" ++ backticks)
-            else makeRightAssociative item)
 
 parseFlatExpression :: (Parsable f) => MplParser f
 parseFlatExpression =
@@ -104,6 +69,7 @@ parseInt :: (Parsable f) => MplParser f
 parseInt =
   annotate
     "integer"
+    "an integer"
     ["123", "0123", "-00000123"]
     (do
       isMinus <- optional $ char '-'
@@ -116,6 +82,7 @@ parseSymbol :: (Parsable f) => MplParser f
 parseSymbol =
   annotate
     "symbol"
+    "a symbol"
     ["a", "<?>", "Hello", "a0~"]
     (do
       firstChar <- oneOf symbolStartChars
@@ -126,14 +93,16 @@ parseFunction :: (Parsable f) => MplParser f
 parseFunction =
   annotate
     "anonymous function"
+    "an anonymous function"
     ["#(a = a + 1)", "#(a b f = f a b 3)"]
     (do
-      symbol "#("
+      char '#'
+      char '('
       whiteSpace
       parameters <- sepEndBy1 parseSymbol someSpace
       char '='
       whiteSpace
-      body <- parseApplicationOrExpression
+      body <- withExpectation "expression" "an expression" parseApplicationOrExpression
       whiteSpace
       char ')'
       makeFunction parameters body)
@@ -142,6 +111,7 @@ parseApplication :: (Parsable f) => MplParser f
 parseApplication =
   annotate
     "function application"
+    "a function application"
     ["f 1", "#(a = a + 1) 1"]
     (do
       function  <- parseExpression

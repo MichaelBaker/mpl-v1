@@ -3,7 +3,6 @@ module Main where
 import System.Console.Haskeline (runInputT, defaultSettings, getInputLine, outputStrLn, outputStr)
 import Mpl.Utils                (stringToText, textToString, lazyTextToString, jsIR)
 import Mpl.LLVMUtils            (llvmIR, llvmJIT)
-import Mpl.ParserUtils          (Result(Success, Failure))
 import Control.Monad.IO.Class   (liftIO)
 import Repl.State               (State(..), StateLineItem(..), Mode(..), defaultState, toStateLineItem, showStateLine, strLineItem)
 import Control.Monad            (replicateM_)
@@ -59,26 +58,26 @@ handleInput input state
           outputStrLn input
         PrintAST -> do
           let textInput = stringToText input
-          case UntypedParser.parseExpressionText textInput of
-            Failure e -> outputStrLn (show e)
-            Success a -> outputStrLn (show a)
+          case snd $ UntypedParser.parseExpressionText textInput of
+            Left e -> outputStrLn (show e)
+            Right a -> outputStrLn (show a)
         PrintLLVM -> do
           let textInput = stringToText input
-          case UntypedParser.parseExpressionText textInput of
-            Failure e -> outputStrLn (show e)
-            Success a -> do
+          case snd $ UntypedParser.parseExpressionText textInput of
+            Left e -> outputStrLn (show e)
+            Right a -> do
               let llvmModule = UntypedLLVM.translateToLLVM a
               liftIO (llvmIR llvmModule) >>= outputStrLn
         PrintJS -> do
           let textInput = stringToText input
-          case UntypedParser.parseExpressionText textInput of
-            Failure e -> outputStrLn (show e)
-            Success a -> outputStrLn $ lazyTextToString $ jsIR $ UntypedJS.translateToJS a
+          case snd $ UntypedParser.parseExpressionText textInput of
+            Left e -> outputStrLn (show e)
+            Right a -> outputStrLn $ lazyTextToString $ jsIR $ UntypedJS.translateToJS a
         EvalLLVM -> do
           let textInput = stringToText input
-          case UntypedParser.parseExpressionText textInput of
-            Failure e -> outputStrLn (show e)
-            Success a -> do
+          case snd $ UntypedParser.parseExpressionText textInput of
+            Left e -> outputStrLn (show e)
+            Right a -> do
               let llvmModule = UntypedLLVM.translateToLLVM a
               result <- liftIO (llvmJIT llvmModule)
               case result of
@@ -86,9 +85,9 @@ handleInput input state
                 Just a  -> outputStrLn a
         EvalJS -> do
           let textInput = stringToText input
-          case UntypedParser.parseExpressionText textInput of
-            Failure e -> outputStrLn (show e)
-            Success a -> do
+          case snd $ UntypedParser.parseExpressionText textInput of
+            Left e -> outputStrLn (show e)
+            Right a -> do
               let jsCode = stringToText $ lazyTextToString $ jsIR $ UntypedJS.translateToJS a
               result <- liftIO $ V8.withContext $ \context -> do
                 V8.eval context jsCode

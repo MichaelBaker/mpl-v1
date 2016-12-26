@@ -6,8 +6,6 @@ import Mpl.Typed.Syntax
   , symbol
   , function
   , application
-  , leftAssociative
-  , rightAssociative
   , typeAnnotation
   , typeSymbol
   )
@@ -15,7 +13,7 @@ import Mpl.Typed.Syntax
 import Mpl.Common.Parsers (commonParser)
 
 import Mpl.ParserUtils
-  ( Result(Success)
+  ( ParseResult
   , SyntaxConstructors(..)
   , Parsed
   , (<|>)
@@ -39,7 +37,7 @@ import Mpl.Utils
 
 import qualified Mpl.Common.Syntax as CS
 
-parseExpressionText :: Text -> Result (Parsed SyntaxF)
+parseExpressionText :: Text -> ParseResult (Parsed SyntaxF)
 parseExpressionText = parseFromString syntaxConstructors commonParser . textToString
 
 syntaxConstructors =
@@ -49,8 +47,6 @@ syntaxConstructors =
     , consFunction         = function
     , consApplication      = application
     , consExpression       = parseTypeAnnotation
-    , consLeftAssociative  = leftAssociative
-    , consRightAssociative = rightAssociative
     }
 
 parseTypeAnnotation parseExpression = do
@@ -60,7 +56,8 @@ parseTypeAnnotation parseExpression = do
     Nothing  -> return expression
     Just _   ->
       annotate
-        "Type annotation"
+        "type annotation"
+        "a type annotation"
         ["a: Integer", "123 : Integer"]
         (do
           char ':'

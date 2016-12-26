@@ -6,14 +6,12 @@ import Mpl.Untyped.Syntax
   , symbol
   , function
   , application
-  , leftAssociative
-  , rightAssociative
   )
 
 import Mpl.Common.Parsers (commonParser)
 
 import Mpl.ParserUtils
-  ( Result
+  ( ParseResult
   , SyntaxConstructors(..)
   , Parsed
   , parseFromString
@@ -26,7 +24,7 @@ import Mpl.Utils
 
 import qualified Mpl.Common.Syntax as CS
 
-parseExpressionText :: Text -> Result (Parsed SyntaxF)
+parseExpressionText :: Text -> ParseResult (Parsed SyntaxF)
 parseExpressionText = parseFromString syntaxConstructors commonParser . textToString
 
 syntaxConstructors =
@@ -36,6 +34,4 @@ syntaxConstructors =
     , consFunction         = function
     , consApplication      = application
     , consExpression       = id
-    , consLeftAssociative  = leftAssociative
-    , consRightAssociative = rightAssociative
     }

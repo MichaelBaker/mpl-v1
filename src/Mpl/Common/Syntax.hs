@@ -10,8 +10,6 @@ data SyntaxF r =
   | Symbol           Text
   | Function         [r] r
   | Application      r [r]
-  | LeftAssociative  r
-  | RightAssociative r
   deriving (Show, Generic, Functor, Eq, Traversable, Foldable)
 
 data Literal = IntegerLiteral Integer deriving (Show, Generic, Eq)
@@ -20,6 +18,4 @@ literal                    = Literal
 symbol                     = Symbol
 function parameters body   = Function parameters body
 application func arguments = Application func arguments
-leftAssociative            = LeftAssociative
-rightAssociative           = RightAssociative
 int                        = literal . IntegerLiteral

@@ -45,6 +45,7 @@
 - [ ] LLVM backend for Unmanaged
 - [ ] Move errors into the compiler functions, rather than using Haskell's `error`
 - [ ] Handle syntax suggestions in the middle of a line
+- [ ] Use examples to generate syntax error heuristics: https://research.swtch.com/yyerror
 
 ## TODO Think about
 
@@ -73,6 +74,7 @@
 ## Philosophy
 
 * Programs are solutions to problems. You can interpret every program as being a machine that solves a specific problem. This is a useful idea because it helps you escape the trap of thinking about a programs as merely a way to shuffle symbols or give instructions to the computer. It refocuses you on why you're writing the program in the first place, which focuses you on making pragmatic choices.
+* Keep as much context as you can during each compilation phase to support the generation of rich error messages and editor support.
 
 ## Compiler Structure
 

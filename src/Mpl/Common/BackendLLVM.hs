@@ -1,6 +1,6 @@
 module Mpl.Common.BackendLLVM where
 
-import Mpl.Common.Syntax
+import Mpl.Common.Syntax as CS
 import LLVM.General.AST
 import LLVM.General.AST.Global
 import Mpl.Utils                 (Cofree((:<)), Annotated, textToString)
@@ -21,6 +21,7 @@ translate i (Application f as) =
       callInstruction = returnName := Call Nothing CC.C [] (Right fOperand) (map toArg aOps) [] []
       instructions = callInstruction : previousInstructions
   in (instructions, callOperand)
+translate _ (CS.Function _ _) = error $ "TODO: translate common function into LLVM"
 
 toArg op = (op, [])
 

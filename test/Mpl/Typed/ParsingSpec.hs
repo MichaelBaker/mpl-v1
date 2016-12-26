@@ -15,15 +15,14 @@ typeSymbol         = S.typeSymbol
 application a b    = Fix $ S.application a b
 
 spec = do
-  describe "Parsing" $ do
-    it "parses type annotations" $ do
-      "a: Integer" `parsesTo` (typeAnnotation (symbol "a") (typeSymbol "Integer"))
+  it "parses type annotations" $ do
+    "a: Integer" `parsesTo` (typeAnnotation (symbol "a") (typeSymbol "Integer"))
 
-    it "parses type annotations for subexpressions" $ do
-      "f (a: Integer)" `parsesTo`
-        (application
-          (symbol "f")
-          [typeAnnotation (symbol "a") (typeSymbol "Integer")])
+  it "parses type annotations for subexpressions" $ do
+    "f (a: Integer)" `parsesTo`
+      (application
+        (symbol "f")
+        [typeAnnotation (symbol "a") (typeSymbol "Integer")])
 
-    it "binds type annotations to their closest expression" $ do
-      "f a: Integer" `isSameAs` "f (a: Integer)"
+  it "binds type annotations to their closest expression" $ do
+    "f a: Integer" `isSameAs` "f (a: Integer)"

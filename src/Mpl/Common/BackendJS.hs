@@ -10,6 +10,7 @@ import Data.List (foldl')
 translate (Literal l) = translateLiteral l
 translate (Symbol t) = JSIdentifier JSNoAnnot (unpack t)
 translate (Application f as) = curryApplication f as
+translate (Function _ _) = error $ "TODO: translate functions to javascript"
 
 translateLiteral (IntegerLiteral int) = JSDecimal JSNoAnnot (show int)
 

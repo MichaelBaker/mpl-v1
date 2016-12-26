@@ -7,10 +7,12 @@ module TestUtils
 
 import Control.Monad.IO.Class     (liftIO)
 import Data.Functor.Foldable      (Base, Fix, Foldable)
+import Data.List                  (isInfixOf)
 import Language.JavaScript.Parser (readJs)
 import Mpl.Annotation             (Fixed, discardAnnotation)
-import Mpl.ParserUtils            (Parsed, Result(Success, Failure))
 import Mpl.LLVMUtils              (llvmIR)
+import Mpl.ParserUtils            (Parsed, ParseResult)
+import Mpl.Rendering.ParserError  (errorMessage)
 import Mpl.Utils                  (lazyTextToString, jsIR, stringToText)
 import System.Environment         (lookupEnv)
 import Test.Hspec                 (Expectation, describe, it, shouldBe, runIO, expectationFailure)
@@ -19,47 +21,53 @@ import Prelude hiding (Foldable)
 
 import qualified V8
 
-mkParsesTo :: (Eq (Fixed a), Show (Fixed a), Foldable a) => (t -> Result a) -> t -> Fixed a -> IO ()
+mkParsesTo :: (Eq (Fixed a), Show (Fixed a), Foldable a) => (t -> ParseResult a) -> t -> Fixed a -> IO ()
 mkParsesTo parseExpressionText text expected =
-  case parseExpressionText text of
-    Failure e -> fail $ show e
-    Success a -> (discardAnnotation a) `shouldBe` expected
+  case snd $ parseExpressionText text of
+    Left e -> fail $ show e
+    Right a -> (discardAnnotation a) `shouldBe` expected
 
--- mkParserErrorsWith :: (Show t) => (t -> Result a) -> t -> String -> IO ()
--- mkParserErrorsWith parseExpressionText text expected =
---   case parseExpressionText text of
---     Failure e ->
---       if errorMessage e == expected
---         then return ()
---         else do
---           expectationFailure $ concat
---             [ "\n"
---             , "==== Expected " ++ show text ++ " to produce the error: \n\n"
---             , expected
---             , "\n\n"
---             , "==== But this was the error that was produced:\n\n"
---             , errorMessage e
---             , "\n"
---             ]
---     Success a -> fail $ "Successfully parsed " ++ show text
+mkTransformsTo :: (Eq (Fixed a), Show (Fixed a), Foldable a) => (t -> ParseResult a) -> (a -> a) -> t -> Fixed a -> IO ()
+mkTransformsTo parseExpressionText f text expected =
+  case snd $ parseExpressionText text of
+    Left e -> fail $ show e
+    Right a -> (discardAnnotation $ f a) `shouldBe` expected
+
+mkParserErrorContains :: (Show t) => (t -> ParseResult a) -> t -> String -> IO ()
+mkParserErrorContains parseExpressionText text expected =
+  case parseExpressionText text of
+    (bs, Left e) ->
+      if expected `isInfixOf` errorMessage bs e
+        then return ()
+        else do
+          expectationFailure $ concat
+            [ "\n"
+            , "==== Expected " ++ show text ++ " to contain the string:\n\n"
+            , expected
+            , "\n\n"
+            , "==== This was the error that was produced:\n\n"
+            , errorMessage bs e
+            , "\n"
+            ]
+    (_, Right a) -> fail $ "Successfully parsed " ++ show text
 
 mkIsSameAs parseExpressionText a b =
-  case parseExpressionText a of
-    Failure e  -> fail $ show e
-    Success a' ->
-      case parseExpressionText b of
-        Failure e  -> fail $ show e
-        Success b' -> (discardAnnotation a') `shouldBe` (discardAnnotation b')
+  case snd $ parseExpressionText a of
+    Left e  -> fail $ show e
+    Right a' ->
+      case snd $ parseExpressionText b of
+        Left e  -> fail $ show e
+        Right b' -> (discardAnnotation a') `shouldBe` (discardAnnotation b')
 
 mkTranslatesToJS parseExpressionText translateToJS mplCode jsCode =
-  case parseExpressionText mplCode of
-    Failure e -> fail $ show e
-    Success a -> jsIR (translateToJS a) `shouldBe` jsIR (readJs jsCode)
+  case snd $ parseExpressionText mplCode of
+    Left e -> fail $ show e
+    Right a -> jsIR (translateToJS a) `shouldBe` jsIR (readJs jsCode)
 
 mkTranslatesToLLVM parseExpressionText translateToLLVM mplCode expected = do
-  case parseExpressionText mplCode of
-    Failure e -> fail $ show e
-    Success a -> do
+  case snd $ parseExpressionText mplCode of
+    Left e -> fail $ show e
+    Right a -> do
       result <- llvmIR (translateToLLVM a)
       result `shouldBe` expected
 
@@ -75,9 +83,9 @@ loadConfig = runIO $ do
     Just path -> readFile path >>= return . read :: IO Config
 
 mkEvalsJSTo config parseExpressionText translateToJS mplCode expected =
-  case parseExpressionText mplCode of
-    Failure e -> fail $ show e
-    Success a -> do
+  case snd $ parseExpressionText mplCode of
+    Left e -> fail $ show e
+    Right a -> do
       let jsCode = lazyTextToString $ jsIR (translateToJS a)
       result <- V8.withContext $ \context -> do
         V8.eval context (stringToText jsCode)
