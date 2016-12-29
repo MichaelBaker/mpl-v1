@@ -3,6 +3,7 @@ module Mpl.Typed.Parsing where
 import Mpl.Typed.Syntax
   ( SyntaxF
   , int
+  , binder
   , symbol
   , function
   , application
@@ -43,6 +44,7 @@ parseExpressionText = parseFromString syntaxConstructors commonParser . textToSt
 syntaxConstructors =
   SyntaxConstructors
     { consInt              = int
+    , consBinder           = binder
     , consSymbol           = symbol
     , consFunction         = function
     , consApplication      = application

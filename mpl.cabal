@@ -23,6 +23,7 @@ library
     Mpl.Common.Parsers,
     Mpl.Common.Parsing,
     Mpl.Common.Syntax,
+    Mpl.JSUtils,
     Mpl.LLVMUtils,
     Mpl.Parser,
     Mpl.ParserDescription,
@@ -144,7 +145,6 @@ test-suite mpl-test
     Mpl.Typed.ParsingSpec,
     Mpl.Untyped.BackendJSSpec,
     Mpl.Untyped.BackendLLVMSpec,
-    Mpl.Untyped.ParsingSpec,
     TestUtils,
     V8Spec
 

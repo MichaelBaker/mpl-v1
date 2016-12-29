@@ -7,6 +7,7 @@ import Mpl.ParserUtils
   , MplAnnotatable
   , Parsable
   , makeInt
+  , makeBinder
   , makeSymbol
   , makeFunction
   , makeApplication
@@ -89,6 +90,17 @@ parseSymbol =
       rest      <- (many $ oneOf symbolChars)
       makeSymbol $ stringToText (firstChar : rest))
 
+parseBinder :: (Parsable f) => MplParser f
+parseBinder =
+  annotate
+    "binder"
+    "a binder"
+    ["a", "<?>", "Hello", "a0~"]
+    (do
+      firstChar <- oneOf symbolStartChars
+      rest      <- (many $ oneOf symbolChars)
+      makeBinder $ stringToText (firstChar : rest))
+
 parseFunction :: (Parsable f) => MplParser f
 parseFunction =
   annotate
@@ -99,7 +111,7 @@ parseFunction =
       char '#'
       char '('
       whiteSpace
-      parameters <- sepEndBy1 parseSymbol someSpace
+      parameters <- sepEndBy1 parseBinder someSpace
       char '='
       whiteSpace
       body <- withExpectation "expression" "an expression" parseApplicationOrExpression

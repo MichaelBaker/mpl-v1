@@ -9,6 +9,7 @@ import qualified Mpl.Common.Syntax as S
 parsesTo = mkParsesTo parseExpressionText
 
 int              = Fix . S.int
+binder           = Fix . S.binder
 symbol           = Fix . S.symbol
 application a b  = Fix $ S.application a b
 function a b     = Fix $ S.function a b
@@ -57,13 +58,13 @@ spec = do
   it "parses function expressions" $ do
     "#(a = a)" `parsesTo`
       (function
-        [symbol "a"]
+        [binder "a"]
         (symbol "a"))
 
   it "parses function expressions with multiple arguments" $ do
     "#(a b c = f 1 2 3)" `parsesTo`
       (function
-        [symbol "a", symbol "b", symbol "c"]
+        [binder "a", binder "b", binder "c"]
         (application
           (symbol "f")
           [int 1, int 2, int 3]))
@@ -71,5 +72,5 @@ spec = do
   it "parses application of a function" $ do
     "#(a = a) 1" `parsesTo`
       (application
-        (function [symbol "a"] (symbol "a"))
+        (function [binder "a"] (symbol "a"))
         [int 1])

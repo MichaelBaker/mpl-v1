@@ -10,8 +10,15 @@ import LLVM.General.AST.Operand  (Operand)
 
 import qualified LLVM.General.AST.CallingConvention as CC
 
-translate i (Literal literal) = ([], translateLiteral literal)
-translate i (Symbol sym) = ([], LocalReference (IntegerType 32) $ Name (textToString sym))
+translate i (Literal literal) =
+  ([], translateLiteral literal)
+
+translate i (Binder sym) =
+  ([], LocalReference (IntegerType 32) $ Name (textToString sym))
+
+translate i (Symbol sym) =
+  ([], LocalReference (IntegerType 32) $ Name (textToString sym))
+
 translate i (Application f as) =
   let (fInstructions, fOperand) = f
       (aInstructions, aOps) = unzip as
@@ -21,7 +28,9 @@ translate i (Application f as) =
       callInstruction = returnName := Call Nothing CC.C [] (Right fOperand) (map toArg aOps) [] []
       instructions = callInstruction : previousInstructions
   in (instructions, callOperand)
-translate _ (CS.Function _ _) = error $ "TODO: translate common function into LLVM"
+
+translate _ (CS.Function _ _) =
+  error $ "TODO: translate common function into LLVM"
 
 toArg op = (op, [])
 

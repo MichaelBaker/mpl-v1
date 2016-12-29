@@ -3,6 +3,7 @@ module Mpl.Common.Parsing where
 import Mpl.Common.Syntax
   ( SyntaxF
   , int
+  , binder
   , symbol
   , function
   , application
@@ -28,6 +29,7 @@ parseExpressionText = parseFromString syntaxConstructors commonParser . textToSt
 syntaxConstructors =
   SyntaxConstructors
     { consInt              = int
+    , consBinder           = binder
     , consSymbol           = symbol
     , consFunction         = function
     , consApplication      = application

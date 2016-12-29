@@ -29,10 +29,16 @@
   - [X] Add function to process errors
   - [X] Add suggestion to Err
   - [X] Be able to gather all text from start of a perser up to the error
-- [ ] Preprocess AST to resolve associativity
-- [ ] Add bindings for top level identifiers to Common
+- [X] Generate valid JS for functions
+- [X] Add native functions (functions with literal js/llvm output)
+- [ ] Parameterize the typeof lambda parameters and add a typeclass for extracting their "names" for the purpose of creating bindings
 - [ ] Add name resolution for Untyped
-- [ ] Add native functions (functions with literal js/llvm output)
+- [ ] Move errors into the compiler functions, rather than using Haskell's `error`. Use ExceptT.
+- [ ] Add modules
+- [ ] Add to Untyped for using identifiers that aren't in scope.
+- [ ] Add a Core language that the syntax can be translated into and is simpler to work with
+- [ ] Add explanations for the inclusion of various features
+- [ ] Add bindings for top level identifiers to Common
 - [ ] Generate valid JS for Typed
 - [ ] Generate valid LLVM for Typed
 - [ ] Add typechecking phase for Typed
@@ -43,9 +49,9 @@
 - [ ] Create the base Unmanaged parser
 - [ ] JS backend for Unmanaged
 - [ ] LLVM backend for Unmanaged
-- [ ] Move errors into the compiler functions, rather than using Haskell's `error`
 - [ ] Handle syntax suggestions in the middle of a line
 - [ ] Use examples to generate syntax error heuristics: https://research.swtch.com/yyerror
+- [ ] Pull in big decimal/integer library for IEEE JS math
 
 ## TODO Think about
 

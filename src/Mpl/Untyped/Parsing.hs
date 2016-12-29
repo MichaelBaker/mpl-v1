@@ -3,6 +3,7 @@ module Mpl.Untyped.Parsing where
 import Mpl.Untyped.Syntax
   ( SyntaxF
   , int
+  , binder
   , symbol
   , function
   , application
@@ -30,6 +31,7 @@ parseExpressionText = parseFromString syntaxConstructors commonParser . textToSt
 syntaxConstructors =
   SyntaxConstructors
     { consInt              = int
+    , consBinder           = binder
     , consSymbol           = symbol
     , consFunction         = function
     , consApplication      = application

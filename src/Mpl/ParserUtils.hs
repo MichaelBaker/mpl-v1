@@ -74,6 +74,7 @@ data SyntaxConstructors f =
   SyntaxConstructors
     { consInt              :: Integer -> Base f f
     , consSymbol           :: Text -> Base f f
+    , consBinder           :: Text -> Base f f
     , consFunction         :: [f] -> f -> Base f f
     , consApplication      :: f -> [f] -> Base f f
     , consExpression       :: MplGenericParser f -> MplGenericParser f
@@ -125,6 +126,10 @@ parens = between (symbolic '(') (char ')')
 makeInt int = do
   constructor <- asks (consInt . syntaxConstructors)
   return (constructor int)
+
+makeBinder text = do
+  constructor <- asks (consBinder . syntaxConstructors)
+  return (constructor text)
 
 makeSymbol text = do
   constructor <- asks (consSymbol . syntaxConstructors)

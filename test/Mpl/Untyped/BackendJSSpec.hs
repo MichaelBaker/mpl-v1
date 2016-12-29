@@ -20,3 +20,18 @@ spec = do
 
   it "function application" $ do
     "f 1 2" `translatesToJS` "f(1)(2)"
+
+  it "anonymous functions" $ do
+    "#(a = a 1)" `translatesToJS` "function(a) { return a(1); }"
+
+  it "anonymous functions with multiple parameters" $ do
+    "#(a b = a 1 b)" `translatesToJS` "function(a) { return function(b) { return a(1)(b); }; }"
+
+  it "translates the '+' function into a builtin curried function" $ do
+    "+ a b" `translatesToJS` "JSCore[\"+\"](a)(b)"
+
+  it "emits syntactically correct Javascript for symbolic functions" $ do
+    "~@ a b" `translatesToJS` "mplVar0(a)(b)"
+
+  it "emits syntactically correct Javascript for symbolic functions" $ do
+    "#(~@ = ~@ 1)" `translatesToJS` "function(mplVar0) { return mplVar0(1); }"
