@@ -108,9 +108,14 @@ jsIdent a = error $ "'" ++ show a ++ "' cannot be converted into an identifier"
 spaceAnnot = JSAnnot tokenPosnEmpty [space]
 space      = WhiteSpace tokenPosnEmpty " "
 
-addComment (JSIdentifier annot value) comment = JSIdentifier (attach annot $ commentAnnot comment) value
-addComment (JSCallExpression f ann0 a ann1) comment = JSCallExpression f ann0 a (attach ann1 $ commentAnnot comment)
-addComment (JSDecimal ann a) comment = JSDecimal (attach ann $ commentAnnot comment) a
+addComment (JSIdentifier annot value) comment =
+  JSIdentifier (attach annot $ commentAnnot comment) value
+addComment (JSCallExpression f ann0 a ann1) comment =
+  JSCallExpression f ann0 a (attach ann1 $ commentAnnot comment)
+addComment (JSDecimal ann a) comment =
+  JSDecimal (attach ann $ commentAnnot comment) a
+addComment (JSFunctionExpression ann0 name ann1 params ann2 body) comment =
+  JSFunctionExpression ann0 name ann1 params (attach ann2 $ commentAnnot comment) body
 addComment js _ = error $ "Cannot add a comment to: " ++ show js
 
 commentAnnot string = CommentA tokenPosnEmpty (" /* " ++ string ++ " */ ")
