@@ -2,16 +2,10 @@ module Mpl.Common.Parsers where
 
 import Mpl.ParserUtils
   ( Parser
-  , Parsed
   , MplParser
-  , MplAnnotatable
-  , Parsable
-  , makeInt
-  , makeBinder
-  , makeSymbol
-  , makeFunction
-  , makeApplication
+  , StatefulParser
   , makeExpression
+  , makeCommon
   , annotate
   , (<|>)
   , many
@@ -33,6 +27,7 @@ import Mpl.ParserUtils
   , lookAhead
   , fileEnd
   , withExpectation
+  , lift
   )
 
 import Data.Function ((&))
@@ -51,22 +46,24 @@ import Mpl.Utils
 
 import Data.List (intercalate)
 
-commonParser :: (Parsable f) => MplParser f
+import qualified Mpl.Common.Syntax as CS
+
+commonParser :: MplParser f
 commonParser = parseApplicationOrExpression <* fileEnd
 
-parseExpression :: (Parsable f) => MplParser f
+parseExpression :: MplParser f
 parseExpression = makeExpression parseFlatExpression <|> (parens parseApplicationOrExpression)
 
-parseApplicationOrExpression :: (Parsable f) => MplParser f
+parseApplicationOrExpression :: MplParser f
 parseApplicationOrExpression = makeExpression (try parseApplication) <|> parseExpression
 
-parseFlatExpression :: (Parsable f) => MplParser f
+parseFlatExpression :: MplParser f
 parseFlatExpression =
       parseInt
   <|> parseFunction
   <|> parseSymbol
 
-parseInt :: (Parsable f) => MplParser f
+parseInt :: MplParser f
 parseInt =
   annotate
     "integer"
@@ -76,32 +73,36 @@ parseInt =
       isMinus <- optional $ char '-'
       int     <- some (oneOf digits)
       case isMinus of
-        Nothing -> makeInt $ read int
-        Just _  -> makeInt $ negate $ read int)
+        Nothing -> makeCommon $ CS.int $ read int
+        Just _  -> makeCommon $ CS.int $ negate $ read int)
 
-parseSymbol :: (Parsable f) => MplParser f
+parseSymbol :: MplParser f
 parseSymbol =
   annotate
     "symbol"
     "a symbol"
     ["a", "<?>", "Hello", "a0~"]
     (do
-      firstChar <- oneOf symbolStartChars
-      rest      <- (many $ oneOf symbolChars)
-      makeSymbol $ stringToText (firstChar : rest))
+      text <- lift parseSymbolText
+      makeCommon $ CS.Symbol text)
 
-parseBinder :: (Parsable f) => MplParser f
+parseBinder :: MplParser f
 parseBinder =
   annotate
     "binder"
     "a binder"
     ["a", "<?>", "Hello", "a0~"]
     (do
-      firstChar <- oneOf symbolStartChars
-      rest      <- (many $ oneOf symbolChars)
-      makeBinder $ stringToText (firstChar : rest))
+      text <- lift parseSymbolText
+      makeCommon $ CS.Binder text)
 
-parseFunction :: (Parsable f) => MplParser f
+parseSymbolText :: StatefulParser Text
+parseSymbolText = do
+  firstChar <- oneOf symbolStartChars
+  rest      <- (many $ oneOf symbolChars)
+  return $ stringToText (firstChar : rest)
+
+parseFunction :: MplParser f
 parseFunction =
   annotate
     "anonymous function"
@@ -117,9 +118,9 @@ parseFunction =
       body <- withExpectation "expression" "an expression" parseApplicationOrExpression
       whiteSpace
       char ')'
-      makeFunction parameters body)
+      makeCommon $ CS.Function parameters body)
 
-parseApplication :: (Parsable f) => MplParser f
+parseApplication :: MplParser f
 parseApplication =
   annotate
     "function application"
@@ -129,4 +130,4 @@ parseApplication =
       function  <- parseExpression
       someSpace
       arguments <- sepEndBy1 parseExpression someSpace
-      makeApplication function arguments)
+      makeCommon $ CS.Application function arguments)

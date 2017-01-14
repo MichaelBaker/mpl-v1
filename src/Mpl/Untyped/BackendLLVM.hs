@@ -6,12 +6,12 @@ import Data.Function           ((&))
 import LLVM.General.AST
 import LLVM.General.AST.Global
 import Mpl.Annotation          (Cofree((:<)), number, envcata)
-import Mpl.ParserUtils         (Parsed)
+import Mpl.ParserUtils         (SourceAnnotated)
 import Mpl.Untyped.Syntax      (SyntaxF(..))
 
 import qualified Mpl.Common.BackendLLVM as CBE
 
-translateToLLVM :: Parsed SyntaxF -> Module
+translateToLLVM :: SourceAnnotated SyntaxF -> Module
 translateToLLVM syntax =
   let (instructions, operand) = syntax & number & envcata translate
       mainFunction =

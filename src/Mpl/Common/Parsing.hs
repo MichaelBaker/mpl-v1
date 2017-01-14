@@ -12,7 +12,7 @@ import Mpl.Common.Syntax
 import Mpl.ParserUtils
   ( ParseResult
   , SyntaxConstructors(..)
-  , Parsed
+  , SourceAnnotated
   , parseFromString
   )
 
@@ -23,15 +23,11 @@ import Mpl.Utils
 
 import Mpl.Common.Parsers (commonParser)
 
-parseExpressionText :: Text -> ParseResult (Parsed SyntaxF)
+parseExpressionText :: Text -> ParseResult (SourceAnnotated SyntaxF)
 parseExpressionText = parseFromString syntaxConstructors commonParser . textToString
 
 syntaxConstructors =
   SyntaxConstructors
-    { consInt              = int
-    , consBinder           = binder
-    , consSymbol           = symbol
-    , consFunction         = function
-    , consApplication      = application
-    , consExpression       = id
+    { consExpression       = id
+    , consCommon           = id
     }

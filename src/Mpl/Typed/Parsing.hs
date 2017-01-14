@@ -1,7 +1,7 @@
 module Mpl.Typed.Parsing where
 
 import Mpl.Typed.Syntax
-  ( SyntaxF
+  ( SyntaxF (Common)
   , int
   , binder
   , symbol
@@ -16,7 +16,7 @@ import Mpl.Common.Parsers (commonParser)
 import Mpl.ParserUtils
   ( ParseResult
   , SyntaxConstructors(..)
-  , Parsed
+  , SourceAnnotated
   , (<|>)
   , annotate
   , parseFromString
@@ -38,17 +38,13 @@ import Mpl.Utils
 
 import qualified Mpl.Common.Syntax as CS
 
-parseExpressionText :: Text -> ParseResult (Parsed SyntaxF)
+parseExpressionText :: Text -> ParseResult (SourceAnnotated SyntaxF)
 parseExpressionText = parseFromString syntaxConstructors commonParser . textToString
 
 syntaxConstructors =
   SyntaxConstructors
-    { consInt              = int
-    , consBinder           = binder
-    , consSymbol           = symbol
-    , consFunction         = function
-    , consApplication      = application
-    , consExpression       = parseTypeAnnotation
+    { consExpression       = parseTypeAnnotation
+    , consCommon           = Common
     }
 
 parseTypeAnnotation parseExpression = do
