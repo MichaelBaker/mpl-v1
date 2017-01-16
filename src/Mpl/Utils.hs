@@ -1,26 +1,32 @@
 module Mpl.Utils
-  ( Text
-  , Generic
-  , Annotated
-  , Fix(..)
+  ( Annotated
+  , Base
   , Cofree((:<))
+  , Fix(..)
+  , Foldable
+  , Generic
+  , Text
   , UTF8.ByteString
-  , textToString
-  , stringToText
-  , lazyTextToString
-  , byteStringToString
-  , stringToByteString
   , byteStringSlice
+  , byteStringToString
   , byteStringToText
+  , cata
   , jsIR
+  , lazyTextToString
+  , stringToByteString
+  , stringToText
+  , textToString
+  , project
+  , refix
   ) where
 
 import Data.Text                  (Text, pack, unpack)
 import Control.Comonad.Cofree     (Cofree((:<)))
-import Mpl.Annotation             (Annotated)
-import Data.Functor.Foldable      (Fix(..))
+import Mpl.Annotation             (Annotated, Base)
+import Data.Functor.Foldable      (Fix(..), Foldable, cata, project, refix)
 import GHC.Generics               (Generic)
 import Language.JavaScript.Parser (renderToText)
+import Prelude hiding (Foldable)
 
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Text.Lazy       as LT

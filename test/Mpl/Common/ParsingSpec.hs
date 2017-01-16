@@ -2,11 +2,12 @@ module Mpl.Common.ParsingSpec where
 
 import Data.Functor.Foldable (Fix(..))
 import Mpl.Common.Parsing    (parseExpressionText)
+import Mpl.Utils             (cata)
 import TestUtils             (describe, it, shouldBe, mkParsesTo)
 
 import qualified Mpl.Common.Syntax as S
 
-parsesTo = mkParsesTo parseExpressionText
+parsesTo = mkParsesTo parseExpressionText (Fix . S.mapBinder (cata Fix))
 
 int              = Fix . S.int
 binder           = Fix . S.binder

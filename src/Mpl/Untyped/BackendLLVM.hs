@@ -8,10 +8,10 @@ import LLVM.General.AST.Global
 import Mpl.Annotation          (Cofree((:<)), number, envcata)
 import Mpl.ParserUtils         (SourceAnnotated)
 import Mpl.Untyped.Syntax      (SyntaxF(..))
-
+import qualified Mpl.Common.Syntax      as CS
 import qualified Mpl.Common.BackendLLVM as CBE
 
-translateToLLVM :: SourceAnnotated SyntaxF -> Module
+translateToLLVM :: SourceAnnotated (SyntaxF (SourceAnnotated CS.Binder)) -> Module
 translateToLLVM syntax =
   let (instructions, operand) = syntax & number & envcata translate
       mainFunction =

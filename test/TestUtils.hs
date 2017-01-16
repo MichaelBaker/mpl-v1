@@ -9,11 +9,11 @@ import Control.Monad.IO.Class     (liftIO)
 import Data.Functor.Foldable      (Base, Fix, Foldable)
 import Data.List                  (isInfixOf)
 import Language.JavaScript.Parser (readJs)
-import Mpl.Annotation             (Fixed, discardAnnotation)
+import Mpl.Annotation             (Fixed)
 import Mpl.LLVMUtils              (llvmIR)
 import Mpl.ParserUtils            (ParseResult)
 import Mpl.Rendering.ParserError  (errorMessage)
-import Mpl.Utils                  (lazyTextToString, jsIR, stringToText)
+import Mpl.Utils                  (lazyTextToString, jsIR, stringToText, cata)
 import System.Environment         (lookupEnv)
 import Test.Hspec                 (Expectation, describe, it, shouldBe, runIO, expectationFailure)
 
@@ -21,17 +21,17 @@ import Prelude hiding (Foldable)
 
 import qualified V8
 
-mkParsesTo :: (Eq (Fixed a), Show (Fixed a), Foldable a) => (t -> ParseResult a) -> t -> Fixed a -> IO ()
-mkParsesTo parseExpressionText text expected =
+mkParsesTo :: (Foldable a, Eq b, Show b) => (t -> ParseResult a) -> (Base a b -> b) -> t -> b -> IO ()
+mkParsesTo parseExpressionText discardAnnotation text expected =
   case snd $ parseExpressionText text of
     Left e -> fail $ show e
-    Right a -> (discardAnnotation a) `shouldBe` expected
+    Right a -> (cata discardAnnotation a) `shouldBe` expected
 
-mkTransformsTo :: (Eq (Fixed a), Show (Fixed a), Foldable a) => (t -> ParseResult a) -> (a -> a) -> t -> Fixed a -> IO ()
-mkTransformsTo parseExpressionText f text expected =
+mkTransformsTo :: (Foldable a, Eq b, Show b) => (t -> ParseResult a) -> (Base a b -> b) -> (a -> a) -> t -> b -> IO ()
+mkTransformsTo parseExpressionText discardAnnotation f text expected =
   case snd $ parseExpressionText text of
     Left e -> fail $ show e
-    Right a -> (discardAnnotation $ f a) `shouldBe` expected
+    Right a -> (cata discardAnnotation $ f a) `shouldBe` expected
 
 mkParserErrorContains :: (Show t) => (t -> ParseResult a) -> t -> String -> IO ()
 mkParserErrorContains parseExpressionText text expected =
@@ -51,13 +51,13 @@ mkParserErrorContains parseExpressionText text expected =
             ]
     (_, Right a) -> fail $ "Successfully parsed " ++ show text
 
-mkIsSameAs parseExpressionText a b =
+mkIsSameAs parseExpressionText discardAnnotation a b =
   case snd $ parseExpressionText a of
     Left e  -> fail $ show e
     Right a' ->
       case snd $ parseExpressionText b of
         Left e  -> fail $ show e
-        Right b' -> (discardAnnotation a') `shouldBe` (discardAnnotation b')
+        Right b' -> (cata discardAnnotation a') `shouldBe` (cata discardAnnotation b')
 
 mkTranslatesToJS parseExpressionText translateToJS mplCode jsCode =
   case snd $ parseExpressionText mplCode of

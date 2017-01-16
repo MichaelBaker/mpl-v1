@@ -4,9 +4,12 @@ import Mpl.ParserUtils
   ( Parser
   , MplParser
   , StatefulParser
+  , SourceAnnotated
   , makeExpression
   , makeCommon
+  , makeBinder
   , annotate
+  , annotate'
   , (<|>)
   , many
   , some
@@ -48,22 +51,22 @@ import Data.List (intercalate)
 
 import qualified Mpl.Common.Syntax as CS
 
-commonParser :: MplParser f
+commonParser :: MplParser binder f
 commonParser = parseApplicationOrExpression <* fileEnd
 
-parseExpression :: MplParser f
+parseExpression :: MplParser binder f
 parseExpression = makeExpression parseFlatExpression <|> (parens parseApplicationOrExpression)
 
-parseApplicationOrExpression :: MplParser f
+parseApplicationOrExpression :: MplParser binder f
 parseApplicationOrExpression = makeExpression (try parseApplication) <|> parseExpression
 
-parseFlatExpression :: MplParser f
+parseFlatExpression :: MplParser binder f
 parseFlatExpression =
       parseInt
   <|> parseFunction
   <|> parseSymbol
 
-parseInt :: MplParser f
+parseInt :: MplParser binder f
 parseInt =
   annotate
     "integer"
@@ -76,7 +79,7 @@ parseInt =
         Nothing -> makeCommon $ CS.int $ read int
         Just _  -> makeCommon $ CS.int $ negate $ read int)
 
-parseSymbol :: MplParser f
+parseSymbol :: MplParser binder f
 parseSymbol =
   annotate
     "symbol"
@@ -86,15 +89,15 @@ parseSymbol =
       text <- lift parseSymbolText
       makeCommon $ CS.Symbol text)
 
-parseBinder :: MplParser f
+parseBinder :: StatefulParser (SourceAnnotated CS.Binder)
 parseBinder =
-  annotate
+  annotate'
     "binder"
     "a binder"
     ["a", "<?>", "Hello", "a0~"]
     (do
-      text <- lift parseSymbolText
-      makeCommon $ CS.Binder text)
+      text <- parseSymbolText
+      return $ CS.Binder text)
 
 parseSymbolText :: StatefulParser Text
 parseSymbolText = do
@@ -102,7 +105,7 @@ parseSymbolText = do
   rest      <- (many $ oneOf symbolChars)
   return $ stringToText (firstChar : rest)
 
-parseFunction :: MplParser f
+parseFunction :: MplParser binder f
 parseFunction =
   annotate
     "anonymous function"
@@ -112,7 +115,7 @@ parseFunction =
       char '#'
       char '('
       whiteSpace
-      parameters <- sepEndBy1 parseBinder someSpace
+      parameters <- sepEndBy1 (makeBinder parseBinder) someSpace
       char '='
       whiteSpace
       body <- withExpectation "expression" "an expression" parseApplicationOrExpression
@@ -120,7 +123,7 @@ parseFunction =
       char ')'
       makeCommon $ CS.Function parameters body)
 
-parseApplication :: MplParser f
+parseApplication :: MplParser binder f
 parseApplication =
   annotate
     "function application"

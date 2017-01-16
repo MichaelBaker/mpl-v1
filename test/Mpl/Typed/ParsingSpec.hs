@@ -2,12 +2,14 @@ module Mpl.Typed.ParsingSpec where
 
 import Data.Functor.Foldable (Fix(..))
 import Mpl.Typed.Parsing     (parseExpressionText)
+import Mpl.Utils             (cata)
 import TestUtils             (describe, it, shouldBe, mkParsesTo, mkIsSameAs)
 
-import qualified Mpl.Typed.Syntax as S
+import qualified Mpl.Typed.Syntax  as S
+import qualified Mpl.Common.Syntax as CS
 
-parsesTo = mkParsesTo parseExpressionText
-isSameAs = mkIsSameAs parseExpressionText
+parsesTo = mkParsesTo parseExpressionText (Fix . S.mapCommon (CS.mapBinder (cata Fix)))
+isSameAs = mkIsSameAs parseExpressionText (Fix . S.mapCommon (CS.mapBinder (cata Fix)))
 
 typeAnnotation a b = Fix $ S.typeAnnotation a b
 symbol             = Fix . S.symbol

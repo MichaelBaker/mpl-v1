@@ -29,9 +29,6 @@ envcata f x = f (extract x) $ fmap (envcata f) (project x)
 
 type Fixed a = Fix (Base a)
 
-discardAnnotation :: (Foldable a) => a -> Fix (Base a)
-discardAnnotation = refix
-
 annotateWithState :: (Traversable (Base f), Foldable f) => a -> (a -> a) -> f -> Annotated (Base f) a
 annotateWithState initialState modifyState ast =
   let astAnnotatedWithState = cata ((annotateState modifyState) :<) ast

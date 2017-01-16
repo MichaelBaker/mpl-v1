@@ -13,9 +13,6 @@ import qualified LLVM.General.AST.CallingConvention as CC
 translate i (Literal literal) =
   ([], translateLiteral literal)
 
-translate i (Binder sym) =
-  ([], LocalReference (IntegerType 32) $ Name (textToString sym))
-
 translate i (Symbol sym) =
   ([], LocalReference (IntegerType 32) $ Name (textToString sym))
 

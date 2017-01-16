@@ -1,5 +1,6 @@
 module Mpl.Common.BackendJS where
 
+import Data.Functor.Foldable (cata)
 import Data.List (foldl')
 import Data.Text (unpack)
 import Language.JavaScript.Parser
@@ -10,18 +11,10 @@ import Mpl.Common.Syntax
 import Mpl.JSUtils
 import Mpl.Utils
 
-translate (Literal l) =
+translate _ (Literal l) =
   return $ translateLiteral l
 
-translate (Binder t) = do
-  jsBinder <- do
-    if isValidIdent t
-      then return t
-      else genSym
-  pushBinder t jsBinder
-  return $ JSIdentifier JSNoAnnot (unpack jsBinder)
-
-translate (Symbol t) = do
+translate _ (Symbol t) = do
   maybeJSBinder <- findBinder t
   case maybeJSBinder of
     Just jsBinder ->
@@ -39,11 +32,19 @@ translate (Symbol t) = do
               sym <- genSym
               return $ JSIdentifier JSNoAnnot (unpack sym)
 
-translate (Application f as) =
+translate _ (Application f as) =
   curryApplication f as
 
-translate (Function parameters body) =
-  curryFunction parameters body
+translate translateBinder (Function parameters body) =
+  curryFunction translateBinder parameters body
+
+translateBinder (Binder t) = do
+  jsBinder <- do
+    if isValidIdent t
+      then return t
+      else genSym
+  pushBinder t jsBinder
+  return $ JSIdentifier JSNoAnnot (unpack jsBinder)
 
 translateLiteral (IntegerLiteral int) =
   JSDecimal JSNoAnnot (show int)
@@ -59,11 +60,12 @@ curryApplication f as = foldl' curry f as
               (JSLOne argument)
               JSNoAnnot
 
-curryFunction [] body =
+curryFunction _ [] body =
   body
-curryFunction (a:as) body = do
-  rawParam <- a
-  retValue <- curryFunction as body
+
+curryFunction translateBinder (a:as) body = do
+  rawParam <- cata translateBinder a
+  retValue <- curryFunction translateBinder as body
   popBinder
 
   let retStatement =

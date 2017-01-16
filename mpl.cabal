@@ -74,7 +74,8 @@ library
     FlexibleContexts,
     OverloadedStrings,
     TypeFamilies,
-    TypeSynonymInstances
+    TypeSynonymInstances,
+    UndecidableInstances
 
   include-dirs:
     vendor/v8/include

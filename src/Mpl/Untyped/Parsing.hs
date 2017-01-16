@@ -25,11 +25,12 @@ import Mpl.Utils
 
 import qualified Mpl.Common.Syntax as CS
 
-parseExpressionText :: Text -> ParseResult (SourceAnnotated SyntaxF)
+parseExpressionText :: Text -> ParseResult (SourceAnnotated (SyntaxF (SourceAnnotated CS.Binder)))
 parseExpressionText = parseFromString syntaxConstructors commonParser . textToString
 
 syntaxConstructors =
   SyntaxConstructors
     { consExpression       = id
     , consCommon           = Common
+    , consBinder           = id
     }

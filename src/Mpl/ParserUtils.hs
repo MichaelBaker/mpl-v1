@@ -42,7 +42,7 @@ import Mpl.Parser                       (Parser(..), Result, withDescription, pa
 import Mpl.ParserDescription            (ParserDescription(..))
 import Mpl.Rendering
 import Mpl.Utils                        (ByteString, textToString, stringToText, byteStringToString, stringToByteString, byteStringSlice, byteStringToText)
-import Prelude                          (Bool(..), Show, Maybe(..), (==), Either(..), (++), (.), ($), (<*>), (*>), Integer, String, Monoid, const, drop, mappend, mempty, fromIntegral, return, mempty)
+import Prelude                          (Bool(..), Show, Eq, Maybe(..), (==), Either(..), (++), (.), ($), (<*>), (*>), Integer, String, Monoid, const, drop, mappend, mempty, fromIntegral, return, mempty)
 import Text.Parser.Char                 (noneOf, oneOf, char, anyChar)
 import Text.Parser.Combinators          (Parsing, try, optional, notFollowedBy, sepEndBy1, between, eof)
 import Text.Parser.LookAhead            (lookAhead)
@@ -58,14 +58,17 @@ import qualified Data.ByteString   as BS
 import qualified Data.Set          as Set
 
 -- | Parsers wich have access to the parsing context and produce @f@s tagged with source code information.
-type MplParser f = GenericContextualParser (SourceAnnotated f)
+type MplParser binder f =
+  GenericContextualParser
+    (SourceAnnotated binder)
+    (SourceAnnotated (f (SourceAnnotated binder)))
 
 -- | Parsers which have access to a parsing context capable of working with @f@s.
 --
 -- This is useful because it prevents the context from depending upon the type of annotation being applied to the tree, which means that the amount of work necessary to change that annotation is limited.
-type GenericContextualParser f =
+type GenericContextualParser binder f =
   ReaderT
-    (ParsingContext f)
+    (ParsingContext binder f)
     StatefulParser
     f
 
@@ -76,11 +79,11 @@ type GenericContextualParser f =
 -- The underlying monad is a parser carrying ParserState
 --
 -- The result of the parser is an @f@ which hasn't been annotated yet because the function accepting one of these will annotate it.
-type SourceAnnotatable f =
+type SourceAnnotatable binder f =
   ReaderT
-    (ParsingContext (SourceAnnotated f))
+    (ParsingContext (SourceAnnotated binder) (SourceAnnotated (f (SourceAnnotated binder))))
     StatefulParser
-    (f (SourceAnnotated f))
+    (f (SourceAnnotated binder) (SourceAnnotated (f (SourceAnnotated binder))))
 
 -- | The result of a parse annotated with source code information.
 --
@@ -106,16 +109,19 @@ instance Monoid ParserState where
   mappend = (<>)
   mempty  = ParserState { descriptionStack = [] }
 
-data ParsingContext a =
+data ParsingContext binder a =
   ParsingContext
-    { syntaxConstructors :: SyntaxConstructors a
+    { syntaxConstructors :: SyntaxConstructors binder a
     , currentDescription :: Maybe ParserDescription
     }
 
-data SyntaxConstructors f
+data SyntaxConstructors binder f
   = SyntaxConstructors
-  { consExpression :: GenericContextualParser f -> GenericContextualParser f -- ^ Allows a non-common language to perform parsing before and after a common expression.
-  , consCommon     :: CS.SyntaxF f -> Base f f                               -- ^ Lifts a common expression into the non-common language.
+  { consExpression :: GenericContextualParser binder f -> GenericContextualParser binder f
+    -- ^ Allows a non-common language to perform parsing before and after a common expression.
+  , consCommon :: CS.SyntaxF binder f -> Base f f
+    -- ^ Lifts a common expression into the non-common language.
+  , consBinder :: StatefulParser (SourceAnnotated CS.Binder) -> StatefulParser binder
   }
 
 data SourceSpan =
@@ -124,9 +130,9 @@ data SourceSpan =
     , startLine  :: ByteString
     , endDelta   :: Delta
     }
-  deriving (Show)
+  deriving (Show, Eq)
 
-parseFromString :: SyntaxConstructors a -> GenericContextualParser a -> String -> ParseResult a
+parseFromString :: SyntaxConstructors binder a -> GenericContextualParser binder a -> String -> ParseResult a
 parseFromString syntaxConstructors mplParser string = (byteString, result)
   where byteString     = stringToByteString string
         result         = parseByteString parser zeroDelta byteString mempty
@@ -137,7 +143,24 @@ parseFromString syntaxConstructors mplParser string = (byteString, result)
             , currentDescription = Nothing
             }
 
-annotate :: String -> String -> [String] -> SourceAnnotatable f -> MplParser f
+annotate' :: String -> String -> [String] -> StatefulParser (f (SourceAnnotated f)) -> StatefulParser (SourceAnnotated f)
+annotate' name expectation examples parser = do
+  firstChar   <- lookAhead anyChar
+  beforeDelta <- position
+  let startDelta = beforeDelta <> delta firstChar
+  let description =
+        ParserDescription
+          { parserName        = name
+          , parserExamples    = examples
+          , parserDelta       = startDelta
+          , parserExpectation = expectation
+          }
+  startLine    <- line
+  result       <- modifyingState (\s -> s { descriptionStack = description : descriptionStack s }) parser
+  endDelta     <- position
+  return (SourceSpan startDelta startLine endDelta :< result)
+
+annotate :: String -> String -> [String] -> SourceAnnotatable binder f -> MplParser binder f
 annotate name expectation examples parser = do
   firstChar   <- lookAhead anyChar
   beforeDelta <- position
@@ -166,8 +189,12 @@ makeCommon common = do
   return (constructor common)
 
 makeExpression flatExpression = do
-  constructor <- asks (consExpression . syntaxConstructors)
-  constructor flatExpression
+  transform <- asks (consExpression . syntaxConstructors)
+  transform flatExpression
+
+makeBinder binderParser = do
+  transform <- asks (consBinder . syntaxConstructors)
+  lift $ transform binderParser
 
 zeroDelta = Columns 0 0
 

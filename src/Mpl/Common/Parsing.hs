@@ -2,6 +2,7 @@ module Mpl.Common.Parsing where
 
 import Mpl.Common.Syntax
   ( SyntaxF
+  , Binder
   , int
   , binder
   , symbol
@@ -23,11 +24,12 @@ import Mpl.Utils
 
 import Mpl.Common.Parsers (commonParser)
 
-parseExpressionText :: Text -> ParseResult (SourceAnnotated SyntaxF)
+parseExpressionText :: Text -> ParseResult (SourceAnnotated (SyntaxF (SourceAnnotated Binder)))
 parseExpressionText = parseFromString syntaxConstructors commonParser . textToString
 
 syntaxConstructors =
   SyntaxConstructors
     { consExpression       = id
     , consCommon           = id
+    , consBinder           = id
     }
