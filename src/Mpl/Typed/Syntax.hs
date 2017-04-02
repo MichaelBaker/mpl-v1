@@ -11,10 +11,14 @@ data SyntaxF binder recurse
   | TypeAnnotation recurse Type
   deriving (Show, Generic, Functor, Eq)
 
+data Binder recurse
+  = CommonBinder (CS.Binder recurse)
+  | AnnotatedBinder recurse Type
+  deriving (Show, Generic, Functor, Eq, Traversable, Foldable)
+
 data Type
   = TypeSymbol Text
   deriving (Show, Generic, Eq)
-
 
 literal                    = Common . CS.literal
 symbol                     = Common . CS.symbol
@@ -24,7 +28,9 @@ int                        = Common . CS.int
 typeAnnotation             = TypeAnnotation
 typeSymbol                 = TypeSymbol
 
-binder                     = CS.binder
+binder          = CommonBinder . CS.binder
+annotatedBinder = AnnotatedBinder
 
+mapCommon :: (CS.SyntaxF t recurse -> CS.SyntaxF binder recurse) -> SyntaxF t recurse -> SyntaxF binder recurse
 mapCommon f (Common a) = Common (f a)
 mapCommon _ (TypeAnnotation recurse ty) = TypeAnnotation recurse ty

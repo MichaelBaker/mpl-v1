@@ -9,12 +9,12 @@ data SyntaxF binder recurse
   | Application recurse [recurse]
   deriving (Show, Generic, Functor, Eq, Traversable, Foldable)
 
-data Literal =
-  IntegerLiteral Integer
+data Literal
+  = IntegerLiteral Integer
   deriving (Show, Generic, Eq)
 
-data Binder r =
-  Binder Text
+data Binder recurse
+  = Binder Text
   deriving (Show, Generic, Functor, Eq, Traversable, Foldable)
 
 literal                    = Literal
@@ -23,13 +23,13 @@ function parameters body   = Function parameters body
 application func arguments = Application func arguments
 int                        = literal . IntegerLiteral
 
-binder                     = Binder
+binder = Binder
 
 mapBinder :: (a -> binder) -> SyntaxF a recurse -> SyntaxF binder recurse
 mapBinder f (Function binders recurse) =
   Function
     (map f binders)
     recurse
-mapBinder _ (Literal literal) = Literal literal
-mapBinder _ (Symbol      text) = Symbol text
+mapBinder _ (Literal literal)      = Literal literal
+mapBinder _ (Symbol      text)     = Symbol text
 mapBinder _ (Application fun args) = Application fun args

@@ -8,7 +8,7 @@
 
 ## What do I need to actually get a prototype out the door?
 
-- [ ] A Binder data type that is distinct from expressions
+- [X] A Binder data type that is distinct from expressions
   * Needed to allow type annotations to bindings.
   * Demonstrates that the recursion-schemes framework I'm using will work when expressions aren't homogenous and potentially include sub syntaxes which are recursive in their own right.
 - [ ] Type checking phase for Typed

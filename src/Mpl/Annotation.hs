@@ -27,6 +27,8 @@ annotation (a :< _) = a
 envcata :: (Functor s, Foldable (x s a), Comonad (x s)) => (a -> (Base (x s a)) c -> c) -> x s a -> c
 envcata f x = f (extract x) $ fmap (envcata f) (project x)
 
+mapAnnotated f x = envcata (\ann value -> ann :< f value) x
+
 type Fixed a = Fix (Base a)
 
 annotateWithState :: (Traversable (Base f), Foldable f) => a -> (a -> a) -> f -> Annotated (Base f) a
