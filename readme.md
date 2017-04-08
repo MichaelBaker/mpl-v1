@@ -78,6 +78,7 @@
 - [ ] Handle syntax suggestions in the middle of a line
 - [ ] Use examples to generate syntax error heuristics: https://research.swtch.com/yyerror
 - [ ] Pull in big decimal/integer library for IEEE JS math
+- [ ] Create formal proofs of the type checker etc...
 
 ## TODO Think about
 

@@ -19,6 +19,8 @@ module Mpl.Utils
   , project
   , refix
   , mapAnnotated
+  , showText
+  , (|>)
   ) where
 
 import Data.Text                  (Text, pack, unpack)
@@ -38,9 +40,14 @@ byteStringToString = UTF8.toString
 stringToByteString = UTF8.fromString
 byteStringToText   = stringToText . byteStringToString
 
+showText :: (Show a) => a -> Text
+showText = stringToText . show
+
 byteStringSlice startChar endChar byteString = UTF8.take spanSize $ UTF8.drop startChar byteString
   where spanSize = endChar - startChar
 
 lazyTextToString = LT.unpack
 
 jsIR = renderToText
+
+a |> f = f a

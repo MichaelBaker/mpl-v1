@@ -1,0 +1,63 @@
+\documentclass[11pt]{article}
+\usepackage{prftree}
+\usepackage{turnstile}
+
+% ----------------------------------------------
+% -- Aliases
+
+\newcommand{\subtype}{\leq}
+\newcommand{\infers}{\Rightarrow}
+\newcommand{\checks}{\Leftarrow}
+\newcommand{\context}{\vdash}
+
+% ----------------------------------------------
+% -- Main Document
+
+\begin{document}
+
+\section{Inference Rules}
+
+$\Gamma \vdash a \infers t$ means that under the assumptions $\Gamma$ we can infer that term $a$ has type $t$. These rules have $\Gamma$ and $a$ available as inputs and product $t$ as an ouput.
+
+$$
+\prfbyaxiom
+	{infer integer literal}
+	{\context 123 \infers \textnormal{integer}}
+$$
+
+$$
+\prfbyaxiom
+	{infer known symbol}
+	{x : t \context x \infers t}
+$$
+
+$$
+\prftree[r]
+	{infer type annotation}
+	{\context x \checks t}
+	{\context x : t \infers t}
+$$
+
+\section{Checking Rules}
+
+$\Gamma \context a \checks t$ means that under the assumptions $\Gamma$, we can prove that term $a$ has type $t$. These rules take $\Gamma$, $a$, and $t$ as inputs and produce a boolean output. Either $a$ has assumed type $t$ or it doesn't.
+
+$$
+\prftree[r]
+	{check}
+	{\context x \infers s}
+	{s \subtype t}
+	{\context x \checks t}
+$$
+
+\section{Subtype Rules}
+
+$a \subtype b$ means that a type $a$ satisfies the constraints of a type $b$.
+
+$$
+\prfbyaxiom
+	{consistent integers}
+	{integer \subtype integer}
+$$
+
+\end{document}
