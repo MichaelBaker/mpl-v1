@@ -27,7 +27,7 @@ mkParsesTo parseExpressionText discardAnnotation text expected =
     Left e -> fail $ show e
     Right a -> (cata discardAnnotation a) `shouldBe` expected
 
-mkTransformsTo :: (Foldable a, Eq b, Show b) => (t -> ParseResult a) -> (Base a b -> b) -> (a -> a) -> t -> b -> IO ()
+mkTransformsTo :: (Foldable b, Eq c, Show c) => (t -> ParseResult a) -> (Base b c -> c) -> (a -> b) -> t -> c -> IO ()
 mkTransformsTo parseExpressionText discardAnnotation f text expected =
   case snd $ parseExpressionText text of
     Left e -> fail $ show e

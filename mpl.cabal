@@ -20,6 +20,7 @@ library
     Mpl.Annotation,
     Mpl.Common.BackendJS,
     Mpl.Common.BackendLLVM,
+    Mpl.Common.Core,
     Mpl.Common.Parsers,
     Mpl.Common.Parsing,
     Mpl.Common.Syntax,
@@ -141,6 +142,7 @@ test-suite mpl-test
 
   other-modules:
     Mpl.AnnotationSpec,
+    Mpl.Common.CoreSpec,
     Mpl.Common.ParsersSpec,
     Mpl.Common.ParsingSpec,
     Mpl.Typed.BackendJSSpec,

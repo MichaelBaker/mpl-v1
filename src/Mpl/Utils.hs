@@ -21,11 +21,13 @@ module Mpl.Utils
   , mapAnnotated
   , showText
   , (|>)
+  , envcata
+  , annotation
   ) where
 
 import Data.Text                  (Text, pack, unpack)
 import Control.Comonad.Cofree     (Cofree((:<)))
-import Mpl.Annotation             (Annotated, Base, mapAnnotated)
+import Mpl.Annotation             (Annotated, Base, mapAnnotated, envcata, annotation)
 import Data.Functor.Foldable      (Fix(..), Foldable, cata, project, refix)
 import GHC.Generics               (Generic)
 import Language.JavaScript.Parser (renderToText)
