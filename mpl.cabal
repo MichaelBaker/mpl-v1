@@ -149,7 +149,6 @@ test-suite mpl-test
     Mpl.Typed.ParsingSpec,
     Mpl.Typed.TypecheckSpec,
     Mpl.Untyped.BackendJSSpec,
-    Mpl.Untyped.BackendLLVMSpec,
     TestUtils,
     V8Spec
 
