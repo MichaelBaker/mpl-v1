@@ -11,7 +11,7 @@ import qualified Mpl.Common.Core   as C
 transformsTo = mkTransformsTo
   parseExpressionText
   (Fix . C.mapBinder (cata Fix))
-  (envcata C.syntaxToCore)
+  (envcata (C.syntaxToCore id))
 
 int :: Integer -> Fix (C.CoreF (Fix C.Binder))
 int              = Fix . C.int

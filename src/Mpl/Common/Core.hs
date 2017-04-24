@@ -26,34 +26,34 @@ int                        = literal . IntegerLiteral
 
 binder = Binder
 
-syntaxToCore span (S.Literal literal) =
-  span :< Literal (convertLiteral literal)
-syntaxToCore span (S.Symbol  text) =
-  span :< Symbol text
-syntaxToCore span (S.Function binders body) =
-  curryFunction binders body
-syntaxToCore span (S.Application fun args) =
-  curryApplication args fun
+syntaxToCore wrap span (S.Literal literal) =
+  span :< (wrap $ Literal (convertLiteral literal))
+syntaxToCore wrap span (S.Symbol  text) =
+  span :< (wrap $ Symbol text)
+syntaxToCore wrap span (S.Function binders body) =
+  curryFunction wrap binders body
+syntaxToCore wrap span (S.Application fun args) =
+  curryApplication wrap args fun
 
 convertLiteral (S.IntegerLiteral integer) = IntegerLiteral integer
 
 convertBinder span (S.Binder text) = span :< Binder text
 
 -- TODO: Makes span annotations correct
-curryFunction [] _ =
+curryFunction _ [] _ =
   error "Cannot have a function with no parameters" -- TODO: Fold this into monadic error handling
-curryFunction (p:[]) body =
-  annotation p :< Function (envcata convertBinder p) body
-curryFunction (p:ps) body =
-  annotation p :< Function (envcata convertBinder p) (curryFunction ps body)
+curryFunction wrap (p:[]) body =
+  annotation p :< (wrap $ Function (envcata convertBinder p) body)
+curryFunction wrap (p:ps) body =
+  annotation p :< (wrap $ Function (envcata convertBinder p) (curryFunction wrap ps body))
 
 -- TODO: Makes span annotations correct
-curryApplication [] _ =
+curryApplication _ [] _ =
   error "Cannot have an application with no arguments" -- TODO: Fold this into monadic error handling
-curryApplication (a:[]) fun =
-  annotation a :< Application fun a
-curryApplication (a:as) fun =
-  curryApplication as (annotation a :< Application fun a)
+curryApplication wrap (a:[]) fun =
+  annotation a :< (wrap $ Application fun a)
+curryApplication wrap (a:as) fun =
+  curryApplication wrap as (annotation a :< (wrap $ Application fun a))
 
 mapBinder :: (a -> binder) -> CoreF a recurse -> CoreF binder recurse
 mapBinder f (Function binder recurse) =

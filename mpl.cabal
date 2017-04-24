@@ -38,6 +38,7 @@ library
     Mpl.Typed.Typecheck,
     Mpl.Untyped.BackendJS,
     Mpl.Untyped.BackendLLVM,
+    Mpl.Untyped.Core,
     Mpl.Untyped.Parsing,
     Mpl.Untyped.Syntax,
     Mpl.Utils,

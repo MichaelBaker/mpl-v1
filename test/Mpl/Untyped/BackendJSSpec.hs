@@ -1,15 +1,24 @@
 module Mpl.Untyped.BackendJSSpec where
 
 import Mpl.Untyped.Parsing   (parseExpressionText)
+import Mpl.Untyped.Core      (syntaxToCore)
 import Mpl.Untyped.BackendJS (translateToJS)
+import Mpl.Utils             (envcata)
 import TestUtils             (describe, it, shouldBe, mkTranslatesToJS, loadConfig, mkEvalsJSTo)
 
-translatesToJS = mkTranslatesToJS parseExpressionText translateToJS
+translatesToJS =
+  mkTranslatesToJS
+    parseExpressionText
+    (translateToJS . (envcata syntaxToCore))
 
 spec = do
   config <- loadConfig
 
-  let evalsTo = mkEvalsJSTo config parseExpressionText translateToJS
+  let evalsTo =
+        mkEvalsJSTo
+          config
+          parseExpressionText
+          (translateToJS . (envcata syntaxToCore))
 
   it "parses integers" $ do
     "1" `translatesToJS` "1"
@@ -25,7 +34,8 @@ spec = do
     "#(a = a 1)" `translatesToJS` "function(a) { return a(1); }"
 
   it "anonymous functions with multiple parameters" $ do
-    "#(a b = a 1 b)" `translatesToJS` "function(a) { return function(b) { return a(1)(b); }; }"
+    "#(a b = a 1 b)" `translatesToJS`
+      "function(a) { return function(b) { return a(1)(b); }; }"
 
   it "translates the '+' function into a builtin curried function" $ do
     "+ a b" `translatesToJS` "JSCore[\"+\"](a)(b)"

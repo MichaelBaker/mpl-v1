@@ -1,7 +1,7 @@
 module Main where
 
 import System.Console.Haskeline (runInputT, defaultSettings, getInputLine, outputStrLn, outputStr)
-import Mpl.Utils                (stringToText, textToString, lazyTextToString, jsIR)
+import Mpl.Utils                (stringToText, textToString, lazyTextToString, jsIR, envcata)
 import Mpl.LLVMUtils            (llvmIR, llvmJIT)
 import Control.Monad.IO.Class   (liftIO)
 import Repl.State               (State(..), StateLineItem(..), Mode(..), defaultState, toStateLineItem, showStateLine, strLineItem)
@@ -13,9 +13,10 @@ import Text.Read                (readMaybe)
 import qualified Text.Tabl                    as Table
 import qualified System.Console.Terminal.Size as TermSize
 import qualified System.Console.ANSI          as Term
-import qualified Mpl.Untyped.Parsing          as UntypedParser
-import qualified Mpl.Untyped.BackendLLVM      as UntypedLLVM
 import qualified Mpl.Untyped.BackendJS        as UntypedJS
+import qualified Mpl.Untyped.BackendLLVM      as UntypedLLVM
+import qualified Mpl.Untyped.Core             as UntypedCore
+import qualified Mpl.Untyped.Parsing          as UntypedParser
 import qualified V8
 
 main :: IO ()
@@ -71,8 +72,14 @@ handleInput input state
         PrintJS -> do
           let textInput = stringToText input
           case snd $ UntypedParser.parseExpressionText textInput of
-            Left e -> outputStrLn (show e)
-            Right a -> outputStrLn $ lazyTextToString $ jsIR $ UntypedJS.translateToJS a
+            Left e ->
+              outputStrLn (show e)
+            Right a ->
+              outputStrLn
+              $ lazyTextToString
+              $ jsIR
+              $ UntypedJS.translateToJS
+              $ envcata UntypedCore.syntaxToCore a
         EvalLLVM -> do
           let textInput = stringToText input
           case snd $ UntypedParser.parseExpressionText textInput of
@@ -86,9 +93,15 @@ handleInput input state
         EvalJS -> do
           let textInput = stringToText input
           case snd $ UntypedParser.parseExpressionText textInput of
-            Left e -> outputStrLn (show e)
+            Left e ->
+              outputStrLn (show e)
             Right a -> do
-              let jsCode = stringToText $ lazyTextToString $ jsIR $ UntypedJS.translateToJS a
+              let jsCode =
+                    stringToText
+                    $ lazyTextToString
+                    $ jsIR
+                    $ UntypedJS.translateToJS
+                    $ envcata UntypedCore.syntaxToCore a
               result <- liftIO $ V8.withContext $ \context -> do
                 V8.eval context jsCode
               outputStrLn (textToString result)

@@ -7,7 +7,7 @@ import Language.JavaScript.Parser
 import Language.JavaScript.Parser.AST
 import Language.JavaScript.Parser.Grammar5
 import Language.JavaScript.Parser.Lexer
-import Mpl.Common.Syntax
+import Mpl.Common.Core
 import Mpl.JSUtils
 import Mpl.Utils
 
@@ -32,40 +32,19 @@ translate _ (Symbol t) = do
               sym <- genSym
               return $ JSIdentifier JSNoAnnot (unpack sym)
 
-translate _ (Application f as) =
-  curryApplication f as
+translate _ (Application f arg) = do
+  function <- f
+  argument <- arg
+  return $
+    JSCallExpression
+      function
+      JSNoAnnot
+      (JSLOne argument)
+      JSNoAnnot
 
-translate translateBinder (Function parameters body) =
-  curryFunction translateBinder parameters body
-
-translateBinder (Binder t) = do
-  jsBinder <- do
-    if isValidIdent t
-      then return t
-      else genSym
-  pushBinder t jsBinder
-  return $ JSIdentifier JSNoAnnot (unpack jsBinder)
-
-translateLiteral (IntegerLiteral int) =
-  JSDecimal JSNoAnnot (show int)
-
-curryApplication f as = foldl' curry f as
-  where curry f' a = do
-          function <- f'
-          argument <- a
-          return $
-            JSCallExpression
-              function
-              JSNoAnnot
-              (JSLOne argument)
-              JSNoAnnot
-
-curryFunction _ [] body =
-  body
-
-curryFunction translateBinder (a:as) body = do
-  rawParam <- cata translateBinder a
-  retValue <- curryFunction translateBinder as body
+translate translateBinder (Function parameter body) = do
+  rawParam <- cata translateBinder parameter
+  retValue <- body
   popBinder
 
   let retStatement =
@@ -98,6 +77,17 @@ curryFunction translateBinder (a:as) body = do
       (JSLOne param)
       JSNoAnnot
       (JSBlock spaceAnnot statements spaceAnnot)
+
+translateBinder (Binder t) = do
+  jsBinder <- do
+    if isValidIdent t
+      then return t
+      else genSym
+  pushBinder t jsBinder
+  return $ JSIdentifier JSNoAnnot (unpack jsBinder)
+
+translateLiteral (IntegerLiteral int) =
+  JSDecimal JSNoAnnot (show int)
 
 isValidIdent ident =
   case runAlex (textToString ident) parseExpression of
