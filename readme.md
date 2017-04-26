@@ -32,6 +32,10 @@
 - [ ] Javascript FFI
   * If I have this, then I can implement non-trival programs by leaning on JS libraries like React.
 
+## Steps not yet represented in the new compiler pipeline
+
+- [ ] Parsing
+
 ## TODO Chunks
 
 - [X] Write iterator over Cofree that makes the annotation available at each stage
@@ -92,6 +96,7 @@
 - [ ] How can Untyped code call Typed code without any extra ceremony?
 - [ ] How can Typed code call Unmanaged code without any extra ceremony?
 - [ ] How can Untyped code call Unmanaged code without any extra ceremony?
+- [ ] Composition is helped when you can logically compose things without physically (syntactically) compose them. This is the value of `let` and `where`.
 
 ## Language Facilities
 

@@ -1,14 +1,17 @@
 module Mpl.Common.Core where
 
-import Mpl.Utils (Text, Generic, Cofree ((:<)), Base, envcata, annotation)
+import           Mpl.ParserUtils   (SourceAnnotated)
+import           Mpl.Prelude
+import           Mpl.Utils
 import qualified Mpl.Common.Syntax as S
+import qualified Prelude
 
 data CoreF binder recurse
   = Literal Literal
   | Symbol      Text
   | Function    binder recurse
   | Application recurse recurse
-  deriving (Show, Generic, Functor, Eq, Traversable, Foldable)
+  deriving (Show, Generic, Functor, Eq, Traversable, Prelude.Foldable)
 
 data Literal
   = IntegerLiteral Integer
@@ -16,7 +19,9 @@ data Literal
 
 data Binder recurse
   = Binder Text
-  deriving (Show, Generic, Functor, Eq, Traversable, Foldable)
+  deriving (Show, Generic, Functor, Eq, Traversable, Prelude.Foldable)
+
+type SourceBinder = SourceAnnotated Binder
 
 literal                    = Literal
 symbol                     = Symbol

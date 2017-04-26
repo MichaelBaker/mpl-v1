@@ -28,28 +28,30 @@ module Mpl.Parser
   , withDescription
   ) where
 
-import Control.Applicative as Alternative
-import Control.Monad (MonadPlus(..), ap, join)
-import Control.Monad.IO.Class
-import Data.ByteString as Strict hiding (empty, snoc)
-import Data.ByteString.UTF8 as UTF8
-import Data.Maybe (isJust)
-import Data.Semigroup
-import Data.Semigroup.Reducer
-import Data.Set as Set hiding (empty, toList)
-import System.IO
-import Text.Parser.Combinators
-import Text.Parser.Char
-import Text.Parser.LookAhead
-import Text.Parser.Token
-import Text.PrettyPrint.ANSI.Leijen as Pretty hiding (line, (<>), (<$>), empty)
-import Text.Trifecta.Combinators
-import Text.Trifecta.Rendering
-import Text.Trifecta.Rope
-import Text.Trifecta.Delta as Delta
-import Text.Trifecta.Util.It
-import Mpl.ParserError
-import Mpl.ParserDescription
+import           Control.Applicative          as Alternative
+import           Control.Monad                (MonadPlus(..), ap, join)
+import           Control.Monad.IO.Class
+import           Data.ByteString              as Strict hiding (empty, snoc)
+import           Data.ByteString.UTF8         as UTF8
+import           Data.Maybe                   (isJust)
+import           Data.Semigroup
+import           Data.Semigroup.Reducer
+import           Data.Set                     as Set hiding (empty, toList)
+import           Mpl.ParserDescription
+import           Mpl.ParserError
+import           Mpl.Prelude
+import           System.IO
+import           Text.Parser.Char
+import           Text.Parser.Combinators
+import           Text.Parser.LookAhead
+import           Text.Parser.Token
+import           Text.PrettyPrint.ANSI.Leijen as Pretty hiding (line, (<>), (<$>), empty)
+import           Text.Trifecta.Combinators
+import           Text.Trifecta.Delta          as Delta
+import           Text.Trifecta.Rendering
+import           Text.Trifecta.Rope
+import           Text.Trifecta.Util.It
+import qualified Prelude
 
 -- | The type of a trifecta parser
 --

@@ -8,6 +8,7 @@ packages:
 extra-deps:
 - llvm-general-3.5.1.2
 - llvm-general-pure-3.5.1.0
+- freer-effects-0.3.0.1
 
 flags:
   llvm-general:

@@ -14,9 +14,7 @@ data Language =
 data Mode =
     PrintAST
   | Echo
-  | PrintLLVM
   | PrintJS
-  | EvalLLVM
   | EvalJS
   deriving (Show, Read, Enum)
 

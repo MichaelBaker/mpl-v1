@@ -1,55 +1,14 @@
 module Mpl.Common.Parsers where
 
-import Mpl.ParserUtils
-  ( Parser
-  , MplParser
-  , StatefulParser
-  , SourceAnnotated
-  , makeExpression
-  , makeCommon
-  , makeBinder
-  , annotate
-  , annotate'
-  , (<|>)
-  , many
-  , some
-  , oneOf
-  , noneOf
-  , whiteSpace
-  , someSpace
-  , sepEndBy1
-  , try
-  , parens
-  , symbolChars
-  , symbolStartChars
-  , symbol
-  , notFollowedBy
-  , optional
-  , digits
-  , char
-  , lookAhead
-  , fileEnd
-  , withExpectation
-  , lift
-  )
-
-import Data.Function ((&))
-import Data.Text     (dropWhileEnd)
-
+import           Data.Function                ((&))
+import           Data.List                    (intercalate)
+import           Data.Text                    (dropWhileEnd)
+import           Mpl.ParserUtils
+import           Mpl.Prelude
+import           Mpl.Rendering
+import           Mpl.Utils
+import qualified Mpl.Common.Syntax            as CS
 import qualified Text.PrettyPrint.ANSI.Leijen as P
-
-import Mpl.Rendering
-
-import Mpl.Utils
-  ( Text
-  , textToString
-  , stringToText
-  , byteStringToString
-  )
-
-import Data.List (intercalate)
-
-import qualified Mpl.Common.Syntax as CS
 
 commonParser :: MplParser binder f
 commonParser = parseApplicationOrExpression <* fileEnd

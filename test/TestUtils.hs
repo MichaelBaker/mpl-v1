@@ -10,7 +10,6 @@ import Data.Functor.Foldable      (Base, Fix, Foldable)
 import Data.List                  (isInfixOf)
 import Language.JavaScript.Parser (readJs)
 import Mpl.Annotation             (Fixed)
-import Mpl.LLVMUtils              (llvmIR)
 import Mpl.ParserUtils            (ParseResult)
 import Mpl.Rendering.ParserError  (errorMessage)
 import Mpl.Utils                  (lazyTextToString, jsIR, stringToText, cata)
@@ -63,13 +62,6 @@ mkTranslatesToJS parseExpressionText translateToJS mplCode jsCode =
   case snd $ parseExpressionText mplCode of
     Left e -> fail $ show e
     Right a -> jsIR (translateToJS a) `shouldBe` jsIR (readJs jsCode)
-
-mkTranslatesToLLVM parseExpressionText translateToLLVM mplCode expected = do
-  case snd $ parseExpressionText mplCode of
-    Left e -> fail $ show e
-    Right a -> do
-      result <- llvmIR (translateToLLVM a)
-      result `shouldBe` expected
 
 data Config = Config
   { nodePath :: String -- The filepath to a node executable for running javascript programs

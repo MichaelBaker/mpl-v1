@@ -1,12 +1,12 @@
 module Mpl.Typed.Typecheck where
 
-import Control.Monad.Except
-import Control.Monad.State.Strict
-import Data.Map.Strict as Map
-import Mpl.Utils
-
-import qualified Mpl.Common.Syntax as CS
-import qualified Mpl.Typed.Syntax  as TS
+import           Control.Monad.Except
+import           Control.Monad.State.Strict
+import           Data.Map.Strict            as Map
+import           Mpl.Prelude
+import           Mpl.Utils
+import qualified Mpl.Common.Syntax          as CS
+import qualified Mpl.Typed.Syntax           as TS
 
 --------------------------------------------------------------------------------
 -- Datatypes for typechecking

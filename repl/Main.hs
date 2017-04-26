@@ -2,7 +2,6 @@ module Main where
 
 import System.Console.Haskeline (runInputT, defaultSettings, getInputLine, outputStrLn, outputStr)
 import Mpl.Utils                (stringToText, textToString, lazyTextToString, jsIR, envcata)
-import Mpl.LLVMUtils            (llvmIR, llvmJIT)
 import Control.Monad.IO.Class   (liftIO)
 import Repl.State               (State(..), StateLineItem(..), Mode(..), defaultState, toStateLineItem, showStateLine, strLineItem)
 import Control.Monad            (replicateM_)
@@ -14,7 +13,6 @@ import qualified Text.Tabl                    as Table
 import qualified System.Console.Terminal.Size as TermSize
 import qualified System.Console.ANSI          as Term
 import qualified Mpl.Untyped.BackendJS        as UntypedJS
-import qualified Mpl.Untyped.BackendLLVM      as UntypedLLVM
 import qualified Mpl.Untyped.Core             as UntypedCore
 import qualified Mpl.Untyped.Parsing          as UntypedParser
 import qualified V8
@@ -62,13 +60,6 @@ handleInput input state
           case snd $ UntypedParser.parseExpressionText textInput of
             Left e -> outputStrLn (show e)
             Right a -> outputStrLn (show a)
-        PrintLLVM -> do
-          let textInput = stringToText input
-          case snd $ UntypedParser.parseExpressionText textInput of
-            Left e -> outputStrLn (show e)
-            Right a -> do
-              let llvmModule = UntypedLLVM.translateToLLVM a
-              liftIO (llvmIR llvmModule) >>= outputStrLn
         PrintJS -> do
           let textInput = stringToText input
           case snd $ UntypedParser.parseExpressionText textInput of
@@ -80,16 +71,6 @@ handleInput input state
               $ jsIR
               $ UntypedJS.translateToJS
               $ envcata UntypedCore.syntaxToCore a
-        EvalLLVM -> do
-          let textInput = stringToText input
-          case snd $ UntypedParser.parseExpressionText textInput of
-            Left e -> outputStrLn (show e)
-            Right a -> do
-              let llvmModule = UntypedLLVM.translateToLLVM a
-              result <- liftIO (llvmJIT llvmModule)
-              case result of
-                Nothing -> outputStrLn "Invalid LLVM"
-                Just a  -> outputStrLn a
         EvalJS -> do
           let textInput = stringToText input
           case snd $ UntypedParser.parseExpressionText textInput of

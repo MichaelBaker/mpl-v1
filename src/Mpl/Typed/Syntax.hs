@@ -1,10 +1,10 @@
 module Mpl.Typed.Syntax where
 
-import Data.Text    (Text)
-import Mpl.Utils    (Fix(..), project)
-import GHC.Generics (Generic)
-
+import           Data.Text         (Text)
+import           Mpl.Prelude
+import           Mpl.Utils         (Fix(..), project)
 import qualified Mpl.Common.Syntax as CS
+import qualified Prelude
 
 data SyntaxF binder recurse
   = Common (CS.SyntaxF binder recurse)
@@ -14,7 +14,7 @@ data SyntaxF binder recurse
 data Binder recurse
   = CommonBinder (CS.Binder recurse)
   | AnnotatedBinder recurse Type
-  deriving (Show, Generic, Functor, Eq, Traversable, Foldable)
+  deriving (Show, Generic, Functor, Eq, Traversable, Prelude.Foldable)
 
 data Type
   = TypeSymbol Text

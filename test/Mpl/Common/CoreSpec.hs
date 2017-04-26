@@ -2,16 +2,21 @@ module Mpl.Common.CoreSpec where
 
 import Data.Functor.Foldable (Fix(..))
 import Mpl.Common.Parsing    (parseExpressionText)
-import Mpl.Utils             (cata, envcata)
+import Mpl.Utils             ((|>), cata, envcata)
 import TestUtils             (describe, it, shouldBe, mkTransformsTo)
 
 import qualified Mpl.Common.Syntax as S
 import qualified Mpl.Common.Core   as C
 
-transformsTo = mkTransformsTo
-  parseExpressionText
-  (Fix . C.mapBinder (cata Fix))
-  (envcata (C.syntaxToCore id))
+transformsTo text expected =
+  case snd $ parseExpressionText text of
+    Left e  -> fail $ show e
+    Right syntax -> do
+      let result =
+            syntax
+            |> envcata (C.syntaxToCore id)
+            |> cata (Fix . C.mapBinder (cata Fix))
+      result `shouldBe` expected
 
 int :: Integer -> Fix (C.CoreF (Fix C.Binder))
 int              = Fix . C.int

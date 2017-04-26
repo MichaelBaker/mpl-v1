@@ -1,12 +1,12 @@
 module Mpl.Untyped.Syntax where
 
-import Mpl.Utils (Generic)
-
+import           Mpl.Prelude
 import qualified Mpl.Common.Syntax as CS
+import qualified Prelude
 
 data SyntaxF binder recurse
   = Common (CS.SyntaxF binder recurse)
-  deriving (Show, Generic, Functor, Eq, Traversable, Foldable)
+  deriving (Show, Generic, Functor, Eq, Traversable, Prelude.Foldable)
 
 literal                    = Common . CS.literal
 symbol                     = Common . CS.symbol

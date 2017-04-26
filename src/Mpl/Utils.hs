@@ -4,7 +4,6 @@ module Mpl.Utils
   , Cofree((:<))
   , Fix(..)
   , Foldable
-  , Generic
   , Text
   , UTF8.ByteString
   , byteStringSlice
@@ -29,7 +28,6 @@ import Data.Text                  (Text, pack, unpack)
 import Control.Comonad.Cofree     (Cofree((:<)))
 import Mpl.Annotation             (Annotated, Base, mapAnnotated, envcata, annotation)
 import Data.Functor.Foldable      (Fix(..), Foldable, cata, project, refix)
-import GHC.Generics               (Generic)
 import Language.JavaScript.Parser (renderToText)
 import Prelude hiding (Foldable)
 

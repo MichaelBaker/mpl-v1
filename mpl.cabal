@@ -19,17 +19,18 @@ library
   exposed-modules:
     Mpl.Annotation,
     Mpl.Common.BackendJS,
-    Mpl.Common.BackendLLVM,
     Mpl.Common.Core,
     Mpl.Common.Parsers,
     Mpl.Common.Parsing,
     Mpl.Common.Syntax,
+    Mpl.Common.SyntaxToCore,
+    Mpl.Compiler,
     Mpl.JSUtils,
-    Mpl.LLVMUtils,
     Mpl.Parser,
     Mpl.ParserDescription,
     Mpl.ParserError,
     Mpl.ParserUtils,
+    Mpl.Prelude,
     Mpl.Rendering,
     Mpl.Rendering.ParserError,
     Mpl.Typed.BackendJS,
@@ -37,7 +38,6 @@ library
     Mpl.Typed.Syntax,
     Mpl.Typed.Typecheck,
     Mpl.Untyped.BackendJS,
-    Mpl.Untyped.BackendLLVM,
     Mpl.Untyped.Core,
     Mpl.Untyped.Parsing,
     Mpl.Untyped.Syntax,
@@ -46,10 +46,12 @@ library
 
   build-depends:
     base >= 4.7 && < 5,
+    ansi-wl-pprint,
     bytestring,
     comonad,
     containers,
     free,
+    freer-effects,
     language-javascript,
     lens,
     llvm-general,
@@ -58,12 +60,11 @@ library
     parsers,
     recursion-schemes,
     reducers,
-    utf8-string,
     semigroups,
-    ansi-wl-pprint,
     text,
     transformers,
-    trifecta
+    trifecta,
+    utf8-string
 
   ghc-options:
     -fwarn-incomplete-patterns
@@ -75,6 +76,8 @@ library
     DeriveGeneric,
     DeriveTraversable,
     FlexibleContexts,
+    GADTs,
+    NoImplicitPrelude,
     OverloadedStrings,
     TypeFamilies,
     TypeSynonymInstances,
@@ -146,6 +149,7 @@ test-suite mpl-test
     Mpl.Common.CoreSpec,
     Mpl.Common.ParsersSpec,
     Mpl.Common.ParsingSpec,
+    Mpl.Common.SyntaxToCoreSpec,
     Mpl.Typed.BackendJSSpec,
     Mpl.Typed.ParsingSpec,
     Mpl.Typed.TypecheckSpec,

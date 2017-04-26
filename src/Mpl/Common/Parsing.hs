@@ -1,33 +1,15 @@
 module Mpl.Common.Parsing where
 
+import Mpl.Common.Parsers
 import Mpl.Common.Syntax
-  ( SyntaxF
-  , Binder
-  , int
-  , binder
-  , symbol
-  , function
-  , application
-  )
-
 import Mpl.ParserUtils
-  ( ParseResult
-  , SyntaxConstructors(..)
-  , SourceAnnotated
-  , parseFromString
-  )
-
+import Mpl.Prelude
 import Mpl.Utils
-  ( Text
-  , textToString
-  )
-
-import Mpl.Common.Parsers (commonParser)
 
 parseExpressionText :: Text -> ParseResult (SourceAnnotated (SyntaxF (SourceAnnotated Binder)))
-parseExpressionText = parseFromString syntaxConstructors commonParser . textToString
+parseExpressionText = parseFromString commonSyntaxConstructors commonParser . textToString
 
-syntaxConstructors =
+commonSyntaxConstructors =
   SyntaxConstructors
     { consExpression       = id
     , consCommon           = id

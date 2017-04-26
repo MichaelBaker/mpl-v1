@@ -1,5 +1,6 @@
 module V8 where
 
+import Mpl.Prelude
 import Foreign.Ptr           (Ptr)
 import Control.Exception     (bracket)
 import Data.Text             (Text)

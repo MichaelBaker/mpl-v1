@@ -1,5 +1,6 @@
 module Mpl.ParserError where
 
+import Mpl.Prelude
 import Data.Set              (Set)
 import Data.Semigroup        (Semigroup, (<>))
 import Mpl.ParserDescription (ParserDescription)

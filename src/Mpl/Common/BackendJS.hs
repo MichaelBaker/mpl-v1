@@ -1,14 +1,15 @@
 module Mpl.Common.BackendJS where
 
-import Data.Functor.Foldable (cata)
-import Data.List (foldl')
-import Data.Text (unpack)
+import Data.Functor.Foldable               (cata)
+import Data.List                           (foldl')
+import Data.Text                           (unpack)
 import Language.JavaScript.Parser
 import Language.JavaScript.Parser.AST
 import Language.JavaScript.Parser.Grammar5
 import Language.JavaScript.Parser.Lexer
 import Mpl.Common.Core
 import Mpl.JSUtils
+import Mpl.Prelude
 import Mpl.Utils
 
 translate _ (Literal l) =

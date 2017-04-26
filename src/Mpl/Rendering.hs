@@ -4,6 +4,7 @@ module Mpl.Rendering
   )
   where
 
+import Mpl.Prelude
 import Mpl.Utils
 import Text.PrettyPrint.ANSI.Leijen as P
 

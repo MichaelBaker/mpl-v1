@@ -1,5 +1,6 @@
 module Mpl.ParserDescription where
 
+import Mpl.Prelude
 import Text.Trifecta.Delta (Delta)
 
 data ParserDescription =

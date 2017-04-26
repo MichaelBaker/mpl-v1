@@ -4,6 +4,7 @@ import Data.Set              (toAscList)
 import Mpl.ParserDescription
 import Mpl.ParserError
 import Mpl.ParserUtils
+import Mpl.Prelude
 import Mpl.Rendering
 import Mpl.Utils             (ByteString)
 import Text.Trifecta.Delta   (Delta, column)
@@ -46,7 +47,7 @@ expectations (a:[]) isEOF =
 expectations as isEOF =
       "It expected to find one of the following " <~> expectationPreposition isEOF
   <~> hardline
-  <~> (indent $ stack $ map (toDoc . parserExpectation) as)
+  <~> (indent $ stack $ fmap (toDoc . parserExpectation) as)
 
 expectationPreposition True  = "at the position highlighted in red."
 expectationPreposition False = "before the character highlighed in red."
@@ -58,7 +59,7 @@ examples itemName (a:[]) =
 examples itemName as =
       "Here are some example " <~> toDoc itemName <~> "s:"
   <~> hardline
-  <~> (indent $ stack $ map toDoc as)
+  <~> (indent $ stack $ fmap toDoc as)
 
 highlightedCode byteString [] errorDelta isEOF =
       toDoc (upTo errorDelta byteString)

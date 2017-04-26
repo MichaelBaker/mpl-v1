@@ -1,14 +1,14 @@
 module Mpl.Typed.BackendJS where
 
+import Data.Functor.Foldable
+import Data.Text
 import Language.JavaScript.Parser
-
-import Data.Text               (unpack)
-import Data.Functor.Foldable   (Base, cata)
-import Mpl.Typed.Syntax        (SyntaxF(..), Binder(..), Type(..))
-import Mpl.ParserUtils         (SourceAnnotated)
-import qualified Mpl.JSUtils          as JSU
+import Mpl.ParserUtils
+import Mpl.Prelude
+import Mpl.Typed.Syntax
 import qualified Mpl.Common.BackendJS as CBE
 import qualified Mpl.Common.Syntax    as CS
+import qualified Mpl.JSUtils          as JSU
 
 translateToJS _ = error "Convert typed backendjs to operate on Core"
 -- translateToJS syntax = JSAstExpression expression JSNoAnnot

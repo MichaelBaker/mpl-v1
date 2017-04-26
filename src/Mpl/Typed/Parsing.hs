@@ -1,61 +1,23 @@
 module Mpl.Typed.Parsing where
 
-import Mpl.Typed.Syntax
-  ( SyntaxF (Common)
-  , Binder  (CommonBinder)
-  , Type
-  , int
-  , binder
-  , symbol
-  , function
-  , application
-  , typeAnnotation
-  , typeSymbol
-  , annotatedBinder
-  )
-
-import Mpl.Common.Parsers (commonParser)
-
-import Mpl.ParserUtils
-  ( ParseResult
-  , SyntaxConstructors(..)
-  , SourceAnnotated
-  , StatefulParser
-  , (<|>)
-  , annotate
-  , annotate'
-  , parseFromString
-  , many
-  , oneOf
-  , whiteSpace
-  , optional
-  , upcaseChars
-  , symbolChars
-  , lookAhead
-  , char
-  , lift
-  )
-
-import Mpl.Utils
-  ( Text
-  , textToString
-  , stringToText
-  , mapAnnotated
-  )
-
-import qualified Mpl.Common.Syntax as CS
+import           Mpl.Common.Parsers
+import           Mpl.ParserUtils
+import           Mpl.Prelude
+import           Mpl.Typed.Syntax
+import           Mpl.Utils
+import qualified Mpl.Common.Syntax  as CS
 
 parseExpressionText :: Text -> ParseResult (SourceAnnotated (SyntaxF (SourceAnnotated Binder)))
-parseExpressionText = parseFromString syntaxConstructors commonParser . textToString
+parseExpressionText = parseFromString typedSyntaxConstructors commonParser . textToString
 
-syntaxConstructors =
+typedSyntaxConstructors =
   SyntaxConstructors
     { consExpression       = parseTypeAnnotation
     , consCommon           = Common
-    , consBinder           = parseBinder
+    , consBinder           = typedParseBinder
     }
 
-parseBinder parseCommonBinder = do
+typedParseBinder parseCommonBinder = do
   binder     <- fmap (mapAnnotated CommonBinder) parseCommonBinder
   annotation <- lookAhead (optional $ char ':')
   case annotation of
