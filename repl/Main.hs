@@ -1,20 +1,21 @@
 module Main where
 
-import System.Console.Haskeline (runInputT, defaultSettings, getInputLine, outputStrLn, outputStr)
-import Mpl.Utils                (stringToText, textToString, lazyTextToString, jsIR, envcata)
-import Control.Monad.IO.Class   (liftIO)
-import Repl.State               (State(..), StateLineItem(..), Mode(..), defaultState, toStateLineItem, showStateLine, strLineItem)
-import Control.Monad            (replicateM_)
-import Data.List                (transpose, isPrefixOf)
-import Data.Ord                 (comparing)
-import Text.Read                (readMaybe)
-
-import qualified Text.Tabl                    as Table
-import qualified System.Console.Terminal.Size as TermSize
-import qualified System.Console.ANSI          as Term
+import           Control.Monad                (replicateM_)
+import           Control.Monad.IO.Class       (liftIO)
+import           Data.List                    (transpose, isPrefixOf)
+import           Data.Ord                     (comparing)
+import           Mpl.Prelude
+import           Mpl.Utils                    (stringToText, textToString, lazyTextToString, jsIR, envcata)
+import           Repl.State                   (State(..), StateLineItem(..), Mode(..), defaultState, toStateLineItem, showStateLine, strLineItem)
+import           System.Console.Haskeline     (runInputT, defaultSettings, getInputLine, outputStrLn, outputStr)
+import           Text.Read                    (readMaybe)
 import qualified Mpl.Untyped.BackendJS        as UntypedJS
 import qualified Mpl.Untyped.Core             as UntypedCore
 import qualified Mpl.Untyped.Parsing          as UntypedParser
+import qualified Mpl.Untyped.SyntaxToCore     as UntypedSyntaxToCore
+import qualified System.Console.ANSI          as Term
+import qualified System.Console.Terminal.Size as TermSize
+import qualified Text.Tabl                    as Table
 import qualified V8
 
 main :: IO ()
@@ -70,7 +71,11 @@ handleInput input state
               $ lazyTextToString
               $ jsIR
               $ UntypedJS.translateToJS
-              $ envcata UntypedCore.syntaxToCore a
+              $ ( run
+                . UntypedSyntaxToCore.runTransform
+                . UntypedSyntaxToCore.runTransformBinder
+                )
+              $ envcata UntypedSyntaxToCore.transform a
         EvalJS -> do
           let textInput = stringToText input
           case snd $ UntypedParser.parseExpressionText textInput of
@@ -82,7 +87,11 @@ handleInput input state
                     $ lazyTextToString
                     $ jsIR
                     $ UntypedJS.translateToJS
-                    $ envcata UntypedCore.syntaxToCore a
+                    $ ( run
+                      . UntypedSyntaxToCore.runTransform
+                      . UntypedSyntaxToCore.runTransformBinder
+                      )
+                    $ envcata UntypedSyntaxToCore.transform a
               result <- liftIO $ V8.withContext $ \context -> do
                 V8.eval context jsCode
               outputStrLn (textToString result)

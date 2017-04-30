@@ -1,29 +1,33 @@
-module Mpl.Common.CoreSpec where
+module Mpl.Untyped.SyntaxToCoreSpec where
 
-import Data.Functor.Foldable (Fix(..))
-import Mpl.Common.Parsing    (parseExpressionText)
-import Mpl.Utils             ((|>), cata, envcata)
-import TestUtils             (describe, it, shouldBe, mkTransformsTo)
+import           Mpl.Prelude
+import           Mpl.Untyped.Parsing
+import           Mpl.Utils
+import           TestUtils
+import qualified Mpl.Common.Core          as CC
+import qualified Mpl.Untyped.Core         as C
+import qualified Mpl.Untyped.SyntaxToCore as SyntaxToCore
 
-import qualified Mpl.Common.Syntax as S
-import qualified Mpl.Common.Core   as C
-
+transformsTo :: Text -> Fix (C.CoreF (Fix CC.Binder)) -> Expectation
 transformsTo text expected =
   case snd $ parseExpressionText text of
-    Left e  -> fail $ show e
+    Left e -> fail $ show e
     Right syntax -> do
       let result =
             syntax
-            |> envcata (C.syntaxToCore id)
+            |> envcata SyntaxToCore.transform
+            |> ( run
+               . SyntaxToCore.runTransform
+               . SyntaxToCore.runTransformBinder
+               )
             |> cata (Fix . C.mapBinder (cata Fix))
       result `shouldBe` expected
 
-int :: Integer -> Fix (C.CoreF (Fix C.Binder))
-int              = Fix . C.int
-binder           = Fix . C.binder
-symbol           = Fix . C.symbol
-application a b  = Fix $ C.application a b
-function a b     = Fix $ C.function a b
+int              = Fix . C.Common . CC.int
+symbol           = Fix . C.Common . CC.symbol
+binder           = Fix . CC.binder
+application a b  = Fix $ C.Common $ CC.application a b
+function a b     = Fix $ C.Common $ CC.function a b
 
 spec = do
   it "converts integers" $ do

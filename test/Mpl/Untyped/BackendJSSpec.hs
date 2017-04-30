@@ -1,25 +1,44 @@
 module Mpl.Untyped.BackendJSSpec where
 
-import Mpl.Untyped.Parsing   (parseExpressionText)
-import Mpl.Untyped.Core      (syntaxToCore)
-import Mpl.Untyped.BackendJS (translateToJS)
-import Mpl.Utils             (envcata)
-import TestUtils             (describe, it, shouldBe, mkTranslatesToJS, loadConfig, mkEvalsJSTo)
+import           Mpl.Prelude
+import           Mpl.Untyped.BackendJS
+import           Mpl.Untyped.Parsing
+import           Mpl.Utils
+import           TestUtils
+import qualified Mpl.Untyped.SyntaxToCore as SyntaxToCore
 
-translatesToJS =
-  mkTranslatesToJS
-    parseExpressionText
-    (translateToJS . (envcata syntaxToCore))
+translatesToJS :: Text -> String -> Expectation
+translatesToJS text expected =
+  case snd $ parseExpressionText text of
+    Left e -> fail $ show e
+    Right syntax -> do
+      let result =
+            syntax
+            |> envcata SyntaxToCore.transform
+            |> ( run
+               . SyntaxToCore.runTransform
+               . SyntaxToCore.runTransformBinder
+               )
+            |> (jsIR . translateToJS)
+      result `shouldBe` jsIR (readJs expected)
+
+evalsTo :: Text -> Text -> Expectation
+evalsTo text expected =
+  case snd $ parseExpressionText text of
+    Left e -> fail $ show e
+    Right syntax -> do
+      result <-
+        syntax
+        |> envcata SyntaxToCore.transform
+        |> ( run
+           . SyntaxToCore.runTransform
+           . SyntaxToCore.runTransformBinder
+           )
+        |> (lazyTextToString . jsIR . translateToJS)
+        |> evalJS
+      result `shouldBe` expected
 
 spec = do
-  config <- loadConfig
-
-  let evalsTo =
-        mkEvalsJSTo
-          config
-          parseExpressionText
-          (translateToJS . (envcata syntaxToCore))
-
   it "parses integers" $ do
     "1" `translatesToJS` "1"
     "1" `evalsTo` "1"

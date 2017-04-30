@@ -19,7 +19,6 @@ module Mpl.Utils
   , refix
   , mapAnnotated
   , showText
-  , (|>)
   , envcata
   , annotation
   ) where
@@ -49,5 +48,3 @@ byteStringSlice startChar endChar byteString = UTF8.take spanSize $ UTF8.drop st
 lazyTextToString = LT.unpack
 
 jsIR = renderToText
-
-a |> f = f a

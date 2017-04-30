@@ -11,5 +11,6 @@ data CoreF binder recurse
   = Common (CC.CoreF binder recurse)
   deriving (Show, Generic, Functor, Eq, Traversable, Prelude.Foldable)
 
-syntaxToCore span (US.Common common) =
-  CC.syntaxToCore Common span common
+mapBinder :: (a -> binder) -> CoreF a recurse -> CoreF binder recurse
+mapBinder f (Common common) =
+  Common (CC.mapBinder f common)

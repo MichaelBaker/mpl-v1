@@ -1,8 +1,10 @@
 module TestUtils
   ( module TestUtils
+  , Expectation
   , describe
   , it
   , shouldBe
+  , readJs
   ) where
 
 import Control.Monad.IO.Class     (liftIO)
@@ -63,22 +65,6 @@ mkTranslatesToJS parseExpressionText translateToJS mplCode jsCode =
     Left e -> fail $ show e
     Right a -> jsIR (translateToJS a) `shouldBe` jsIR (readJs jsCode)
 
-data Config = Config
-  { nodePath :: String -- The filepath to a node executable for running javascript programs
-  } deriving (Show, Read)
-
-loadConfig = runIO $ do
-  configFilepath <- lookupEnv "TEST_CONFIG_FILE"
-
-  case configFilepath of
-    Nothing -> error "You must set the TEST_CONFIG_FILE environment variable when running tests. Look in `script/test` for an example."
-    Just path -> readFile path >>= return . read :: IO Config
-
-mkEvalsJSTo config parseExpressionText translateToJS mplCode expected =
-  case snd $ parseExpressionText mplCode of
-    Left e -> fail $ show e
-    Right a -> do
-      let jsCode = lazyTextToString $ jsIR (translateToJS a)
-      result <- V8.withContext $ \context -> do
-        V8.eval context (stringToText jsCode)
-      result `shouldBe` expected
+evalJS jsCode = do
+  V8.withContext $ \context -> do
+    V8.eval context (stringToText jsCode)

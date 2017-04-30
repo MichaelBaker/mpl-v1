@@ -34,13 +34,16 @@ library
     Mpl.Rendering,
     Mpl.Rendering.ParserError,
     Mpl.Typed.BackendJS,
+    Mpl.Typed.Core,
     Mpl.Typed.Parsing,
     Mpl.Typed.Syntax,
+    Mpl.Typed.SyntaxToCore,
     Mpl.Typed.Typecheck,
     Mpl.Untyped.BackendJS,
     Mpl.Untyped.Core,
     Mpl.Untyped.Parsing,
     Mpl.Untyped.Syntax,
+    Mpl.Untyped.SyntaxToCore,
     Mpl.Utils,
     V8
 
@@ -72,6 +75,7 @@ library
 
   default-extensions:
     ConstraintKinds,
+    DataKinds,
     DeriveFunctor,
     DeriveGeneric,
     DeriveTraversable,
@@ -80,6 +84,7 @@ library
     NoImplicitPrelude,
     OverloadedStrings,
     TypeFamilies,
+    TypeOperators,
     TypeSynonymInstances,
     UndecidableInstances
 
@@ -146,14 +151,15 @@ test-suite mpl-test
 
   other-modules:
     Mpl.AnnotationSpec,
-    Mpl.Common.CoreSpec,
     Mpl.Common.ParsersSpec,
     Mpl.Common.ParsingSpec,
     Mpl.Common.SyntaxToCoreSpec,
     Mpl.Typed.BackendJSSpec,
+    Mpl.Typed.SyntaxToCoreSpec,
     Mpl.Typed.ParsingSpec,
     Mpl.Typed.TypecheckSpec,
     Mpl.Untyped.BackendJSSpec,
+    Mpl.Untyped.SyntaxToCoreSpec,
     TestUtils,
     V8Spec
 

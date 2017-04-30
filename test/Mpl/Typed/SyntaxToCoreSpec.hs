@@ -1,11 +1,12 @@
-module Mpl.Common.SyntaxToCoreSpec where
+module Mpl.Typed.SyntaxToCoreSpec where
 
-import           Mpl.Common.Parsing
 import           Mpl.Prelude
+import           Mpl.Typed.Parsing
 import           Mpl.Utils
 import           TestUtils
-import qualified Mpl.Common.Core         as C
-import qualified Mpl.Common.SyntaxToCore as SyntaxToCore
+import qualified Mpl.Common.Core        as CC
+import qualified Mpl.Typed.Core         as C
+import qualified Mpl.Typed.SyntaxToCore as SyntaxToCore
 
 transformsTo :: Text -> Fix (C.CoreF (Fix C.Binder)) -> Expectation
 transformsTo text expected =
@@ -22,11 +23,25 @@ transformsTo text expected =
             |> cata (Fix . C.mapBinder (cata Fix))
       result `shouldBe` expected
 
-int              = Fix . C.int
-symbol           = Fix . C.symbol
-binder           = Fix . C.binder
-application a b  = Fix $ C.application a b
-function a b     = Fix $ C.function a b
+int =
+  Fix . C.Common . CC.int
+
+symbol =
+  Fix . C.Common . CC.symbol
+
+binder =
+  Fix . C.CommonBinder . CC.binder
+
+annotatedBinder name typeName =
+  Fix $ C.AnnotatedBinder
+          (binder name)
+          (C.TypeSymbol typeName)
+
+application a b =
+  Fix $ C.Common $ CC.application a b
+
+function a b =
+  Fix $ C.Common $ CC.function a b
 
 spec = do
   it "converts integers" $ do
@@ -57,3 +72,7 @@ spec = do
             (int 1))
           (int 2))
         (int 3))
+
+  it "converts annotated binders" $ do
+    "#(a: Integer = a)" `transformsTo`
+      (function (annotatedBinder "a" "Integer") (symbol "a"))

@@ -12,7 +12,9 @@ module Mpl.Prelude
   , (>>)
   , (>>=)
   , (||)
+  , Arr
   , Bool(..)
+  , Eff
   , Either(..)
   , Eq
   , Functor
@@ -21,6 +23,7 @@ module Mpl.Prelude
   , Int
   , Integer
   , Maybe(..)
+  , Member
   , Monad
   , Monoid
   , Ord
@@ -34,6 +37,7 @@ module Mpl.Prelude
   , fail
   , fmap
   , fromIntegral
+  , handleRelay
   , id
   , mappend
   , max
@@ -42,8 +46,11 @@ module Mpl.Prelude
   , negate
   , not
   , otherwise
+  , pure
   , read
   , return
+  , run
+  , send
   , show
   , showChar
   , showParen
@@ -94,6 +101,7 @@ import Prelude
   , negate
   , not
   , otherwise
+  , pure
   , read
   , return
   , show
@@ -106,3 +114,17 @@ import Prelude
 
 import GHC.Generics
   (Generic)
+
+import Control.Monad.Freer
+  ( Arr
+  , Eff
+  , Member
+  , handleRelay
+  , run
+  , send
+  )
+
+import Data.Function
+  ((&))
+
+(|>) = (&)
