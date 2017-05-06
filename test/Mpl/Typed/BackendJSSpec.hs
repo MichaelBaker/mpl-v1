@@ -3,38 +3,29 @@ module Mpl.Typed.BackendJSSpec where
 
 import           Mpl.Prelude
 import           Mpl.Typed.BackendJS
-import           Mpl.Typed.Parsing
+import           Mpl.Typed.TestUtils
 import           Mpl.Utils
 import           TestUtils
 import qualified Mpl.Typed.SyntaxToCore as SyntaxToCore
 
 translatesToJS :: Text -> String -> Expectation
 translatesToJS text expected =
-  case snd $ parseExpressionText text of
-    Left e -> fail $ show e
-    Right syntax -> do
-      let result =
-            syntax
-            |> envcata SyntaxToCore.transform
-            |> ( run
-               . SyntaxToCore.runTransform
-               . SyntaxToCore.runTransformBinder
-               )
-            |> (jsIR . translateToJS)
-      result `shouldBe` jsIR (readJs expected)
+  case textToCore text of
+    Left e ->
+      fail $ show e
+    Right result -> do
+      result
+      |> (jsIR . translateToJS)
+      |> (`shouldBe` jsIR (readJs expected))
 
 evalsTo :: Text -> Text -> Expectation
 evalsTo text expected =
-  case snd $ parseExpressionText text of
-    Left e -> fail $ show e
-    Right syntax -> do
+  case textToCore text of
+    Left e ->
+      fail $ show e
+    Right coreResult -> do
       result <-
-        syntax
-        |> envcata SyntaxToCore.transform
-        |> ( run
-           . SyntaxToCore.runTransform
-           . SyntaxToCore.runTransformBinder
-           )
+        coreResult
         |> (lazyTextToString . jsIR . translateToJS)
         |> evalJS
       result `shouldBe` expected

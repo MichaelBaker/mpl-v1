@@ -1,27 +1,21 @@
 module Mpl.Typed.SyntaxToCoreSpec where
 
 import           Mpl.Prelude
-import           Mpl.Typed.Parsing
+import           Mpl.Typed.TestUtils
 import           Mpl.Utils
 import           TestUtils
 import qualified Mpl.Common.Core        as CC
 import qualified Mpl.Typed.Core         as C
-import qualified Mpl.Typed.SyntaxToCore as SyntaxToCore
 
 transformsTo :: Text -> Fix (C.CoreF (Fix C.Binder)) -> Expectation
 transformsTo text expected =
-  case snd $ parseExpressionText text of
-    Left e -> fail $ show e
-    Right syntax -> do
-      let result =
-            syntax
-            |> envcata SyntaxToCore.transform
-            |> ( run
-               . SyntaxToCore.runTransform
-               . SyntaxToCore.runTransformBinder
-               )
-            |> cata (Fix . C.mapBinder (cata Fix))
-      result `shouldBe` expected
+  case textToCore text of
+    Left e ->
+      fail $ show e
+    Right result -> do
+      result
+      |> cata (Fix . C.mapBinder (cata Fix))
+      |> (`shouldBe` expected)
 
 int =
   Fix . C.Common . CC.int

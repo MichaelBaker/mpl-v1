@@ -158,6 +158,7 @@ test-suite mpl-test
     Mpl.Typed.SyntaxToCoreSpec,
     Mpl.Typed.ParsingSpec,
     Mpl.Typed.TypecheckSpec,
+    Mpl.Typed.TestUtils,
     Mpl.Untyped.BackendJSSpec,
     Mpl.Untyped.SyntaxToCoreSpec,
     TestUtils,
