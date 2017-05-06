@@ -35,6 +35,7 @@
 ## Steps not yet represented in the new compiler pipeline
 
 - [ ] Parsing
+- [ ] Javascript Backend
 
 ## TODO Chunks
 

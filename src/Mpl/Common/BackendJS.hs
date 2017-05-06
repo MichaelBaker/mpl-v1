@@ -38,7 +38,7 @@ translate _ (Application f arg) = do
   argument <- arg
   return $
     JSCallExpression
-      function
+      (JSExpressionParen JSNoAnnot function JSNoAnnot)
       JSNoAnnot
       (JSLOne argument)
       JSNoAnnot
@@ -95,7 +95,7 @@ isValidIdent ident =
     Right (JSAstExpression (JSIdentifier _ _) _) -> True
     _ -> False
 
-jsIdent (JSIdentifier _ a) = JSIdentName JSNoAnnot a
+jsIdent (JSIdentifier annotation a) = JSIdentName annotation a
 jsIdent a = error $ "'" ++ show a ++ "' cannot be converted into an identifier"
 
 spaceAnnot = JSAnnot tokenPosnEmpty [space]
@@ -103,22 +103,42 @@ space      = WhiteSpace tokenPosnEmpty " "
 
 addComment (JSIdentifier annot value) comment =
   JSIdentifier (attach annot $ commentAnnot comment) value
+
 addComment (JSCallExpression f ann0 a ann1) comment =
   JSCallExpression f ann0 a (attach ann1 $ commentAnnot comment)
+
 addComment (JSDecimal ann a) comment =
   JSDecimal (attach ann $ commentAnnot comment) a
+
 addComment (JSFunctionExpression ann0 name ann1 params ann2 body) comment =
   JSFunctionExpression ann0 name ann1 params (attach ann2 $ commentAnnot comment) body
-addComment js _ = error $ "Cannot add a comment to: " ++ show js
 
-commentAnnot string = CommentA tokenPosnEmpty (" /* " ++ string ++ " */ ")
+addComment js _ =
+  error $ "Cannot add a comment to: " ++ show js
 
-addSpaceBefore (JSIdentifier annot value) = JSIdentifier (attach annot space) value
-addSpaceBefore (JSCallExpression f ann0 a ann1) = JSCallExpression (addSpaceBefore f) ann0 a ann1
-addSpaceBefore (JSDecimal ann a) = JSDecimal (attach ann space) a
-addSpaceBefore (JSFunctionExpression ann0 name ann1 params ann2 body) = JSFunctionExpression (attach ann0 space) name ann1 params ann2 body
-addSpaceBefore (JSCallExpressionSquare receiver ann0 arg ann1) = JSCallExpressionSquare (addSpaceBefore receiver) ann0 arg ann1
-addSpaceBefore js = error $ "Cannot add a space before: " ++ show js
+commentAnnot string =
+  CommentA tokenPosnEmpty (" /* " ++ string ++ " */ ")
+
+addSpaceBefore (JSExpressionParen ann0 value ann1) =
+  JSExpressionParen (attach ann0 space) value ann1
+
+addSpaceBefore (JSIdentifier annot value) =
+  JSIdentifier (attach annot space) value
+
+addSpaceBefore (JSCallExpression f ann0 a ann1) =
+  JSCallExpression (addSpaceBefore f) ann0 a ann1
+
+addSpaceBefore (JSDecimal ann a) =
+  JSDecimal (attach ann space) a
+
+addSpaceBefore (JSFunctionExpression ann0 name ann1 params ann2 body) =
+  JSFunctionExpression (attach ann0 space) name ann1 params ann2 body
+
+addSpaceBefore (JSCallExpressionSquare receiver ann0 arg ann1) =
+  JSCallExpressionSquare (addSpaceBefore receiver) ann0 arg ann1
+
+addSpaceBefore js =
+  error $ "Cannot add a space before: " ++ show js
 
 attach JSNoAnnot annotation = JSAnnot tokenPosnEmpty [annotation]
 attach (JSAnnot pos annotations) annotation = JSAnnot pos (annotations ++ [annotation])
