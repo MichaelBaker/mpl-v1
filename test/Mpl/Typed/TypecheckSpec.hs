@@ -29,3 +29,7 @@ spec = do
 
   it "infers accurate type annotations" $ do
     "123: Integer" `infersTo` IntegerType
+
+  it "infers functions with annotated parameters" $ do
+    "#(a: Integer = a)" `infersTo`
+      FunctionType IntegerType IntegerType

@@ -13,6 +13,7 @@ import qualified Mpl.Typed.Core             as TC
 
 data Type
   = IntegerType
+  | FunctionType Type Type
   deriving (Show, Eq)
 
 data Context
@@ -71,6 +72,16 @@ inferCommon (CC.Symbol symbol) = do
     Just ty ->
       return ty
 
+inferCommon (CC.Function binder body) =
+  case binder of
+    _ :< TC.AnnotatedBinder (_ :< TC.CommonBinder (CC.Binder name)) type_ -> do
+      paramType <- getType type_
+      addSymbol name paramType
+      bodyType <- infer body
+      return $ FunctionType paramType bodyType
+    _ ->
+      throwError $ UnimplementedError "Cannot infer the types of functions with unannotated parameters"
+
 inferCommon a =
   throwError $ UnimplementedError $ showText a
 
@@ -88,6 +99,7 @@ check expression ty = do
 -- Subtyping
 
 isSubtype IntegerType IntegerType = True
+isSubtype _ _                     = False
 
 --------------------------------------------------------------------------------
 -- Helpers
