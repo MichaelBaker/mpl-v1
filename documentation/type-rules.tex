@@ -38,6 +38,22 @@ $$
 	{\context x : t \infers t}
 $$
 
+$$
+\prftree[r]
+	{infer function body}
+	{x:t \context b \infers s}
+	{\context \#(x : t = b) \infers t \rightarrow s}
+$$
+
+$$
+\prftree[r]
+	{infer application}
+	{\context f \infers a \rightarrow b}
+	{\context x \infers c}
+	{\context c \subtype a}
+	{\context f \ x \infers b}
+$$
+
 \section{Checking Rules}
 
 $\Gamma \context a \checks t$ means that under the assumptions $\Gamma$, we can prove that term $a$ has type $t$. These rules take $\Gamma$, $a$, and $t$ as inputs and produce a boolean output. Either $a$ has assumed type $t$ or it doesn't.

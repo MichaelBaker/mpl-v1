@@ -11,8 +11,9 @@
 - [X] A Binder data type that is distinct from expressions
   * Needed to allow type annotations to bindings.
   * Demonstrates that the recursion-schemes framework I'm using will work when expressions aren't homogenous and potentially include sub syntaxes which are recursive in their own right.
-- [ ] Type checking phase for Typed
+- [X] Type checking phase for Typed
   * I can implement this is now because I have integers and functions, which are distinct.
+- [ ] Annotate types with source spans for better error messages
 - [ ] Using a function from a Typed module in Untyped.
   * Requires figuring out imports
 - [ ] Strings and string literals
@@ -63,6 +64,7 @@
 - [X] Generate valid JS for functions
 - [X] Add native functions (functions with literal js/llvm output)
 - [X] Add name resolution for Untyped
+- [ ] Fix source annotations for grouping parentheses
 - [ ] Parameterize the typeof lambda parameters and add a typeclass for extracting their "names" for the purpose of creating bindings
 - [ ] Move errors into the compiler functions, rather than using Haskell's `error`. Use ExceptT.
 - [ ] Add modules

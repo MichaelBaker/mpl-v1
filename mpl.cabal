@@ -33,6 +33,7 @@ library
     Mpl.Prelude,
     Mpl.Rendering,
     Mpl.Rendering.ParserError,
+    Mpl.Rendering.TypeError,
     Mpl.Typed.BackendJS,
     Mpl.Typed.Core,
     Mpl.Typed.Parsing,
@@ -48,8 +49,8 @@ library
     V8
 
   build-depends:
-    base >= 4.7 && < 5,
     ansi-wl-pprint,
+    base >= 4.7 && < 5,
     bytestring,
     comonad,
     containers,
@@ -65,6 +66,7 @@ library
     reducers,
     semigroups,
     text,
+    text-metrics,
     transformers,
     trifecta,
     utf8-string

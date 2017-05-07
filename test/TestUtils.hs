@@ -5,6 +5,7 @@ module TestUtils
   , it
   , shouldBe
   , readJs
+  , expectationFailure
   ) where
 
 import Control.Monad.IO.Class     (liftIO)

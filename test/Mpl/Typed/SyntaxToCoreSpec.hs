@@ -9,7 +9,7 @@ import qualified Mpl.Typed.Core         as C
 
 transformsTo :: Text -> Fix (C.CoreF (Fix C.Binder)) -> Expectation
 transformsTo text expected =
-  case textToCore text of
+  case snd $ textToCore text of
     Left e ->
       fail $ show e
     Right result -> do

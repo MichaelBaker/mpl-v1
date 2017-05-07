@@ -49,45 +49,49 @@ transform annotation (S.Symbol text) = do
   core <- effEmbedCore (C.Symbol text)
   return (annotation :< core)
 
-transform annotation (S.Function binders body) =
-  curryFunction binders body
+transform annotation (S.Function binders body) = do
+  (_ :< curriedFunction) <- curryFunction annotation binders body
+  return (annotation :< curriedFunction)
 
 transform annotation (S.Application fun args) = do
   newFun <- fun
-  curryApplication args newFun
+  (_ :< curriedApplication) <- curryApplication annotation args newFun
+  return (annotation :< curriedApplication)
 
 convertLiteral (S.IntegerLiteral integer) =
   C.IntegerLiteral integer
 
--- TODO: Makes span annotations correct
-curryFunction [] _ =
+curryFunction _ [] _ =
   error "Cannot have a function with no parameters" -- TODO: Fold this into effectful error handling
 
-curryFunction (p:[]) body = do
+curryFunction originalAnnotation (p:[]) body = do
   newBody         <- body
   transformBinder <- effTransformBinder
   core            <- effEmbedCore $ C.Function (envcata transformBinder p) newBody
-  return (annotation p :< core)
+  let newSpan = spanUnion (annotation p) originalAnnotation
+  return (newSpan :< core)
 
-curryFunction (p:ps) body = do
-  newBody         <- curryFunction ps body
+curryFunction originalAnnotation (p:ps) body = do
+  newBody         <- curryFunction originalAnnotation ps body
   transformBinder <- effTransformBinder
   newFunction     <- effEmbedCore $ C.Function (envcata transformBinder p) newBody
-  return (annotation p :< newFunction)
+  let newSpan = spanUnion (annotation p) originalAnnotation
+  return (newSpan :< newFunction)
 
--- TODO: Makes span annotations correct
-curryApplication [] _ =
+curryApplication _ [] _ =
   error "Cannot have an application with no arguments" -- TODO: Fold this into effectful error handling
 
-curryApplication (a:[]) fun = do
+curryApplication originalAnnotation (a:[]) fun = do
   newArg <- a
   core   <- effEmbedCore $ C.Application fun newArg
-  return (annotation newArg :< core)
+  let newSpan = spanUnion originalAnnotation (annotation newArg)
+  return (newSpan :< core)
 
-curryApplication (a:as) fun = do
+curryApplication originalAnnotation (a:as) fun = do
   newArg         <- a
   newApplication <- effEmbedCore $ C.Application fun newArg
-  curryApplication as (annotation newArg :< newApplication)
+  let newSpan = spanUnion originalAnnotation (annotation newArg)
+  curryApplication originalAnnotation as (newSpan :< newApplication)
 
 transformBinder span (S.Binder text) =
   span :< C.Binder text

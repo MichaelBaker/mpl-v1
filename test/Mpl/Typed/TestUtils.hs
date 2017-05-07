@@ -7,12 +7,12 @@ import           Mpl.Typed.Parsing
 import qualified Mpl.Typed.SyntaxToCore as SyntaxToCore
 import qualified Mpl.Typed.Core         as C
 
-textToCore :: Text -> Either String (SourceAnnotated (C.CoreF (SourceAnnotated C.Binder)))
+textToCore :: Text -> (ByteString, Either String (SourceAnnotated (C.CoreF (SourceAnnotated C.Binder))))
 textToCore text =
-  case snd $ parseExpressionText text of
-    Left e ->
-      Left $ show e
-    Right syntax ->
+  case parseExpressionText text of
+    (bs, Left e) ->
+      (bs, Left $ show e)
+    (bs, Right syntax) ->
       syntax
       |> envcata SyntaxToCore.transform
       |> ( run
@@ -20,3 +20,4 @@ textToCore text =
          . SyntaxToCore.runTransformBinder
          )
       |> Right
+      |> ((,) bs)

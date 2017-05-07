@@ -40,7 +40,7 @@ import Data.Text                        (Text, pack, unpack)
 import Mpl.Annotation                   (Annotated, Cofree((:<)), annotation)
 import Mpl.Parser                       (Parser(..), Result, withDescription, parseByteString, getState, modifyingState)
 import Mpl.ParserDescription            (ParserDescription(..))
-import Mpl.Rendering
+import Mpl.Rendering hiding             (between)
 import Mpl.Utils                        (ByteString, textToString, stringToText, byteStringToString, stringToByteString, byteStringSlice, byteStringToText)
 import Prelude                          (Bool(..), Show, Eq, Maybe(..), (==), Either(..), (++), (.), ($), (<*>), (*>), Integer, String, Monoid, const, drop, mappend, mempty, fromIntegral, return, mempty)
 import Text.Parser.Char                 (noneOf, oneOf, char, anyChar)
@@ -131,6 +131,20 @@ data SourceSpan =
     , endDelta   :: Delta
     }
   deriving (Show, Eq)
+
+emptySpan =
+  SourceSpan
+    { startDelta = mempty
+    , startLine  = mempty
+    , endDelta   = mempty
+    }
+
+spanUnion s0 s1 =
+  SourceSpan
+    { startDelta = startDelta s0
+    , startLine  = startLine s0
+    , endDelta   = endDelta s1
+    }
 
 parseFromString :: SyntaxConstructors binder a -> GenericContextualParser binder a -> String -> ParseResult a
 parseFromString syntaxConstructors mplParser string = (byteString, result)

@@ -9,6 +9,7 @@ extra-deps:
 - llvm-general-3.5.1.2
 - llvm-general-pure-3.5.1.0
 - freer-effects-0.3.0.1
+- text-metrics-0.2.0
 
 flags:
   llvm-general:

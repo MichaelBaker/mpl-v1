@@ -10,7 +10,7 @@ import qualified Mpl.Typed.SyntaxToCore as SyntaxToCore
 
 translatesToJS :: Text -> String -> Expectation
 translatesToJS text expected =
-  case textToCore text of
+  case snd $ textToCore text of
     Left e ->
       fail $ show e
     Right result -> do
@@ -20,7 +20,7 @@ translatesToJS text expected =
 
 evalsTo :: Text -> Text -> Expectation
 evalsTo text expected =
-  case textToCore text of
+  case snd $ textToCore text of
     Left e ->
       fail $ show e
     Right coreResult -> do

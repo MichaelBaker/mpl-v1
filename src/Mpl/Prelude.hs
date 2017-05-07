@@ -6,6 +6,7 @@ module Mpl.Prelude
   , (-)
   , (.)
   , (<$>)
+  , (<)
   , (<*)
   , (==)
   , (>)
@@ -14,6 +15,7 @@ module Mpl.Prelude
   , (||)
   , Arr
   , Bool(..)
+  , ByteString
   , Eff
   , Either(..)
   , Eq
@@ -68,6 +70,7 @@ import Prelude
   , (-)
   , (.)
   , (<$>)
+  , (<)
   , (<*)
   , (==)
   , (>)
@@ -115,6 +118,9 @@ import Prelude
   , snd
   , unzip
   )
+
+import Data.ByteString.UTF8
+  (ByteString)
 
 import GHC.Generics
   (Generic)

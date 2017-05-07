@@ -1,11 +1,11 @@
 module Mpl.Typed.Typecheck where
 
-import           Control.Monad.Except
-import           Control.Monad.State.Strict
 import           Data.Map.Strict            as Map
 import           Mpl.ParserUtils
 import           Mpl.Prelude
 import           Mpl.Utils
+import           Control.Monad.Freer.State
+import           Control.Monad.Freer.Exception
 import qualified Data.List                  as List
 import qualified Mpl.Common.Core            as CC
 import qualified Mpl.Typed.Core             as TC
@@ -35,59 +35,101 @@ standardContext =
           |> Map.insert "Integer" IntegerType
 
 data TypeError
-  = UnimplementedError Text
-  | UnboundTypeSymbol  Text
-  | CannotInferSymbol  Text
-  | IncompatibleType   Text
-  deriving (Show)
+  = UnimplementedError
+      Text
+  | UnboundTypeSymbol
+      SourceSpan       -- ^ Annotation of type symbol
+      Text             -- ^ The type symbol
+  | CannotInferSymbol
+      Text
+  | ApplicationOfNonFunction
+      SourceSpan       -- ^ Annotation of type symbol
+      Text             -- ^ The type that was inferred
+  | InvalidArgument
+      Text
+  | InvalidTypeAnnotation
+      Text
+  deriving (Show, Eq)
 
-type Typechecker a = StateT Context (Except TypeError) a
+type Typechecker effects =
+  ( Member (State Context) effects
+  , Member (Exc (TypeError, Context)) effects
+  )
 
-eval :: Typechecker Type -> Context -> Either TypeError Type
-eval action state = runExcept $ evalStateT action state
+type Core =
+  SourceAnnotated (TC.CoreF (SourceAnnotated TC.Binder))
 
-typecheck expression = eval (infer expression) standardContext
+type CommonCore =
+  CC.CoreF (SourceAnnotated TC.Binder) (Core)
+
+
+runTypecheck :: Eff '[State Context, Exc (TypeError, Context)] Type
+             -> Context
+             -> Either (TypeError, Context) (Type, Context)
+runTypecheck action state =
+  runState action state
+    |> runError
+    |> run
 
 --------------------------------------------------------------------------------
 -- Inference (type synthesis) mode
 
-infer :: SourceAnnotated (TC.CoreF (SourceAnnotated TC.Binder)) -> Typechecker Type
-infer (_ :< TC.Common common) =
-  inferCommon common
+infer :: (Typechecker effects) => Core -> Eff effects Type
 
-infer (_ :< a@(TC.TypeAnnotation expression ty)) = do
-  ty'    <- getType ty
+infer (annotation :< TC.Common common) =
+  inferCommon annotation common
+
+infer (annotation :< a@(TC.TypeAnnotation expression ty)) = do
+  ty'    <- getType annotation ty
   isType <- check expression ty'
   if isType
     then
       return ty'
-    else
-      throwError $ IncompatibleType $ showText a
+    else do
+      context <- getContext
+      throwError (InvalidTypeAnnotation $ showText a, context)
 
-inferCommon (CC.Literal literal) =
+inferCommon :: (Typechecker effects) => SourceSpan -> CommonCore -> Eff effects Type
+
+inferCommon _ (CC.Literal literal) =
   inferLiteral literal
 
-inferCommon (CC.Symbol symbol) = do
+inferCommon _ (CC.Symbol symbol) = do
   maybeTy <- lookupSymbolType symbol
   case maybeTy of
-    Nothing ->
-      throwError $ CannotInferSymbol symbol
+    Nothing -> do
+      context <- getContext
+      throwError (CannotInferSymbol symbol, context)
     Just ty ->
       return ty
 
-inferCommon (CC.Function binder body) =
+inferCommon annotation (CC.Function binder body) =
   case binder of
     _ :< TC.AnnotatedBinder (_ :< TC.CommonBinder (CC.Binder name)) type_ -> do
-      paramType <- getType type_
+      paramType <- getType annotation type_
       pushSymbol name paramType
       bodyType <- infer body
       popSymbol
       return $ FunctionType paramType bodyType
-    _ ->
-      throwError $ UnimplementedError "Cannot infer the types of functions with unannotated parameters"
+    _ -> do
+      context <- getContext
+      throwError (UnimplementedError "Cannot infer the types of functions with unannotated parameters", context)
 
-inferCommon a =
-  throwError $ UnimplementedError $ showText a
+inferCommon _ (CC.Application function argument) = do
+  functionType <- infer function
+  argumentType <- infer argument
+
+  case functionType of
+    FunctionType paramType bodyType -> do
+      if isSubtype argumentType paramType
+        then
+          return bodyType
+        else do
+          context <- getContext
+          throwError (InvalidArgument $ showText argumentType, context)
+    a -> do
+      context <- getContext
+      throwError (ApplicationOfNonFunction (annotation function) (showText functionType), context)
 
 inferLiteral (CC.IntegerLiteral _) =
   return IntegerType
@@ -95,6 +137,7 @@ inferLiteral (CC.IntegerLiteral _) =
 --------------------------------------------------------------------------------
 -- Checking mode
 
+check :: (Typechecker effects) => Core -> Type -> Eff effects Bool
 check expression ty = do
   inferredType <- infer expression
   return $ isSubtype inferredType ty
@@ -109,21 +152,28 @@ isSubtype _ _                     = False
 -- Helpers
 
 pushSymbol text ty =
-  modify' $ \state ->
+  modify $ \state ->
     state { symbolTypes = (text, ty) : (symbolTypes state) }
 
+popSymbol :: (Typechecker effects) => Eff effects ()
 popSymbol =
-  modify' $ \state ->
+  modify $ \state ->
     state { symbolTypes = List.drop 1 (symbolTypes state) }
 
 lookupSymbolType symbol = do
-  table <- gets symbolTypes
-  List.find ((== symbol) . fst) table
+  context <- get
+  List.find ((== symbol) . fst) (symbolTypes context)
     |> fmap snd
     |> return
 
-getType (TC.TypeSymbol symbol) = do
-  table <- gets typeSymbolTypes
-  case Map.lookup symbol table of
-    Just ty -> return ty
-    Nothing -> throwError $ UnboundTypeSymbol $ showText symbol
+getType annotation (TC.TypeSymbol symbol) = do
+  context <- get
+  case Map.lookup symbol (typeSymbolTypes context) of
+    Just ty ->
+      return ty
+    Nothing -> do
+      let error = UnboundTypeSymbol annotation symbol
+      throwError (error, context)
+
+getContext :: (Typechecker effects) => Eff effects Context
+getContext = get

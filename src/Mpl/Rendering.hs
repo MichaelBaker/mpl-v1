@@ -4,9 +4,11 @@ module Mpl.Rendering
   )
   where
 
-import Mpl.Prelude
-import Mpl.Utils
-import Text.PrettyPrint.ANSI.Leijen as P
+import           Mpl.Prelude
+import           Mpl.Utils
+import           Text.PrettyPrint.ANSI.Leijen as P
+import qualified Text.Trifecta.Delta          as T
+import qualified Data.ByteString.UTF8         as UTF8
 
 (<~>) = (<>)
 
@@ -38,8 +40,29 @@ toDoc = pretty
 render :: (Show a) => a -> String
 render = show
 
+upTo delta byteString =
+  UTF8.take (columnBefore delta) byteString
+
+after delta byteString =
+  UTF8.drop (columnOf delta) byteString
+
+at delta byteString =
+  UTF8.take 1 $ UTF8.drop (columnBefore delta) byteString
+
+between startDelta endDelta byteString =
+  let chars = columnOf endDelta - columnBefore startDelta
+  in UTF8.take chars $ UTF8.drop (columnBefore startDelta) byteString
+
+dropFromEnd n byteString =
+  UTF8.take (UTF8.length byteString - n) byteString
+
+columnOf delta = fromIntegral (T.column delta)
+
+columnBefore delta = max 0 $ fromIntegral (T.column delta) - 1
+
 instance Pretty Text where
   pretty = pretty . textToString
 
 instance Pretty ByteString where
   pretty = pretty . byteStringToString
+
