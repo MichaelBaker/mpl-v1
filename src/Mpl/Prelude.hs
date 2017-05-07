@@ -37,6 +37,7 @@ module Mpl.Prelude
   , fail
   , fmap
   , fromIntegral
+  , fst
   , handleRelay
   , id
   , mappend
@@ -56,6 +57,7 @@ module Mpl.Prelude
   , showParen
   , showString
   , showsPrec
+  , snd
   , unzip
   ) where
 
@@ -93,6 +95,7 @@ import Prelude
   , fail
   , fmap
   , fromIntegral
+  , fst
   , id
   , mappend
   , max
@@ -109,6 +112,7 @@ import Prelude
   , showParen
   , showString
   , showsPrec
+  , snd
   , unzip
   )
 

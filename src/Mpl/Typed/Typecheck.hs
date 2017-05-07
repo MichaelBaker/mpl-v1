@@ -3,8 +3,10 @@ module Mpl.Typed.Typecheck where
 import           Control.Monad.Except
 import           Control.Monad.State.Strict
 import           Data.Map.Strict            as Map
+import           Mpl.ParserUtils
 import           Mpl.Prelude
 import           Mpl.Utils
+import qualified Data.List                  as List
 import qualified Mpl.Common.Core            as CC
 import qualified Mpl.Typed.Core             as TC
 
@@ -18,14 +20,14 @@ data Type
 
 data Context
   = Context
-  { symbolTypes     :: Map.Map Text Type
+  { symbolTypes     :: [(Text, Type)]
   , typeSymbolTypes :: Map.Map Text Type
   }
   deriving (Show)
 
 standardContext =
   Context
-  { symbolTypes     = Map.empty
+  { symbolTypes     = []
   , typeSymbolTypes = typeSymbolTable
   }
   where typeSymbolTable =
@@ -49,6 +51,7 @@ typecheck expression = eval (infer expression) standardContext
 --------------------------------------------------------------------------------
 -- Inference (type synthesis) mode
 
+infer :: SourceAnnotated (TC.CoreF (SourceAnnotated TC.Binder)) -> Typechecker Type
 infer (_ :< TC.Common common) =
   inferCommon common
 
@@ -76,8 +79,9 @@ inferCommon (CC.Function binder body) =
   case binder of
     _ :< TC.AnnotatedBinder (_ :< TC.CommonBinder (CC.Binder name)) type_ -> do
       paramType <- getType type_
-      addSymbol name paramType
+      pushSymbol name paramType
       bodyType <- infer body
+      popSymbol
       return $ FunctionType paramType bodyType
     _ ->
       throwError $ UnimplementedError "Cannot infer the types of functions with unannotated parameters"
@@ -104,13 +108,19 @@ isSubtype _ _                     = False
 --------------------------------------------------------------------------------
 -- Helpers
 
-addSymbol text ty =
+pushSymbol text ty =
   modify' $ \state ->
-    state { symbolTypes = Map.insert text ty (symbolTypes state) }
+    state { symbolTypes = (text, ty) : (symbolTypes state) }
+
+popSymbol =
+  modify' $ \state ->
+    state { symbolTypes = List.drop 1 (symbolTypes state) }
 
 lookupSymbolType symbol = do
   table <- gets symbolTypes
-  return $ Map.lookup symbol table
+  List.find ((== symbol) . fst) table
+    |> fmap snd
+    |> return
 
 getType (TC.TypeSymbol symbol) = do
   table <- gets typeSymbolTypes

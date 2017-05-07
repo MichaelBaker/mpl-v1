@@ -25,7 +25,7 @@ spec = do
 
   it "infers the type of a symbol from the context" $ do
     "a" `infersWithSetup` IntegerType
-      $ addSymbol "a" IntegerType
+      $ pushSymbol "a" IntegerType
 
   it "infers accurate type annotations" $ do
     "123: Integer" `infersTo` IntegerType
