@@ -1,14 +1,15 @@
 module Mpl.Typed.TypecheckSpec where
 
-import Mpl.Typed.Parsing   (parseExpressionText)
-import Mpl.Typed.Typecheck (Type(..), infer, eval, standardContext, addSymbol)
-import TestUtils           (it, shouldBe)
+import Mpl.Prelude
+import Mpl.Typed.TestUtils
+import Mpl.Typed.Typecheck
+import TestUtils
 
 infersTo code expectedType =
   infersWithSetup code expectedType (return ())
 
 infersWithSetup code expectedType setup =
-  case snd (parseExpressionText code) of
+  case textToCore code of
     Left e ->
       fail $ show e
     Right a ->

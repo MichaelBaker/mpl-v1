@@ -5,8 +5,8 @@ import           Control.Monad.State.Strict
 import           Data.Map.Strict            as Map
 import           Mpl.Prelude
 import           Mpl.Utils
-import qualified Mpl.Common.Syntax          as CS
-import qualified Mpl.Typed.Syntax           as TS
+import qualified Mpl.Common.Core            as CC
+import qualified Mpl.Typed.Core             as TC
 
 --------------------------------------------------------------------------------
 -- Datatypes for typechecking
@@ -48,10 +48,10 @@ typecheck expression = eval (infer expression) standardContext
 --------------------------------------------------------------------------------
 -- Inference (type synthesis) mode
 
-infer (_ :< TS.Common common) =
+infer (_ :< TC.Common common) =
   inferCommon common
 
-infer (_ :< a@(TS.TypeAnnotation expression ty)) = do
+infer (_ :< a@(TC.TypeAnnotation expression ty)) = do
   ty'    <- getType ty
   isType <- check expression ty'
   if isType
@@ -60,10 +60,10 @@ infer (_ :< a@(TS.TypeAnnotation expression ty)) = do
     else
       throwError $ IncompatibleType $ showText a
 
-inferCommon (CS.Literal literal) =
+inferCommon (CC.Literal literal) =
   inferLiteral literal
 
-inferCommon (CS.Symbol symbol) = do
+inferCommon (CC.Symbol symbol) = do
   maybeTy <- lookupSymbolType symbol
   case maybeTy of
     Nothing ->
@@ -74,7 +74,7 @@ inferCommon (CS.Symbol symbol) = do
 inferCommon a =
   throwError $ UnimplementedError $ showText a
 
-inferLiteral (CS.IntegerLiteral _) =
+inferLiteral (CC.IntegerLiteral _) =
   return IntegerType
 
 --------------------------------------------------------------------------------
@@ -100,7 +100,7 @@ lookupSymbolType symbol = do
   table <- gets symbolTypes
   return $ Map.lookup symbol table
 
-getType (TS.TypeSymbol symbol) = do
+getType (TC.TypeSymbol symbol) = do
   table <- gets typeSymbolTypes
   case Map.lookup symbol table of
     Just ty -> return ty
