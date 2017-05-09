@@ -77,7 +77,7 @@ failsWithSetup code expected setup =
     Right a ->
       case runTypecheck (setup >> infer a) standardContext of
         Left e ->
-          normalizeError (fst e) `shouldBe` normalizeError expected
+          toConstr (fst e) `shouldBe` toConstr expected
         Right a ->
           fail $ show (fst a) ++ " typechecked successfully"
 
@@ -107,22 +107,3 @@ containsErrorWithSetup code expected setup =
                 ]
         Right ty ->
           fail $ show (fst ty) ++ " typechecked successfully"
-
-normalizeError (UnimplementedError _) =
-  UnimplementedError ""
-
-normalizeError (UnboundTypeSymbol _ _) =
-  UnboundTypeSymbol emptySpan ""
-
-normalizeError (CannotInferSymbol _) =
-  CannotInferSymbol ""
-
-normalizeError (ApplicationOfNonFunction _ _) =
-  ApplicationOfNonFunction emptySpan ""
-
-normalizeError (InvalidArgument _) =
-  InvalidArgument ""
-
-normalizeError (InvalidTypeAnnotation _) =
-  InvalidTypeAnnotation ""
-

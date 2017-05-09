@@ -30,32 +30,31 @@ module Mpl.ParserUtils
   )
 where
 
-import Control.Applicative              ((<|>), many, some)
-import Control.Monad.Trans.Class        (lift)
-import Control.Monad.Trans.Reader       (ReaderT, runReaderT, mapReaderT, asks)
-import Data.Functor.Foldable            (Base)
-import Data.Semigroup                   (Semigroup, (<>))
-import Data.Semigroup.Reducer           (Reducer, snoc)
-import Data.Text                        (Text, pack, unpack)
-import Mpl.Annotation                   (Annotated, Cofree((:<)), annotation)
-import Mpl.Parser                       (Parser(..), Result, withDescription, parseByteString, getState, modifyingState)
-import Mpl.ParserDescription            (ParserDescription(..))
-import Mpl.Rendering hiding             (between)
-import Mpl.Utils                        (ByteString, textToString, stringToText, byteStringToString, stringToByteString, byteStringSlice, byteStringToText)
-import Prelude                          (Bool(..), Show, Eq, Maybe(..), (==), Either(..), (++), (.), ($), (<*>), (*>), Integer, String, Monoid, const, drop, mappend, mempty, fromIntegral, return, mempty)
-import Text.Parser.Char                 (noneOf, oneOf, char, anyChar)
-import Text.Parser.Combinators          (Parsing, try, optional, notFollowedBy, sepEndBy1, between, eof)
-import Text.Parser.LookAhead            (lookAhead)
-import Text.Parser.Token                (TokenParsing, whiteSpace, symbolic, symbol, someSpace)
-import Text.Trifecta.Combinators        (MarkParsing(release), spanned, position, line)
-import Text.Trifecta.Delta              (Delta(Columns), column, rewind, columnByte, delta)
-import Text.Trifecta.Rendering          (Span(..), Spanned((:~)))
-import Text.Trifecta.Rope
-import Text.Trifecta.Util.It
-
-import qualified Mpl.Common.Syntax as CS
-import qualified Data.ByteString   as BS
-import qualified Data.Set          as Set
+import           Control.Applicative        ((<|>), many, some)
+import           Control.Monad.Trans.Class  (lift)
+import           Control.Monad.Trans.Reader (ReaderT, runReaderT, mapReaderT, asks)
+import           Data.Functor.Foldable      (Base)
+import           Data.Semigroup             (Semigroup, (<>))
+import           Data.Semigroup.Reducer     (Reducer, snoc)
+import           Data.Text                  (Text, pack, unpack)
+import           Mpl.Annotation             (Annotated, Cofree((:<)), annotation)
+import           Mpl.Parser                 (Parser(..), Result, withDescription, parseByteString, getState, modifyingState)
+import           Mpl.ParserDescription      (ParserDescription(..))
+import           Mpl.Prelude
+import           Mpl.Rendering hiding       (between)
+import           Prelude                    (Bool(..), Show, Eq, Maybe(..), (==), Either(..), (++), (.), ($), (<*>), (*>), Integer, String, Monoid, const, drop, mappend, mempty, fromIntegral, return, mempty)
+import           Text.Parser.Char           (noneOf, oneOf, char, anyChar)
+import           Text.Parser.Combinators    (Parsing, try, optional, notFollowedBy, sepEndBy1, between, eof)
+import           Text.Parser.LookAhead      (lookAhead)
+import           Text.Parser.Token          (TokenParsing, whiteSpace, symbolic, symbol, someSpace)
+import           Text.Trifecta.Combinators  (MarkParsing(release), spanned, position, line)
+import           Text.Trifecta.Delta        (Delta(Columns), column, rewind, columnByte, delta)
+import           Text.Trifecta.Rendering    (Span(..), Spanned((:~)))
+import           Text.Trifecta.Rope
+import           Text.Trifecta.Util.It
+import qualified Data.ByteString            as BS
+import qualified Data.Set                   as Set
+import qualified Mpl.Common.Syntax          as CS
 
 -- | Parsers wich have access to the parsing context and produce @f@s tagged with source code information.
 type MplParser binder f =
@@ -130,7 +129,7 @@ data SourceSpan =
     , startLine  :: ByteString
     , endDelta   :: Delta
     }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Typeable, Data)
 
 emptySpan =
   SourceSpan

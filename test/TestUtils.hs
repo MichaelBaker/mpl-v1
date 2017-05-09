@@ -8,26 +8,16 @@ module TestUtils
   , expectationFailure
   ) where
 
-import Control.Monad.IO.Class     (liftIO)
-import Data.Functor.Foldable      (Base, Fix, Foldable)
-import Data.List                  (isInfixOf)
-import Language.JavaScript.Parser (readJs)
-import Mpl.Annotation             (Fixed)
-import Mpl.ParserUtils            (ParseResult)
-import Mpl.Rendering.ParserError  (errorMessage)
-import Mpl.Utils                  (lazyTextToString, jsIR, stringToText, cata)
-import System.Environment         (lookupEnv)
-import Test.Hspec                 (Expectation, describe, it, shouldBe, runIO, expectationFailure)
-
-import Prelude hiding (Foldable)
-
+import           Data.Functor.Foldable      (Base, Fix, Foldable)
+import           Data.List                  (isInfixOf)
+import           Language.JavaScript.Parser (readJs)
+import           Mpl.ParserUtils            (ParseResult)
+import           Mpl.Prelude
+import           Mpl.Rendering.ParserError  (errorMessage)
+import           Mpl.Utils                  (jsIR, cata)
+import           Prelude                    hiding (Foldable)
+import           Test.Hspec
 import qualified V8
-
-mkParsesTo :: (Foldable a, Eq b, Show b) => (t -> ParseResult a) -> (Base a b -> b) -> t -> b -> IO ()
-mkParsesTo parseExpressionText discardAnnotation text expected =
-  case snd $ parseExpressionText text of
-    Left e -> fail $ show e
-    Right a -> (cata discardAnnotation a) `shouldBe` expected
 
 mkTransformsTo :: (Foldable b, Eq c, Show c) => (t -> ParseResult a) -> (Base b c -> c) -> (a -> b) -> t -> c -> IO ()
 mkTransformsTo parseExpressionText discardAnnotation f text expected =
@@ -52,14 +42,6 @@ mkParserErrorContains parseExpressionText text expected =
             , "\n"
             ]
     (_, Right a) -> fail $ "Successfully parsed " ++ show text
-
-mkIsSameAs parseExpressionText discardAnnotation a b =
-  case snd $ parseExpressionText a of
-    Left e  -> fail $ show e
-    Right a' ->
-      case snd $ parseExpressionText b of
-        Left e  -> fail $ show e
-        Right b' -> (cata discardAnnotation a') `shouldBe` (cata discardAnnotation b')
 
 mkTranslatesToJS parseExpressionText translateToJS mplCode jsCode =
   case snd $ parseExpressionText mplCode of

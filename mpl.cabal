@@ -78,6 +78,7 @@ library
   default-extensions:
     ConstraintKinds,
     DataKinds,
+    DeriveDataTypeable,
     DeriveFunctor,
     DeriveGeneric,
     DeriveTraversable,

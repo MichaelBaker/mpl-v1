@@ -16,6 +16,7 @@ module Mpl.Prelude
   , Arr
   , Bool(..)
   , ByteString
+  , Data
   , Eff
   , Either(..)
   , Eq
@@ -32,6 +33,7 @@ module Mpl.Prelude
   , Show
   , String
   , Traversable
+  , Typeable
   , compare
   , concat
   , either
@@ -60,7 +62,9 @@ module Mpl.Prelude
   , showString
   , showsPrec
   , snd
+  , toConstr
   , unzip
+  , Text
   ) where
 
 import Prelude
@@ -122,8 +126,23 @@ import Prelude
 import Data.ByteString.UTF8
   (ByteString)
 
+import Data.Text
+  ( Text
+  , pack
+  , unpack
+  )
+
+import qualified Data.ByteString.UTF8 as UTF8
+import qualified Data.Text.Lazy       as LT
+
 import GHC.Generics
   (Generic)
+
+import Data.Data
+  ( Data
+  , Typeable
+  , toConstr
+  )
 
 import Control.Monad.Freer
   ( Arr
@@ -138,3 +157,29 @@ import Data.Function
   ((&))
 
 (|>) = (&)
+
+textToString =
+  unpack
+
+stringToText =
+  pack
+
+byteStringToString =
+  UTF8.toString
+
+stringToByteString =
+  UTF8.fromString
+
+byteStringToText =
+  stringToText . byteStringToString
+
+showText :: (Show a) => a -> Text
+showText = stringToText . show
+
+byteStringSlice startChar endChar byteString =
+  UTF8.take spanSize $ UTF8.drop startChar byteString
+    where spanSize = endChar - startChar
+
+lazyTextToString =
+  LT.unpack
+

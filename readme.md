@@ -14,6 +14,7 @@
 - [X] Type checking phase for Typed
   * I can implement this is now because I have integers and functions, which are distinct.
 - [ ] Annotate types with source spans for better error messages
+- [ ] Use Core types instead of types dedicated to typechecking
 - [ ] Using a function from a Typed module in Untyped.
   * Requires figuring out imports
 - [ ] Strings and string literals

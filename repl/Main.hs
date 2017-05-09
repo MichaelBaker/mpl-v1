@@ -5,7 +5,7 @@ import           Control.Monad.IO.Class       (liftIO)
 import           Data.List                    (transpose, isPrefixOf)
 import           Data.Ord                     (comparing)
 import           Mpl.Prelude
-import           Mpl.Utils                    (stringToText, textToString, lazyTextToString, jsIR, envcata)
+import           Mpl.Utils                    (jsIR, envcata)
 import           Repl.State                   (State(..), StateLineItem(..), Mode(..), defaultState, toStateLineItem, showStateLine, strLineItem)
 import           System.Console.Haskeline     (runInputT, defaultSettings, getInputLine, outputStrLn, outputStr)
 import           Text.Read                    (readMaybe)

@@ -1,13 +1,19 @@
 module Mpl.Common.ParsingSpec where
 
-import Data.Functor.Foldable (Fix(..))
-import Mpl.Common.Parsing    (parseExpressionText)
-import Mpl.Utils             (cata)
-import TestUtils             (describe, it, shouldBe, mkParsesTo)
-
+import           Mpl.Prelude
+import           Mpl.Common.Parsing
+import           Mpl.Utils
+import           TestUtils
 import qualified Mpl.Common.Syntax as S
 
-parsesTo = mkParsesTo parseExpressionText (Fix . S.mapBinder (cata Fix))
+parsesTo text expected =
+  case snd $ parseExpressionText text of
+    Left e ->
+      fail $ show e
+    Right result -> do
+      result
+      |> (cata (Fix . S.mapBinder (cata Fix)))
+      |> (`shouldBe` expected)
 
 int              = Fix . S.int
 binder           = Fix . S.binder

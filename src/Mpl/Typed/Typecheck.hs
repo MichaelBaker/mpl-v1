@@ -49,7 +49,7 @@ data TypeError
       Text
   | InvalidTypeAnnotation
       Text
-  deriving (Show, Eq)
+  deriving (Show, Eq, Typeable, Data)
 
 type Typechecker effects =
   ( Member (State Context) effects

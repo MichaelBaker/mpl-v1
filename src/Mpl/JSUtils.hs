@@ -1,11 +1,11 @@
 module Mpl.JSUtils where
 
-import Prelude hiding (lookup)
-import Mpl.Utils
-import Data.List as List
 import Control.Monad.Trans.State.Strict (State, evalState, gets, modify')
-import Data.Map.Strict as Map
+import Data.List                        as List
+import Data.Map.Strict                  as Map
 import Language.JavaScript.Parser
+import Mpl.Prelude
+import Prelude                          hiding (lookup)
 
 type JSTranslator = State JSState JSExpression
 
