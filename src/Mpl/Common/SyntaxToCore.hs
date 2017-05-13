@@ -1,5 +1,6 @@
 module Mpl.Common.SyntaxToCore where
 
+import           Mpl.Parser.SourceSpan
 import           Mpl.ParserUtils
 import           Mpl.Prelude
 import           Mpl.Utils

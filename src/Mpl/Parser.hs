@@ -30,7 +30,6 @@ module Mpl.Parser
 
 import           Control.Applicative          as Alternative
 import           Control.Monad                (MonadPlus(..), ap, join)
-import           Control.Monad.IO.Class
 import           Data.ByteString              as Strict hiding (empty, snoc)
 import           Data.ByteString.UTF8         as UTF8
 import           Data.Maybe                   (isJust)

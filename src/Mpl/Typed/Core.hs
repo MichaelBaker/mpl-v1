@@ -7,22 +7,47 @@ import qualified Mpl.Common.Syntax as CS
 import qualified Mpl.Common.Core   as CC
 import qualified Prelude
 
-data CoreF binder recurse
+data CoreF type_ binder recurse
   = Common (CC.CoreF binder recurse)
-  | TypeAnnotation recurse Type
+  | TypeAnnotation recurse type_
   deriving (Show, Generic, Functor, Eq)
 
-data Binder recurse
+data Binder type_ recurse
   = CommonBinder (CC.Binder recurse)
-  | AnnotatedBinder recurse Type
+  | AnnotatedBinder recurse type_
   deriving (Show, Generic, Functor, Eq, Traversable, Prelude.Foldable)
 
-data Type
+data Type recurse
   = TypeSymbol Text
-  deriving (Show, Generic, Eq)
+  | IntegerType
+  | FunctionType recurse recurse
+  deriving (Show, Generic, Functor, Eq, Traversable, Prelude.Foldable, Typeable, Data)
 
-mapBinder :: (a -> binder) -> CoreF a recurse -> CoreF binder recurse
+mapBinder :: (binder0 -> binder1)
+          -> CoreF type_ binder0 recurse
+          -> CoreF type_ binder1 recurse
+
 mapBinder f (Common common) =
   Common (CC.mapBinder f common)
 
 mapBinder _ (TypeAnnotation r t) = TypeAnnotation r t
+
+mapType :: (type0 -> type1)
+        -> CoreF type0 binder recurse
+        -> CoreF type1 binder recurse
+
+mapType _ (Common a) =
+  Common a
+
+mapType f (TypeAnnotation recurse type_) =
+  TypeAnnotation recurse $ f type_
+
+mapBinderType :: (type0 -> type1)
+              -> Binder type0 recurse
+              -> Binder type1 recurse
+
+mapBinderType _ (CommonBinder a) =
+  CommonBinder a
+
+mapBinderType f (AnnotatedBinder recurse type_) =
+  AnnotatedBinder recurse $ f type_

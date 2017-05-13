@@ -17,7 +17,7 @@ parseExpression :: MplParser binder f
 parseExpression = makeExpression parseFlatExpression <|> (parens parseApplicationOrExpression)
 
 parseApplicationOrExpression :: MplParser binder f
-parseApplicationOrExpression = makeExpression (try parseApplication) <|> parseExpression
+parseApplicationOrExpression = makeExpression parseApplication <|> parseExpression
 
 parseFlatExpression :: MplParser binder f
 parseFlatExpression =
@@ -89,7 +89,10 @@ parseApplication =
     "a function application"
     ["f 1", "#(a = a + 1) 1"]
     (do
-      function  <- parseExpression
-      someSpace
+      function <- try $ do
+        function <- parseExpression
+        someSpace
+        notFollowedBy someSpace
+        return function
       arguments <- sepEndBy1 parseExpression someSpace
       makeCommon $ CS.Application function arguments)

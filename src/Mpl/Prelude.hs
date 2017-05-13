@@ -16,10 +16,13 @@ module Mpl.Prelude
   , Arr
   , Bool(..)
   , ByteString
+  , Cofree((:<))
   , Data
   , Eff
   , Either(..)
   , Eq
+  , Fix(..)
+  , Foldable
   , Functor
   , Generic
   , IO
@@ -28,12 +31,15 @@ module Mpl.Prelude
   , Maybe(..)
   , Member
   , Monad
+  , MonadIO
   , Monoid
   , Ord
   , Show
   , String
+  , Text
   , Traversable
   , Typeable
+  , cata
   , compare
   , concat
   , either
@@ -44,6 +50,7 @@ module Mpl.Prelude
   , fst
   , handleRelay
   , id
+  , liftIO
   , mappend
   , max
   , maybe
@@ -51,8 +58,10 @@ module Mpl.Prelude
   , negate
   , not
   , otherwise
+  , project
   , pure
   , read
+  , refix
   , return
   , run
   , send
@@ -64,7 +73,6 @@ module Mpl.Prelude
   , snd
   , toConstr
   , unzip
-  , Text
   ) where
 
 import Prelude
@@ -156,6 +164,22 @@ import Control.Monad.Freer
 import Data.Function
   ((&))
 
+import Control.Monad.IO.Class
+  ( MonadIO
+  , liftIO
+  )
+
+import Control.Comonad.Cofree
+  (Cofree((:<)))
+
+import Data.Functor.Foldable
+  ( Fix(..)
+  , Foldable
+  , cata
+  , project
+  , refix
+  )
+
 (|>) = (&)
 
 textToString =
@@ -182,4 +206,3 @@ byteStringSlice startChar endChar byteString =
 
 lazyTextToString =
   LT.unpack
-

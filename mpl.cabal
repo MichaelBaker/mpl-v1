@@ -27,6 +27,7 @@ library
     Mpl.Compiler,
     Mpl.JSUtils,
     Mpl.Parser,
+    Mpl.Parser.SourceSpan,
     Mpl.ParserDescription,
     Mpl.ParserError,
     Mpl.ParserUtils,
@@ -83,9 +84,11 @@ library
     DeriveGeneric,
     DeriveTraversable,
     FlexibleContexts,
+    FlexibleInstances,
     GADTs,
     NoImplicitPrelude,
     OverloadedStrings,
+    StandaloneDeriving,
     TypeFamilies,
     TypeOperators,
     TypeSynonymInstances,
@@ -171,11 +174,11 @@ test-suite mpl-test
     -threaded -rtsopts -with-rtsopts=-N
 
   default-extensions:
-    OverloadedStrings,
     DeriveFunctor,
     DeriveGeneric,
     DeriveTraversable,
-    FlexibleContexts
+    FlexibleContexts,
+    OverloadedStrings
 
   default-language:    Haskell2010
 

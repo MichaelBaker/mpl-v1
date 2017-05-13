@@ -7,26 +7,26 @@
 --   * Ensures that all non-common languages will have uniform support from tooling because tooling can be implemented in terms of the abstractions present here.
 module Mpl.ParserUtils
   ( module Mpl.ParserUtils
-  , Text
+  , (<|>)
+  , Delta
   , Parser
   , ParserDescription(..)
-  , Delta
-  , (<|>)
-  , many
-  , some
-  , oneOf
-  , noneOf
-  , whiteSpace
-  , sepEndBy1
-  , someSpace
-  , try
-  , optional
-  , symbol
-  , notFollowedBy
+  , Text
   , char
-  , lookAhead
-  , position
   , lift
+  , lookAhead
+  , many
+  , noneOf
+  , notFollowedBy
+  , oneOf
+  , optional
+  , position
+  , sepEndBy1
+  , some
+  , someSpace
+  , symbol
+  , try
+  , whiteSpace
   )
 where
 
@@ -52,8 +52,7 @@ import           Text.Trifecta.Delta        (Delta(Columns), column, rewind, col
 import           Text.Trifecta.Rendering    (Span(..), Spanned((:~)))
 import           Text.Trifecta.Rope
 import           Text.Trifecta.Util.It
-import qualified Data.ByteString            as BS
-import qualified Data.Set                   as Set
+import           Mpl.Parser.SourceSpan
 import qualified Mpl.Common.Syntax          as CS
 
 -- | Parsers wich have access to the parsing context and produce @f@s tagged with source code information.
@@ -122,28 +121,6 @@ data SyntaxConstructors binder f
     -- ^ Lifts a common expression into the non-common language.
   , consBinder :: StatefulParser (SourceAnnotated CS.Binder) -> StatefulParser binder
   }
-
-data SourceSpan =
-  SourceSpan
-    { startDelta :: Delta
-    , startLine  :: ByteString
-    , endDelta   :: Delta
-    }
-  deriving (Show, Eq, Typeable, Data)
-
-emptySpan =
-  SourceSpan
-    { startDelta = mempty
-    , startLine  = mempty
-    , endDelta   = mempty
-    }
-
-spanUnion s0 s1 =
-  SourceSpan
-    { startDelta = startDelta s0
-    , startLine  = startLine s0
-    , endDelta   = endDelta s1
-    }
 
 parseFromString :: SyntaxConstructors binder a -> GenericContextualParser binder a -> String -> ParseResult a
 parseFromString syntaxConstructors mplParser string = (byteString, result)

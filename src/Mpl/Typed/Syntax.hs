@@ -4,19 +4,19 @@ import           Mpl.Prelude
 import qualified Mpl.Common.Syntax as CS
 import qualified Prelude
 
-data SyntaxF binder recurse
+data SyntaxF type_ binder recurse
   = Common (CS.SyntaxF binder recurse)
-  | TypeAnnotation recurse Type
+  | TypeAnnotation recurse type_
   deriving (Show, Generic, Functor, Eq)
 
-data Binder recurse
+data Binder type_ recurse
   = CommonBinder (CS.Binder recurse)
-  | AnnotatedBinder recurse Type
+  | AnnotatedBinder recurse type_
   deriving (Show, Generic, Functor, Eq, Traversable, Prelude.Foldable)
 
-data Type
+data Type recurse
   = TypeSymbol Text
-  deriving (Show, Generic, Eq)
+  deriving (Show, Generic, Functor, Eq, Traversable, Prelude.Foldable)
 
 literal                    = Common . CS.literal
 symbol                     = Common . CS.symbol
@@ -29,6 +29,32 @@ typeSymbol                 = TypeSymbol
 binder          = CommonBinder . CS.binder
 annotatedBinder = AnnotatedBinder
 
-mapCommon :: (CS.SyntaxF t recurse -> CS.SyntaxF binder recurse) -> SyntaxF t recurse -> SyntaxF binder recurse
-mapCommon f (Common a) = Common (f a)
-mapCommon _ (TypeAnnotation recurse ty) = TypeAnnotation recurse ty
+mapCommon :: (CS.SyntaxF binder0 recurse -> CS.SyntaxF binder1 recurse)
+          -> SyntaxF type_ binder0 recurse
+          -> SyntaxF type_ binder1 recurse
+
+mapCommon f (Common a) =
+  Common (f a)
+
+mapCommon _ (TypeAnnotation recurse type_) =
+  TypeAnnotation recurse type_
+
+mapType :: (type0 -> type1)
+        -> SyntaxF type0 binder recurse
+        -> SyntaxF type1 binder recurse
+
+mapType _ (Common a) =
+  Common a
+
+mapType f (TypeAnnotation recurse type_) =
+  TypeAnnotation recurse $ f type_
+
+mapBinderType :: (type0 -> type1)
+              -> Binder type0 recurse
+              -> Binder type1 recurse
+
+mapBinderType _ (CommonBinder a) =
+  CommonBinder a
+
+mapBinderType f (AnnotatedBinder recurse type_) =
+  AnnotatedBinder recurse $ f type_

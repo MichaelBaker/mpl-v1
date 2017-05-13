@@ -5,7 +5,7 @@ import           Mpl.Utils
 import qualified Prelude
 
 data SyntaxF binder recurse
-  = Literal Literal
+  = Literal     Literal
   | Symbol      Text
   | Function    [binder] recurse
   | Application recurse [recurse]

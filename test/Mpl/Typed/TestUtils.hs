@@ -7,7 +7,17 @@ import           Mpl.Typed.Parsing
 import qualified Mpl.Typed.SyntaxToCore as SyntaxToCore
 import qualified Mpl.Typed.Core         as C
 
-textToCore :: Text -> (ByteString, Either String (SourceAnnotated (C.CoreF (SourceAnnotated C.Binder))))
+type SourceCore =
+  SourceAnnotated (C.CoreF SourceCoreType SourceCoreBinder)
+
+type SourceCoreBinder =
+  SourceAnnotated (C.Binder SourceCoreType)
+
+type SourceCoreType =
+  SourceAnnotated C.Type
+
+textToCore :: Text
+           -> (ByteString, Either String SourceCore)
 textToCore text =
   case parseExpressionText text of
     (bs, Left e) ->

@@ -1,27 +1,40 @@
 module Mpl.Typed.Typecheck where
 
+import           Control.Monad.Freer.Exception
+import           Control.Monad.Freer.State
 import           Data.Map.Strict            as Map
+import           Mpl.Parser.SourceSpan
 import           Mpl.ParserUtils
 import           Mpl.Prelude
+import           Mpl.Typed.Core
 import           Mpl.Utils
-import           Control.Monad.Freer.State
-import           Control.Monad.Freer.Exception
 import qualified Data.List                  as List
 import qualified Mpl.Common.Core            as CC
-import qualified Mpl.Typed.Core             as TC
+
+type SourceCore =
+  SourceAnnotated (CoreF SourceType SourceBinder)
+
+type SourceBinder =
+  SourceAnnotated (Binder SourceType)
+
+type SourceType =
+  SourceAnnotated Type
+
+type InferenceType =
+  Annotated Type (SourceSpan, InferenceReason)
+
+deriving instance Data InferenceType
+
+type CommonCore =
+  CC.CoreF SourceBinder SourceCore
 
 --------------------------------------------------------------------------------
 -- Datatypes for typechecking
 
-data Type
-  = IntegerType
-  | FunctionType Type Type
-  deriving (Show, Eq)
-
 data Context
   = Context
-  { symbolTypes     :: [(Text, Type)]
-  , typeSymbolTypes :: Map.Map Text Type
+  { symbolTypes     :: [(Text, InferenceType)]
+  , typeSymbolTypes :: Map.Map Text InferenceType
   }
   deriving (Show)
 
@@ -32,23 +45,49 @@ standardContext =
   }
   where typeSymbolTable =
           Map.empty
-          |> Map.insert "Integer" IntegerType
+          |> Map.insert "Integer" ((emptySpan, NoReason) :< IntegerType)
 
 data TypeError
-  = UnimplementedError
-      Text
+  = Unimplemented
+      SourceSpan       -- ^ Unimplemented feature
+      Text             -- ^ Explanation
   | UnboundTypeSymbol
       SourceSpan       -- ^ Annotation of type symbol
       Text             -- ^ The type symbol
   | CannotInferSymbol
-      Text
+      SourceSpan       -- ^ Annotation of symbol
+      Text             -- ^ The symbol
   | ApplicationOfNonFunction
-      SourceSpan       -- ^ Annotation of type symbol
-      Text             -- ^ The type that was inferred
+      SourceSpan       -- ^ Annotation of function
+      InferenceType    -- ^ The type that was inferred
   | InvalidArgument
-      Text
+      SourceSpan       -- ^ The function code
+      InferenceType    -- ^ The param type
+      SourceSpan       -- ^ The argument code
+      InferenceType    -- ^ The argument type
   | InvalidTypeAnnotation
-      Text
+      InferenceType    -- ^ The inferred type
+      SourceSpan       -- ^ The expression the type was inferred for
+      InferenceType    -- ^ The annotated type
+      SourceSpan       -- ^ The code of the annotation
+  deriving (Show, Eq, Typeable, Data)
+
+data InferenceReason
+  = NoReason
+  | InferredFromSyntax
+  | InferredSymbolType
+      SourceSpan      -- ^ The symbol
+      InferenceReason -- ^ The reason for the underlying type
+  | InferredFromTypeAnnotation
+      SourceSpan      -- ^ The binder with annotation
+  | InferredIntegerLiteral
+      SourceSpan      -- ^ The code of the integer
+  | InferredApplication
+      SourceSpan      -- ^ The code of the function being applied
+      InferenceType   -- ^ The type of the function
+      SourceSpan      -- ^ The code of the argument
+      InferenceType   -- ^ The type of the argument
+      InferenceType   -- ^ The type of the body
   deriving (Show, Eq, Typeable, Data)
 
 type Typechecker effects =
@@ -56,16 +95,9 @@ type Typechecker effects =
   , Member (Exc (TypeError, Context)) effects
   )
 
-type Core =
-  SourceAnnotated (TC.CoreF (SourceAnnotated TC.Binder))
-
-type CommonCore =
-  CC.CoreF (SourceAnnotated TC.Binder) (Core)
-
-
-runTypecheck :: Eff '[State Context, Exc (TypeError, Context)] Type
+runTypecheck :: Eff '[State Context, Exc (TypeError, Context)] InferenceType
              -> Context
-             -> Either (TypeError, Context) (Type, Context)
+             -> Either (TypeError, Context) (InferenceType, Context)
 runTypecheck action state =
   runState action state
     |> runError
@@ -74,62 +106,66 @@ runTypecheck action state =
 --------------------------------------------------------------------------------
 -- Inference (type synthesis) mode
 
-infer :: (Typechecker effects) => Core -> Eff effects Type
+infer :: (Typechecker effects) => SourceCore -> Eff effects InferenceType
 
-infer (annotation :< TC.Common common) =
+infer (annotation :< Common common) =
   inferCommon annotation common
 
-infer (annotation :< a@(TC.TypeAnnotation expression ty)) = do
-  ty'    <- getType annotation ty
-  isType <- check expression ty'
+infer (_ :< a@(TypeAnnotation expression ty)) = do
+  ty' <- getType ty
+  (inferredType, isType) <- check expression ty'
   if isType
     then
       return ty'
     else do
       context <- getContext
-      throwError (InvalidTypeAnnotation $ showText a, context)
+      throwError (InvalidTypeAnnotation inferredType (annotation expression) ty' (annotation ty), context)
 
-inferCommon :: (Typechecker effects) => SourceSpan -> CommonCore -> Eff effects Type
+inferCommon :: (Typechecker effects) => SourceSpan -> CommonCore -> Eff effects InferenceType
 
-inferCommon _ (CC.Literal literal) =
-  inferLiteral literal
-
-inferCommon _ (CC.Symbol symbol) = do
+inferCommon annotation (CC.Symbol symbol) = do
   maybeTy <- lookupSymbolType symbol
   case maybeTy of
     Nothing -> do
       context <- getContext
-      throwError (CannotInferSymbol symbol, context)
-    Just ty ->
-      return ty
+      throwError (CannotInferSymbol annotation symbol, context)
+    Just type_ -> do
+      let reason = InferredSymbolType annotation (getReason type_)
+      return (setReason reason type_)
+
+inferCommon annotation (CC.Literal literal) = do
+  type_ <- inferLiteral literal
+  return ((annotation, InferredIntegerLiteral annotation) :< type_)
 
 inferCommon annotation (CC.Function binder body) =
   case binder of
-    _ :< TC.AnnotatedBinder (_ :< TC.CommonBinder (CC.Binder name)) type_ -> do
-      paramType <- getType annotation type_
+    (span :< AnnotatedBinder (_ :< CommonBinder (CC.Binder name)) type_) -> do
+      inferredParamType <- getType type_
+      let paramType = setReason (InferredFromTypeAnnotation span) inferredParamType
       pushSymbol name paramType
       bodyType <- infer body
       popSymbol
-      return $ FunctionType paramType bodyType
-    _ -> do
+      return ((annotation, NoReason) :< FunctionType paramType bodyType)
+    (span :< _) -> do
       context <- getContext
-      throwError (UnimplementedError "Cannot infer the types of functions with unannotated parameters", context)
+      throwError (Unimplemented span "Cannot infer the types of functions with unannotated parameters.", context)
 
 inferCommon _ (CC.Application function argument) = do
   functionType <- infer function
   argumentType <- infer argument
 
   case functionType of
-    FunctionType paramType bodyType -> do
+    (_ :< FunctionType paramType bodyType) -> do
       if isSubtype argumentType paramType
         then
-          return bodyType
+          let reason = InferredApplication (annotation function) functionType (annotation argument) argumentType bodyType
+          in  return ((getSpan bodyType, reason) :< project bodyType)
         else do
           context <- getContext
-          throwError (InvalidArgument $ showText argumentType, context)
-    a -> do
+          throwError (InvalidArgument (annotation function) paramType (annotation argument) argumentType, context)
+    _ -> do
       context <- getContext
-      throwError (ApplicationOfNonFunction (annotation function) (showText functionType), context)
+      throwError (ApplicationOfNonFunction (annotation function) functionType, context)
 
 inferLiteral (CC.IntegerLiteral _) =
   return IntegerType
@@ -137,16 +173,19 @@ inferLiteral (CC.IntegerLiteral _) =
 --------------------------------------------------------------------------------
 -- Checking mode
 
-check :: (Typechecker effects) => Core -> Type -> Eff effects Bool
+check :: (Typechecker effects) => SourceCore -> InferenceType -> Eff effects (InferenceType, Bool)
 check expression ty = do
   inferredType <- infer expression
-  return $ isSubtype inferredType ty
+  return (inferredType, isSubtype inferredType ty)
 
 --------------------------------------------------------------------------------
 -- Subtyping
 
-isSubtype IntegerType IntegerType = True
-isSubtype _ _                     = False
+isSubtype (_ :< IntegerType) (_ :< IntegerType) =
+  True
+
+isSubtype _ _ =
+  False
 
 --------------------------------------------------------------------------------
 -- Helpers
@@ -166,7 +205,7 @@ lookupSymbolType symbol = do
     |> fmap snd
     |> return
 
-getType annotation (TC.TypeSymbol symbol) = do
+getType (annotation :< TypeSymbol symbol) = do
   context <- get
   case Map.lookup symbol (typeSymbolTypes context) of
     Just ty ->
@@ -175,5 +214,17 @@ getType annotation (TC.TypeSymbol symbol) = do
       let error = UnboundTypeSymbol annotation symbol
       throwError (error, context)
 
+getType type_ = do
+  return $ envcata (\span ty -> ((span, InferredFromSyntax) :< ty)) type_
+
 getContext :: (Typechecker effects) => Eff effects Context
 getContext = get
+
+getSpan =
+  fst . annotation
+
+getReason =
+  snd . annotation
+
+setReason reason ((span, _) :< type_) =
+  ((span, reason) :< type_)

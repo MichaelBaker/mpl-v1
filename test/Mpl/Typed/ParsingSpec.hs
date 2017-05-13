@@ -1,42 +1,14 @@
 module Mpl.Typed.ParsingSpec where
 
 import           Mpl.Prelude
+import           Mpl.Rendering
+import           Mpl.Rendering.ParserError
 import           Mpl.Typed.Parsing
 import           Mpl.Utils
 import           TestUtils
+import qualified Data.List         as List
 import qualified Mpl.Common.Syntax as CS
 import qualified Mpl.Typed.Syntax  as S
-
-isSameAs a b =
-  case snd $ parseExpressionText a of
-    Left e -> fail $ show e
-    Right resultA ->
-      case snd $ parseExpressionText b of
-        Left e ->
-          fail $ show e
-        Right resultB -> do
-          (cata discardAnnotation resultA) `shouldBe` (cata discardAnnotation resultB)
-
-parsesTo :: Text -> Fix (S.SyntaxF (Fix S.Binder)) -> Expectation
-parsesTo text expected =
-  case snd $ parseExpressionText text of
-    Left e ->
-      fail $ show e
-    Right result -> do
-      result
-      |> cata discardAnnotation
-      |> (`shouldBe` expected)
-
-discardAnnotation =
-  Fix . S.mapCommon (CS.mapBinder (cata Fix))
-
-typeAnnotation a b  = Fix $ S.typeAnnotation a b
-symbol              = Fix . S.symbol
-typeSymbol          = S.typeSymbol
-application a b     = Fix $ S.application a b
-function a b        = Fix $ S.function a b
-binder              = Fix . S.binder
-annotatedBinder a b = Fix $ S.annotatedBinder a b
 
 spec = do
   it "parses type annotations" $ do
@@ -79,3 +51,72 @@ spec = do
         , annotatedBinder (binder "c") (typeSymbol "Float")
         ]
         (symbol "a"))
+
+  it "renders type annotation parse errors" $ do
+    "a: 0nteger"   `errorContains` ("incorrect " <~> callout_ "type")
+    "f a: 0nteger" `errorContains` ("incorrect " <~> callout_ "type")
+
+  it "renders binder type annotation parse errors" $ do
+    "#(a: 0nteger = a)" `errorContains` ("incorrect " <~> callout_ "type")
+
+  it "renders mixed binder type annotation parse errors" $ do
+    "#(a: Integer b c: 1loat = a)" `errorContains` ("incorrect " <~> callout_ "type")
+
+errorContains code expected =
+  case parseExpressionText code of
+    (bs, Left e) ->
+      if List.isInfixOf (render expected) (errorMessage bs e)
+        then return ()
+        else do
+          expectationFailure $ concat
+            [ "\n"
+            , "==== Expected " ++ show code ++ " to contain the string:\n\n"
+            , render expected
+            , "\n\n"
+            , "==== This was the error that was produced:\n\n"
+            , errorMessage bs e
+            , "\n"
+            ]
+    (_, Right a) -> fail $ "Successfully parsed " ++ show code
+
+isSameAs a b =
+  case snd $ parseExpressionText a of
+    Left e -> fail $ show e
+    Right resultA ->
+      case snd $ parseExpressionText b of
+        Left e ->
+          fail $ show e
+        Right resultB -> do
+          (cata discardAnnotation resultA) `shouldBe` (cata discardAnnotation resultB)
+
+type FixType   = Fix S.Type
+type FixBinder = Fix (S.Binder FixType)
+type FixSyntax = Fix (S.SyntaxF FixType FixBinder)
+
+parsesTo :: Text -> FixSyntax -> Expectation
+parsesTo text expected =
+  case snd $ parseExpressionText text of
+    Left e ->
+      fail $ show e
+    Right result -> do
+      result
+      |> cata discardAnnotation
+      |> (`shouldBe` expected)
+
+discardAnnotation =
+  Fix
+  . S.mapCommon (CS.mapBinder discardBinderAnnotation)
+  . S.mapType (cata Fix)
+
+discardBinderAnnotation :: SourceBinder -> FixBinder
+discardBinderAnnotation =
+  cata (Fix . S.mapBinderType (cata Fix))
+
+typeAnnotation a b  = Fix $ S.typeAnnotation a b
+symbol              = Fix . S.symbol
+typeSymbol          = Fix . S.typeSymbol
+application a b     = Fix $ S.application a b
+function a b        = Fix $ S.function a b
+binder              = Fix . S.binder
+annotatedBinder a b = Fix $ S.annotatedBinder a b
+

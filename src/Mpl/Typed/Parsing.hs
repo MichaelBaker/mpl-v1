@@ -7,8 +7,13 @@ import           Mpl.Typed.Syntax
 import           Mpl.Utils
 import qualified Mpl.Common.Syntax  as CS
 
-parseExpressionText :: Text -> ParseResult (SourceAnnotated (SyntaxF (SourceAnnotated Binder)))
-parseExpressionText = parseFromString typedSyntaxConstructors commonParser . textToString
+type SourceType   = SourceAnnotated Type
+type SourceBinder = SourceAnnotated (Binder SourceType)
+type SourceSyntax = SourceAnnotated (SyntaxF SourceType SourceBinder)
+
+parseExpressionText :: Text -> ParseResult SourceSyntax
+parseExpressionText =
+  parseFromString typedSyntaxConstructors commonParser . textToString
 
 typedSyntaxConstructors =
   SyntaxConstructors
@@ -38,8 +43,9 @@ parseTypeAnnotation parseExpression = do
   expression <- parseExpression
   annotation <- lookAhead (optional $ char ':')
   case annotation of
-    Nothing  -> return expression
-    Just _   ->
+    Nothing ->
+      return expression
+    Just _ ->
       annotate
         "type annotation"
         "a type annotation"
@@ -50,9 +56,13 @@ parseTypeAnnotation parseExpression = do
           annotation <- lift parseType
           return $ typeAnnotation expression annotation)
 
-parseType :: StatefulParser Type
 parseType =
-  typeSymbol <$> do
-    firstChar <- oneOf upcaseChars
-    rest      <- (many $ oneOf symbolChars)
-    return $ stringToText (firstChar : rest)
+  annotate'
+    "type"
+    "a type"
+    ["Integer"]
+    (do
+      firstChar <- oneOf upcaseChars
+      rest      <- (many $ oneOf symbolChars)
+      let symbol = stringToText (firstChar : rest)
+      return $ typeSymbol symbol)

@@ -1,5 +1,6 @@
 module Mpl.Typed.SyntaxToCoreSpec where
 
+import           Mpl.ParserUtils        hiding (symbol)
 import           Mpl.Prelude
 import           Mpl.Typed.TestUtils
 import           Mpl.Utils
@@ -7,15 +8,39 @@ import           TestUtils
 import qualified Mpl.Common.Core        as CC
 import qualified Mpl.Typed.Core         as C
 
-transformsTo :: Text -> Fix (C.CoreF (Fix C.Binder)) -> Expectation
+type FixCore =
+  Fix (C.CoreF FixType FixBinder)
+
+type FixBinder =
+  Fix (C.Binder FixType)
+
+type FixType =
+  Fix C.Type
+
+type SourceBinder =
+  SourceAnnotated (C.Binder SourceType)
+
+type SourceType =
+  SourceAnnotated C.Type
+
+transformsTo :: Text -> FixCore -> Expectation
 transformsTo text expected =
   case snd $ textToCore text of
     Left e ->
       fail $ show e
     Right result -> do
       result
-      |> cata (Fix . C.mapBinder (cata Fix))
+      |> cata discardAnnotation
       |> (`shouldBe` expected)
+
+discardAnnotation =
+  Fix
+  . C.mapBinder discardBinderAnnotation
+  . C.mapType (cata Fix)
+
+discardBinderAnnotation :: SourceBinder -> FixBinder
+discardBinderAnnotation =
+  cata (Fix . C.mapBinderType (cata Fix))
 
 int =
   Fix . C.Common . CC.int
@@ -29,7 +54,7 @@ binder =
 annotatedBinder name typeName =
   Fix $ C.AnnotatedBinder
           (binder name)
-          (C.TypeSymbol typeName)
+          (Fix $ C.TypeSymbol typeName)
 
 application a b =
   Fix $ C.Common $ CC.application a b

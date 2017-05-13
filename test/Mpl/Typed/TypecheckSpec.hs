@@ -1,57 +1,76 @@
 module Mpl.Typed.TypecheckSpec where
 
+import           Mpl.Parser.SourceSpan
 import           Mpl.ParserUtils
 import           Mpl.Prelude
 import           Mpl.Rendering.TypeError
+import           Mpl.Typed.Core
 import           Mpl.Typed.TestUtils
 import           Mpl.Typed.Typecheck
+import           Mpl.Utils
 import           TestUtils
 import qualified Data.List as List
 
 spec = do
   describe "Inference" $ do
     it "infers integer literals to be integers" $ do
-      "1" `infersTo` IntegerType
+      "1" `infersTo` integer
 
     it "infers the type of a symbol from the context" $ do
-      "a" `infersWithSetup` IntegerType
-        $ pushSymbol "a" IntegerType
+      "a" `infersWithSetup` integer
+        $ pushSymbol "a" (emptyAnnotation IntegerType)
 
     it "infers accurate type annotations" $ do
-      "123: Integer" `infersTo` IntegerType
+      "123: Integer" `infersTo` integer
 
     it "infers functions with annotated parameters" $ do
       "#(a: Integer = a)" `infersTo`
-        FunctionType IntegerType IntegerType
+        function integer integer
 
     it "infers application" $ do
-      "#(a: Integer = a) 1" `infersTo` IntegerType
+      "#(a: Integer = a) 1" `infersTo` integer
 
   describe "Type errors" $ do
     it "rejects application of non-functions" $ do
-      "1 1" `failsWith` (ApplicationOfNonFunction emptySpan "")
+      "1 1" `failsWith` (ApplicationOfNonFunction emptySpan (emptyAnnotation IntegerType))
 
     it "rejects arguments of the wrong type" $ do
       "#(a: Integer = a) #(a: Integer = a)" `failsWith`
-        (InvalidArgument "")
+        (InvalidArgument emptySpan (emptyAnnotation IntegerType) emptySpan (emptyAnnotation IntegerType))
 
     it "rejects unknown types" $ do
       "a: Wat" `failsWith` (UnboundTypeSymbol emptySpan "")
 
     it "rejects unbound symbols" $ do
-      "a" `failsWith` (CannotInferSymbol "")
+      "a" `failsWith` (CannotInferSymbol emptySpan "")
 
     it "rejects incorrect type annotations" $ do
       "#(a: Integer = a): Integer" `failsWith`
-        (InvalidTypeAnnotation "")
+        (InvalidTypeAnnotation (emptyAnnotation IntegerType) emptySpan (emptyAnnotation IntegerType) emptySpan)
 
   describe "Error messages" $ do
     it "renders UnboundTypeSymbol errors with suggestions" $ do
       "1: Intger" `containsError` "isn't defined"
       "1: Intger" `containsError` "Integer"
 
-    it "renders ApplicationOfNonFunction errors with suggestions" $ do
+    it "renders ApplicationOfNonFunction errors" $ do
       "(#(a: Integer = a) 1) 1" `containsError` "used as a function"
+
+    it "renders CannotInferSymbol errors" $ do
+      "a" `containsError` "isn't defined"
+      "abb" `containsErrorWithSetup` "abc"
+        $ (pushSymbol "abc" (emptyAnnotation IntegerType))
+
+    it "renders Unimplemented errors" $ do
+      "#(a = a)" `containsError` "unannotated parameters"
+
+    it "renders InvalidTypeAnnotation errors" $ do
+      "#(a: Integer = a): Integer" `containsError` "is different from its"
+
+    it "renders InvalidArgument errors" $ do
+      "#(a: Integer = a) #(a: Integer = a)" `containsError` "of the wrong"
+
+emptyAnnotation type_ = (emptySpan, NoReason) :< type_
 
 infersTo code expectedType =
   infersWithSetup code expectedType (return ())
@@ -64,8 +83,8 @@ infersWithSetup code expectedType setup =
       case runTypecheck (setup >> infer a) standardContext of
         Left e ->
           fail $ show (fst e)
-        Right a ->
-          (fst a) `shouldBe` expectedType
+        Right (ty, _) ->
+          (cata Fix ty) `shouldBe` expectedType
 
 failsWith code expectedType =
   failsWithSetup code expectedType (return ())
@@ -78,8 +97,8 @@ failsWithSetup code expected setup =
       case runTypecheck (setup >> infer a) standardContext of
         Left e ->
           toConstr (fst e) `shouldBe` toConstr expected
-        Right a ->
-          fail $ show (fst a) ++ " typechecked successfully"
+        Right (ty, _) ->
+          fail $ show ty ++ " typechecked successfully"
 
 containsError code expected =
   containsErrorWithSetup code expected (return ())
@@ -105,5 +124,11 @@ containsErrorWithSetup code expected setup =
                 , message
                 , "\n"
                 ]
-        Right ty ->
-          fail $ show (fst ty) ++ " typechecked successfully"
+        Right (ty, _) ->
+          fail $ show ty ++ " typechecked successfully"
+
+integer =
+  Fix IntegerType
+
+function a b =
+  Fix (FunctionType a b)

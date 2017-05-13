@@ -34,7 +34,6 @@ errorMessage byteString error = render $ (header_ "Syntax Error") <~> blankLine 
               <~> (indent $ highlightedCode byteString as (errorDelta error) (errorEOF error))
               <~> blankLine
               <~> expectations (toAscList $ errorExpected error) (errorEOF error)
-              <~> blankLine
               <~> examples (parserName a) (parserExamples a)
 
 summary description = "The parser found a syntactically incorrect " <~> callout (parserName description) <~> "."
@@ -42,11 +41,13 @@ summary description = "The parser found a syntactically incorrect " <~> callout 
 expectations [] _ =
   ""
 expectations (a:[]) isEOF =
-  "It expected to find " <~> suggestedAddition (parserExpectation a) <~> " " <~> expectationPreposition isEOF
+      "It expected to find " <~> suggestedAddition (parserExpectation a) <~> " " <~> expectationPreposition isEOF
+  <~> blankLine
 expectations as isEOF =
       "It expected to find one of the following " <~> expectationPreposition isEOF
   <~> hardline
   <~> (indent $ stack $ fmap (toDoc . parserExpectation) as)
+  <~> blankLine
 
 expectationPreposition True  = "at the position highlighted in red."
 expectationPreposition False = "before the character highlighed in red."

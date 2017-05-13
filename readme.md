@@ -13,13 +13,12 @@
   * Demonstrates that the recursion-schemes framework I'm using will work when expressions aren't homogenous and potentially include sub syntaxes which are recursive in their own right.
 - [X] Type checking phase for Typed
   * I can implement this is now because I have integers and functions, which are distinct.
-- [ ] Annotate types with source spans for better error messages
-- [ ] Use Core types instead of types dedicated to typechecking
+- [X] Use Core types instead of types dedicated to typechecking
+- [X] Annotate types with source spans for better error messages
+- [X] Add explanations for inferred types.
+- [ ] Strings and string literals
 - [ ] Using a function from a Typed module in Untyped.
   * Requires figuring out imports
-- [ ] Strings and string literals
-  * Lots of data out there is represented as strings of text.
-  * Poor handling of Strings is also considered a major flaw of Haskell.
 - [ ] Records
   * Necessary for data composition.
 - [ ] Eliminators
@@ -39,7 +38,27 @@
 - [ ] Parsing
 - [ ] Javascript Backend
 
-## TODO Chunks
+## Backlog
+
+- [ ] Fix source annotations for grouping parentheses
+- [ ] Move errors into the compiler functions, rather than using Haskell's `error`. Use ExceptT.
+- [ ] Add modules
+- [ ] Add to Untyped for using identifiers that aren't in scope.
+- [ ] Add explanations for the inclusion of various features
+- [ ] Add bindings for top level identifiers to Common
+- [ ] Add pretty printing for Untyped
+- [ ] Add pretty printing for Typed
+- [ ] Use the pretty printer for auto formatting files
+- [ ] Create the base Unmanaged syntax
+- [ ] Create the base Unmanaged parser
+- [ ] JS backend for Unmanaged
+- [ ] Use examples to generate syntax error heuristics: https://research.swtch.com/yyerror
+- [ ] Pull in big decimal/integer library for IEEE JS math
+- [ ] Create formal proofs of the type checker etc...
+- [ ] String interpolation. What about a more generic syntax for compile time programming?
+- [ ] Multiline strings
+
+### Done
 
 - [X] Write iterator over Cofree that makes the annotation available at each stage
 - [X] Generate a complete LLVM module
@@ -65,30 +84,11 @@
 - [X] Generate valid JS for functions
 - [X] Add native functions (functions with literal js/llvm output)
 - [X] Add name resolution for Untyped
-- [ ] Fix source annotations for grouping parentheses
-- [ ] Parameterize the typeof lambda parameters and add a typeclass for extracting their "names" for the purpose of creating bindings
-- [ ] Move errors into the compiler functions, rather than using Haskell's `error`. Use ExceptT.
-- [ ] Add modules
-- [ ] Add to Untyped for using identifiers that aren't in scope.
-- [ ] Add a Core language that the syntax can be translated into and is simpler to work with
-- [ ] Add explanations for the inclusion of various features
-- [ ] Add bindings for top level identifiers to Common
-- [ ] Generate valid JS for Typed
-- [ ] Generate valid LLVM for Typed
-- [ ] Add typechecking phase for Typed
-- [ ] Add pretty printing for Untyped
-- [ ] Add pretty printing for Typed
-- [ ] Use the pretty printer for auto formatting files
-- [ ] Create the base Unmanaged syntax
-- [ ] Create the base Unmanaged parser
-- [ ] JS backend for Unmanaged
-- [ ] LLVM backend for Unmanaged
-- [ ] Handle syntax suggestions in the middle of a line
-- [ ] Use examples to generate syntax error heuristics: https://research.swtch.com/yyerror
-- [ ] Pull in big decimal/integer library for IEEE JS math
-- [ ] Create formal proofs of the type checker etc...
+- [X] Add typechecking phase for Typed
+- [X] Generate valid JS for Typed
+- [X] Add a Core language that the syntax can be translated into and is simpler to work with
 
-## TODO Think about
+## To Think about
 
 - [ ] Information hiding and backwards compatibility. Should breaking backwards compatibilty be impossible or at least exception rather than rule?
 - [ ] What is the ideal place for errors to arise? I'm currently thinking that parsing should be almost sure to succeed that way you have a lot of context for producing nice errors.
@@ -101,6 +101,7 @@
 - [ ] How can Typed code call Unmanaged code without any extra ceremony?
 - [ ] How can Untyped code call Unmanaged code without any extra ceremony?
 - [ ] Composition is helped when you can logically compose things without physically (syntactically) compose them. This is the value of `let` and `where`.
+- [ ] Can I make the monadic parser bidirectional so that code generation and parsing are always in sync?
 
 ## Language Facilities
 
@@ -119,21 +120,6 @@
 * Keep as much context as you can during each compilation phase to support the generation of rich error messages and editor support.
 
 ## Compiler Structure
-
-### Compilation Phases
-
-```
-InFile --Parse--> Syntax --Backend--> Outfile
-```
-
-### Shared Structures
-
-```
-Common -----> Untyped
-         |
-          --> Typed
-```
-
 
 ## Concerns to Maintain
 
