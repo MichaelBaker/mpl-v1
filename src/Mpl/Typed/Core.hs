@@ -20,6 +20,7 @@ data Binder type_ recurse
 data Type recurse
   = TypeSymbol Text
   | IntegerType
+  | UTF8StringType
   | FunctionType recurse recurse
   deriving (Show, Generic, Functor, Eq, Traversable, Prelude.Foldable, Typeable, Data)
 

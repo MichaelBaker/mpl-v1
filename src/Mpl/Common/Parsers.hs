@@ -7,6 +7,7 @@ import           Mpl.ParserUtils
 import           Mpl.Prelude
 import           Mpl.Rendering
 import           Mpl.Utils
+import qualified Text.Parser.Token            as Token
 import qualified Mpl.Common.Syntax            as CS
 import qualified Text.PrettyPrint.ANSI.Leijen as P
 
@@ -22,6 +23,7 @@ parseApplicationOrExpression = makeExpression parseApplication <|> parseExpressi
 parseFlatExpression :: MplParser binder f
 parseFlatExpression =
       parseInt
+  <|> parseUTF8String
   <|> parseFunction
   <|> parseSymbol
 
@@ -37,6 +39,16 @@ parseInt =
       case isMinus of
         Nothing -> makeCommon $ CS.int $ read int
         Just _  -> makeCommon $ CS.int $ negate $ read int)
+
+parseUTF8String :: MplParser binder f
+parseUTF8String =
+  annotate
+    "UTF8 string"
+    "a UTF8 string"
+    ["\"this is a string\"", "\"hexadecimal \\x12af\"", "\"octal \\o1274\""]
+    (do
+      text <- Token.stringLiteral
+      makeCommon $ CS.utf8String text)
 
 parseSymbol :: MplParser binder f
 parseSymbol =

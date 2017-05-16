@@ -23,6 +23,9 @@ spec = do
     it "handles nested functions" $ do
       "#(c = #(a b =)" `errorContains` (callout_ "anonymous function")
 
+    it "handles unmatched quotes" $ do
+      "\"abc" `errorContains` (callout_ "UTF8 string")
+
 errorContains code expected =
   case parseExpressionText code of
     (bs, Left e) ->

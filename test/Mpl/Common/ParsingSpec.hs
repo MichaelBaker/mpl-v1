@@ -16,6 +16,7 @@ parsesTo text expected =
       |> (`shouldBe` expected)
 
 int              = Fix . S.int
+utf8String       = Fix . S.utf8String
 binder           = Fix . S.binder
 symbol           = Fix . S.symbol
 application a b  = Fix $ S.application a b
@@ -81,3 +82,7 @@ spec = do
       (application
         (function [binder "a"] (symbol "a"))
         [int 1])
+
+  it "parses unremarkable strings" $ do
+    "\"this is not a string\"" `parsesTo`
+      (utf8String "this is not a string")

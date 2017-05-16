@@ -16,7 +16,8 @@
 - [X] Use Core types instead of types dedicated to typechecking
 - [X] Annotate types with source spans for better error messages
 - [X] Add explanations for inferred types.
-- [ ] Strings and string literals
+- [X] Strings and string literals
+- [ ] Function type syntax and subtyping rules
 - [ ] Using a function from a Typed module in Untyped.
   * Requires figuring out imports
 - [ ] Records
@@ -32,6 +33,7 @@
   * In a strict language, you need the ability to control which expressions get executed so that your program doesn't end up doing more work than you intended.
 - [ ] Javascript FFI
   * If I have this, then I can implement non-trival programs by leaning on JS libraries like React.
+- [ ] Comments
 
 ## Steps not yet represented in the new compiler pipeline
 
@@ -40,6 +42,8 @@
 
 ## Backlog
 
+- [ ] Are the semantics of strings preserved in the Javascript translation?
+- [ ] Custom string parser to improve error reporting
 - [ ] Fix source annotations for grouping parentheses
 - [ ] Move errors into the compiler functions, rather than using Haskell's `error`. Use ExceptT.
 - [ ] Add modules
@@ -57,6 +61,8 @@
 - [ ] Create formal proofs of the type checker etc...
 - [ ] String interpolation. What about a more generic syntax for compile time programming?
 - [ ] Multiline strings
+- [ ] Data structures for comments. Add a structured comment format to the language so tooling can work with it reliably.
+- [ ] Don't use the parser in non-parser tests to make compilation faster
 
 ### Done
 
@@ -90,6 +96,7 @@
 
 ## To Think about
 
+- [ ] Should the text/string type be opaque or should it reveal its encoding?
 - [ ] Information hiding and backwards compatibility. Should breaking backwards compatibilty be impossible or at least exception rather than rule?
 - [ ] What is the ideal place for errors to arise? I'm currently thinking that parsing should be almost sure to succeed that way you have a lot of context for producing nice errors.
 - [ ] How to make _everything_ ad hoc/inlineable (like lambdas are ad hoc functions as opposed to being already declared)

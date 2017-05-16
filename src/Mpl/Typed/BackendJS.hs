@@ -48,5 +48,8 @@ typeComment _ (TypeSymbol text) =
 typeComment _ (IntegerType) =
   "Integer"
 
+typeComment _ (UTF8StringType) =
+  "UTF8"
+
 typeComment _ (FunctionType type0 type1) =
   Text.intercalate " " [type0, "->", type1]

@@ -121,6 +121,24 @@ invalidArgument byteString context functionSpan paramType argumentSpan argumentT
   <~> "The argument is of type:"
   <~> hardline
   <~> indent (problem argumentType)
+  <~> hardline
+  <~> blankLine
+  <~> indent
+    (   "The parameter has type"
+    <~> hardline
+    <~> indent (callout paramType)
+    <~> hardline
+    <~> "because "
+    <~> renderReason byteString paramType
+    <~> hardline
+    <~> blankLine
+    <~> "The argument has type"
+    <~> hardline
+    <~> indent (callout argumentType)
+    <~> hardline
+    <~> "because "
+    <~> renderReason byteString argumentType
+    )
 
 renderReason byteString ((span, InferredApplication functionSpan functionType argumentSpan argumentType bodyType) :< _) =
       "a function of type"
@@ -158,6 +176,11 @@ renderReason byteString ((_, InferredIntegerLiteral span) :< _) =
   <~> hardline
   <~> indent (pretty $ extractSpan span byteString)
 
+renderReason byteString ((_, InferredUTF8StringLiteral span) :< _) =
+  "it is a UTF8 string literal"
+  <~> hardline
+  <~> indent (pretty $ extractSpan span byteString)
+
 renderReason byteString ((_, _) :< FunctionType paramType bodyType) =
       "the function's body has type"
   <~> hardline
@@ -192,6 +215,9 @@ instance P.Pretty InferenceType where
 instance (P.Pretty a) => P.Pretty (Type a) where
   pretty IntegerType =
     text "Integer"
+
+  pretty UTF8StringType =
+    text "UTF8"
 
   pretty (TypeSymbol symbol) =
     text symbol

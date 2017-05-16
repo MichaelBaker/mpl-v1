@@ -16,6 +16,9 @@ spec = do
     it "infers integer literals to be integers" $ do
       "1" `infersTo` integer
 
+    it "infers integer UTF8 strings to be strings" $ do
+      "\"this is not a string\"" `infersTo` utf8String
+
     it "infers the type of a symbol from the context" $ do
       "a" `infersWithSetup` integer
         $ pushSymbol "a" (emptyAnnotation IntegerType)
@@ -29,6 +32,7 @@ spec = do
 
     it "infers application" $ do
       "#(a: Integer = a) 1" `infersTo` integer
+      "#(a: UTF8 = a) \"string\"" `infersTo` utf8String
 
   describe "Type errors" $ do
     it "rejects application of non-functions" $ do
@@ -52,6 +56,7 @@ spec = do
     it "renders UnboundTypeSymbol errors with suggestions" $ do
       "1: Intger" `containsError` "isn't defined"
       "1: Intger" `containsError` "Integer"
+      "\"string\": UT8" `containsError` "UTF8"
 
     it "renders ApplicationOfNonFunction errors" $ do
       "(#(a: Integer = a) 1) 1" `containsError` "used as a function"
@@ -69,6 +74,7 @@ spec = do
 
     it "renders InvalidArgument errors" $ do
       "#(a: Integer = a) #(a: Integer = a)" `containsError` "of the wrong"
+      "#(a: Integer = a) \"string\"" `containsError` "of the wrong"
 
 emptyAnnotation type_ = (emptySpan, NoReason) :< type_
 
@@ -129,6 +135,9 @@ containsErrorWithSetup code expected setup =
 
 integer =
   Fix IntegerType
+
+utf8String =
+  Fix UTF8StringType
 
 function a b =
   Fix (FunctionType a b)

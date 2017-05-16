@@ -23,6 +23,7 @@ transformsTo text expected =
       result `shouldBe` expected
 
 int              = Fix . C.int
+utf8String       = Fix . C.utf8String
 symbol           = Fix . C.symbol
 binder           = Fix . C.binder
 application a b  = Fix $ C.application a b
@@ -31,6 +32,9 @@ function a b     = Fix $ C.function a b
 spec = do
   it "converts integers" $ do
     "1" `transformsTo` (int 1)
+
+  it "converts strings" $ do
+    "\"this is not a string\"" `transformsTo` (utf8String "this is not a string")
 
   it "converts symbols" $ do
     "a" `transformsTo` (symbol "a")

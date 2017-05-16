@@ -46,6 +46,7 @@ standardContext =
   where typeSymbolTable =
           Map.empty
           |> Map.insert "Integer" ((emptySpan, NoReason) :< IntegerType)
+          |> Map.insert "UTF8"    ((emptySpan, NoReason) :< UTF8StringType)
 
 data TypeError
   = Unimplemented
@@ -82,6 +83,8 @@ data InferenceReason
       SourceSpan      -- ^ The binder with annotation
   | InferredIntegerLiteral
       SourceSpan      -- ^ The code of the integer
+  | InferredUTF8StringLiteral
+      SourceSpan      -- ^ The code of the string
   | InferredApplication
       SourceSpan      -- ^ The code of the function being applied
       InferenceType   -- ^ The type of the function
@@ -134,8 +137,7 @@ inferCommon annotation (CC.Symbol symbol) = do
       return (setReason reason type_)
 
 inferCommon annotation (CC.Literal literal) = do
-  type_ <- inferLiteral literal
-  return ((annotation, InferredIntegerLiteral annotation) :< type_)
+  inferLiteral annotation literal
 
 inferCommon annotation (CC.Function binder body) =
   case binder of
@@ -167,8 +169,11 @@ inferCommon _ (CC.Application function argument) = do
       context <- getContext
       throwError (ApplicationOfNonFunction (annotation function) functionType, context)
 
-inferLiteral (CC.IntegerLiteral _) =
-  return IntegerType
+inferLiteral annotation (CC.IntegerLiteral _) =
+  return ((annotation, InferredIntegerLiteral annotation) :< IntegerType)
+
+inferLiteral annotation (CC.UTF8StringLiteral _) =
+  return ((annotation, InferredUTF8StringLiteral annotation) :< UTF8StringType)
 
 --------------------------------------------------------------------------------
 -- Checking mode
@@ -182,6 +187,9 @@ check expression ty = do
 -- Subtyping
 
 isSubtype (_ :< IntegerType) (_ :< IntegerType) =
+  True
+
+isSubtype (_ :< UTF8StringType) (_ :< UTF8StringType) =
   True
 
 isSubtype _ _ =

@@ -62,6 +62,9 @@ transform annotation (S.Application fun args) = do
 convertLiteral (S.IntegerLiteral integer) =
   C.IntegerLiteral integer
 
+convertLiteral (S.UTF8StringLiteral text) =
+  C.UTF8StringLiteral text
+
 curryFunction _ [] _ =
   error "Cannot have a function with no parameters" -- TODO: Fold this into effectful error handling
 

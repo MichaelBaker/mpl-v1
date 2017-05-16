@@ -12,7 +12,8 @@ data SyntaxF binder recurse
   deriving (Show, Generic, Functor, Eq, Traversable, Prelude.Foldable)
 
 data Literal
-  = IntegerLiteral Integer
+  = IntegerLiteral    Integer
+  | UTF8StringLiteral Text
   deriving (Show, Generic, Eq)
 
 data Binder recurse
@@ -24,6 +25,7 @@ symbol                     = Symbol
 function parameters body   = Function parameters body
 application func arguments = Application func arguments
 int                        = literal . IntegerLiteral
+utf8String                 = literal . UTF8StringLiteral
 
 binder = Binder
 

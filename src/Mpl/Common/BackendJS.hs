@@ -90,6 +90,9 @@ translateBinder (Binder t) = do
 translateLiteral (IntegerLiteral int) =
   JSDecimal JSNoAnnot (show int)
 
+translateLiteral (UTF8StringLiteral text) =
+  JSStringLiteral JSNoAnnot (show text)
+
 isValidIdent ident =
   case runAlex (textToString ident) parseExpression of
     Right (JSAstExpression (JSIdentifier _ _) _) -> True
