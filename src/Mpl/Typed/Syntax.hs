@@ -23,6 +23,7 @@ symbol                     = Common . CS.symbol
 function parameters body   = Common $ CS.function parameters body
 application func arguments = Common $ CS.application func arguments
 int                        = Common . CS.int
+utf8String                 = Common . CS.utf8String
 typeAnnotation             = TypeAnnotation
 typeSymbol                 = TypeSymbol
 

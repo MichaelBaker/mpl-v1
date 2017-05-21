@@ -1,26 +1,15 @@
 module Mpl.Common.ParsingSpec where
 
 import           Mpl.Prelude
-import           Mpl.Common.Parsing
+import           Mpl.Rendering
+import           Mpl.Rendering.ParserError
 import           Mpl.Utils
 import           TestUtils
-import qualified Mpl.Common.Syntax as S
-
-parsesTo text expected =
-  case snd $ parseExpressionText text of
-    Left e ->
-      fail $ show e
-    Right result -> do
-      result
-      |> (cata (Fix . S.mapBinder (cata Fix)))
-      |> (`shouldBe` expected)
-
-int              = Fix . S.int
-utf8String       = Fix . S.utf8String
-binder           = Fix . S.binder
-symbol           = Fix . S.symbol
-application a b  = Fix $ S.application a b
-function a b     = Fix $ S.function a b
+import qualified Data.List          as List
+import qualified Mpl.Common.Parsing as Parsing
+import qualified Mpl.Common.Syntax  as S
+import qualified Mpl.Parser         as Parser
+import qualified Mpl.ParserUtils    as ParserUtils
 
 spec = do
   it "parses integers" $ do
@@ -28,6 +17,10 @@ spec = do
 
   it "parses symbols" $ do
     "f" `parsesTo` (symbol "f")
+
+  it "parses unremarkable strings" $ do
+    "\"this is not a string\"" `parsesTo`
+      (utf8String "this is not a string")
 
   it "parses prefix function application" $ do
     "f 1" `parsesTo`
@@ -83,6 +76,52 @@ spec = do
         (function [binder "a"] (symbol "a"))
         [int 1])
 
-  it "parses unremarkable strings" $ do
-    "\"this is not a string\"" `parsesTo`
-      (utf8String "this is not a string")
+  describe "syntax errors" $ do
+    it "handles functions missing an equal sign" $ do
+      "#(a b)" `errorContains` (callout_ "anonymous function")
+
+    it "handles functions missing a closing parenthesis" $ do
+      "#(a b =" `errorContains` (callout_ "anonymous function")
+
+    it "handles malformed integers" $ do
+      "789a" `errorContains` (text "unexpected character")
+
+    it "handles nested functions" $ do
+      "#(c = #(a b =)" `errorContains` (callout_ "anonymous function")
+
+    it "handles unmatched quotes" $ do
+      "\"abc" `errorContains` (callout_ "UTF8 string")
+
+parsesTo code expected =
+  case snd (Parsing.parseString code) of
+    Left e ->
+      fail $ show e
+    Right result -> do
+      (result :: ParserUtils.SourceAnnotated Parsing.Syntax)
+      |> (cata (Fix . S.mapBinder (cata Fix)))
+      |> (`shouldBe` expected)
+
+errorContains code expected =
+  case Parsing.parseString code of
+    (bs, Left e) ->
+      if List.isInfixOf (render expected) (errorMessage bs e)
+        then return ()
+        else do
+          expectationFailure $ concat
+            [ "\n"
+            , "==== Expected " ++ show code ++ " to contain the string:\n\n"
+            , render expected
+            , "\n\n"
+            , "==== This was the error that was produced:\n\n"
+            , errorMessage bs e
+            , "\n"
+            ]
+    (_, Right a) ->
+      fail $ "Successfully parsed " ++ show code
+
+int              = Fix . S.int
+utf8String       = Fix . S.utf8String
+binder           = Fix . S.binder
+symbol           = Fix . S.symbol
+application a b  = Fix $ S.application a b
+function a b     = Fix $ S.function a b

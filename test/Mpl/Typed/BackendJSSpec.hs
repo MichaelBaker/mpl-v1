@@ -8,9 +8,9 @@ import           Mpl.Utils
 import           TestUtils
 import qualified Mpl.Typed.SyntaxToCore as SyntaxToCore
 
-translatesToJS :: Text -> String -> Expectation
-translatesToJS text expected =
-  case snd $ textToCore text of
+translatesToJS :: String -> String -> Expectation
+translatesToJS code expected =
+  case snd (stringToCore code) of
     Left e ->
       fail $ show e
     Right result -> do
@@ -18,9 +18,9 @@ translatesToJS text expected =
       |> (jsIR . translateToJS)
       |> (`shouldBe` jsIR (readJs expected))
 
-evalsTo :: Text -> Text -> Expectation
-evalsTo text expected =
-  case snd $ textToCore text of
+evalsTo :: String -> Text -> Expectation
+evalsTo code expected =
+  case snd (stringToCore code) of
     Left e ->
       fail $ show e
     Right coreResult -> do

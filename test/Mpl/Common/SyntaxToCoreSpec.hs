@@ -1,33 +1,13 @@
 module Mpl.Common.SyntaxToCoreSpec where
 
-import           Mpl.Common.Parsing
 import           Mpl.Prelude
 import           Mpl.Utils
 import           TestUtils
 import qualified Mpl.Common.Core         as C
+import qualified Mpl.Common.Parsing      as Parsing
 import qualified Mpl.Common.SyntaxToCore as SyntaxToCore
-
-transformsTo :: Text -> Fix (C.CoreF (Fix C.Binder)) -> Expectation
-transformsTo text expected =
-  case snd $ parseExpressionText text of
-    Left e -> fail $ show e
-    Right syntax -> do
-      let result =
-            syntax
-            |> envcata SyntaxToCore.transform
-            |> ( run
-               . SyntaxToCore.runTransform
-               . SyntaxToCore.runTransformBinder
-               )
-            |> cata (Fix . C.mapBinder (cata Fix))
-      result `shouldBe` expected
-
-int              = Fix . C.int
-utf8String       = Fix . C.utf8String
-symbol           = Fix . C.symbol
-binder           = Fix . C.binder
-application a b  = Fix $ C.application a b
-function a b     = Fix $ C.function a b
+import qualified Mpl.Parser              as Parser
+import qualified Mpl.ParserUtils         as ParserUtils
 
 spec = do
   it "converts integers" $ do
@@ -61,3 +41,26 @@ spec = do
             (int 1))
           (int 2))
         (int 3))
+
+transformsTo :: String -> Fix (C.CoreF (Fix C.Binder)) -> Expectation
+transformsTo code expected =
+  case Parser.parseByteString Parsing.parser ParserUtils.zeroDelta (stringToByteString code) mempty of
+    Left e -> fail $ show e
+    Right syntax -> do
+      let result =
+            (syntax :: ParserUtils.SourceAnnotated Parsing.Syntax)
+            |> envcata SyntaxToCore.transform
+            |> ( run
+               . SyntaxToCore.runTransform
+               . SyntaxToCore.runTransformBinder
+               )
+            |> cata (Fix . C.mapBinder (cata Fix))
+      result `shouldBe` expected
+
+int              = Fix . C.int
+utf8String       = Fix . C.utf8String
+symbol           = Fix . C.symbol
+binder           = Fix . C.binder
+application a b  = Fix $ C.application a b
+function a b     = Fix $ C.function a b
+

@@ -16,10 +16,9 @@ type SourceCoreBinder =
 type SourceCoreType =
   SourceAnnotated C.Type
 
-textToCore :: Text
-           -> (ByteString, Either String SourceCore)
-textToCore text =
-  case parseExpressionText text of
+stringToCore :: String -> (ByteString, Either String SourceCore)
+stringToCore code =
+  case parseString code of
     (bs, Left e) ->
       (bs, Left $ show e)
     (bs, Right syntax) ->

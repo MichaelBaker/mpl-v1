@@ -14,7 +14,11 @@ import Control.Monad.State.Lazy (State, get, modify, evalState)
 import Control.Comonad          (Comonad, extract)
 import Control.Comonad.Cofree   (Cofree((:<)))
 
-type Annotated a b = Cofree a b
+type Annotated a b =
+  Cofree a b
+
+type Unannotated f =
+  Base f f
 
 type instance Base (Annotated f b) = f
 

@@ -57,41 +57,40 @@ handleInput input state
         Echo -> do
           outputStrLn input
         PrintAST -> do
-          let textInput = stringToText input
-          case snd $ UntypedParser.parseExpressionText textInput of
+          case snd (UntypedParser.parseString input) of
             Left e -> outputStrLn (show e)
-            Right a -> outputStrLn (show a)
+            Right syntax -> outputStrLn $ show (syntax :: UntypedParser.AnnotatedSyntax)
         PrintJS -> do
-          let textInput = stringToText input
-          case snd $ UntypedParser.parseExpressionText textInput of
+          case snd (UntypedParser.parseString input) of
             Left e ->
               outputStrLn (show e)
-            Right a ->
-              outputStrLn
-              $ lazyTextToString
-              $ jsIR
-              $ UntypedJS.translateToJS
-              $ ( run
+            Right syntax ->
+              (syntax :: UntypedParser.AnnotatedSyntax)
+              |> envcata UntypedSyntaxToCore.transform
+              |> ( run
                 . UntypedSyntaxToCore.runTransform
                 . UntypedSyntaxToCore.runTransformBinder
                 )
-              $ envcata UntypedSyntaxToCore.transform a
+              |> UntypedJS.translateToJS
+              |> jsIR
+              |> lazyTextToString
+              |> outputStrLn
         EvalJS -> do
-          let textInput = stringToText input
-          case snd $ UntypedParser.parseExpressionText textInput of
+          case snd (UntypedParser.parseString input) of
             Left e ->
               outputStrLn (show e)
-            Right a -> do
+            Right syntax -> do
               let jsCode =
-                    stringToText
-                    $ lazyTextToString
-                    $ jsIR
-                    $ UntypedJS.translateToJS
-                    $ ( run
+                    (syntax :: UntypedParser.AnnotatedSyntax)
+                    |> envcata UntypedSyntaxToCore.transform
+                    |> ( run
                       . UntypedSyntaxToCore.runTransform
                       . UntypedSyntaxToCore.runTransformBinder
                       )
-                    $ envcata UntypedSyntaxToCore.transform a
+                    |> UntypedJS.translateToJS
+                    |> jsIR
+                    |> lazyTextToString
+                    |> stringToText
               result <- liftIO $ V8.withContext $ \context -> do
                 V8.eval context jsCode
               outputStrLn (textToString result)

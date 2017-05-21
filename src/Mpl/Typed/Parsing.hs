@@ -1,50 +1,63 @@
 module Mpl.Typed.Parsing where
 
-import           Mpl.Common.Parsers
+import           Mpl.Annotation
+import           Mpl.Common.Parsing hiding (Syntax, Binder, AnnotatedSyntax)
 import           Mpl.ParserUtils
 import           Mpl.Prelude
-import           Mpl.Typed.Syntax
 import           Mpl.Utils
 import qualified Mpl.Common.Syntax  as CS
+import qualified Mpl.Parser         as Parser
+import qualified Mpl.Typed.Syntax   as Syntax
 
-type SourceType   = SourceAnnotated Type
-type SourceBinder = SourceAnnotated (Binder SourceType)
-type SourceSyntax = SourceAnnotated (SyntaxF SourceType SourceBinder)
+type SourceType   = SourceAnnotated Syntax.Type
+type SourceBinder = SourceAnnotated (Syntax.Binder SourceType)
+type SourceSyntax = SourceAnnotated (Syntax.SyntaxF SourceType SourceBinder)
 
-parseExpressionText :: Text -> ParseResult SourceSyntax
-parseExpressionText =
-  parseFromString typedSyntaxConstructors commonParser . textToString
+parseString :: String -> ParseResult AnnotatedSyntax
+parseString code = (byteString, result)
+  where byteString = stringToByteString code
+        result = Parser.parseByteString parser zeroDelta byteString mempty
 
-typedSyntaxConstructors =
-  SyntaxConstructors
-    { consExpression       = parseTypeAnnotation
-    , consCommon           = Common
-    , consBinder           = typedParseBinder
-    }
+type Syntax =
+  Syntax.SyntaxF SourceType SourceBinder
 
-typedParseBinder parseCommonBinder = do
-  binder     <- fmap (mapAnnotated CommonBinder) parseCommonBinder
-  annotation <- lookAhead (optional $ char ':')
-  case annotation of
-    Nothing  ->
-      return binder
-    Just _   ->
-      annotate'
-        "type annotation"
-        "a type annotation"
-        ["a: Integer", "123 : Integer"]
-        (do
-          char ':'
-          whiteSpace
-          annotation <- parseType
-          return $ annotatedBinder binder annotation)
+type Binder =
+  SourceAnnotated (Syntax.Binder SourceType)
 
-parseTypeAnnotation parseExpression = do
-  expression <- parseExpression
+type AnnotatedSyntax =
+  SourceAnnotated Syntax
+
+instance MakeSymbol Syntax where
+  makeSymbol = Syntax.symbol
+
+instance MakeInteger Syntax where
+  makeInteger = Syntax.int
+
+instance MakeUTF8 Syntax where
+  makeUTF8 = Syntax.utf8String
+
+instance MakeFunction Syntax Binder where
+  makeFunction parameters body = Syntax.function parameters body
+
+instance MakeApplication Syntax where
+  makeApplication = Syntax.application
+
+instance ParseBinder Binder where
+  parseBinder parser = do
+    (span, symbol) <- parser
+    let binder = (span :< Syntax.CommonBinder (CS.Binder symbol))
+    annotated binder (Syntax.annotatedBinder binder)
+
+instance ParseExpression Syntax where
+  parseExpression parser = do
+    expression <- parser
+    annotated expression (Syntax.typeAnnotation expression)
+
+annotated withoutAnnotation withAnnotation = do
   annotation <- lookAhead (optional $ char ':')
   case annotation of
     Nothing ->
-      return expression
+      return withoutAnnotation
     Just _ ->
       annotate
         "type annotation"
@@ -53,16 +66,12 @@ parseTypeAnnotation parseExpression = do
         (do
           char ':'
           whiteSpace
-          annotation <- lift parseType
-          return $ typeAnnotation expression annotation)
+          annotation <- parseType
+          return $ withAnnotation annotation)
 
 parseType =
-  annotate'
+  annotate
     "type"
     "a type"
     ["Integer"]
-    (do
-      firstChar <- oneOf upcaseChars
-      rest      <- (many $ oneOf symbolChars)
-      let symbol = stringToText (firstChar : rest)
-      return $ typeSymbol symbol)
+    (symbolText upcaseChars symbolChars >>= (return . Syntax.typeSymbol))

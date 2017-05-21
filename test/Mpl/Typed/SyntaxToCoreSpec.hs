@@ -23,9 +23,9 @@ type SourceBinder =
 type SourceType =
   SourceAnnotated C.Type
 
-transformsTo :: Text -> FixCore -> Expectation
-transformsTo text expected =
-  case snd $ textToCore text of
+transformsTo :: String -> FixCore -> Expectation
+transformsTo code expected =
+  case snd (stringToCore code) of
     Left e ->
       fail $ show e
     Right result -> do

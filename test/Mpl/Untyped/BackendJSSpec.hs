@@ -2,9 +2,9 @@ module Mpl.Untyped.BackendJSSpec where
 
 import           Mpl.Prelude
 import           Mpl.Untyped.BackendJS
-import           Mpl.Untyped.Parsing
 import           Mpl.Utils
 import           TestUtils
+import qualified Mpl.Untyped.Parsing      as Parsing
 import qualified Mpl.Untyped.SyntaxToCore as SyntaxToCore
 
 spec = do
@@ -38,13 +38,14 @@ spec = do
   it "emits syntactically correct Javascript for symbolic functions" $ do
     "#(~@ = ~@ 1)" `translatesToJS` "function(mplVar0) { return (mplVar0)(1); }"
 
-translatesToJS :: Text -> String -> Expectation
-translatesToJS text expected =
-  case snd $ parseExpressionText text of
-    Left e -> fail $ show e
+translatesToJS :: String -> String -> Expectation
+translatesToJS code expected =
+  case snd (Parsing.parseString code) of
+    Left e ->
+      fail (show e)
     Right syntax -> do
       let result =
-            syntax
+            (syntax :: Parsing.AnnotatedSyntax)
             |> envcata SyntaxToCore.transform
             |> ( run
                . SyntaxToCore.runTransform
@@ -53,13 +54,14 @@ translatesToJS text expected =
             |> (jsIR . translateToJS)
       result `shouldBe` jsIR (readJs expected)
 
-evalsTo :: Text -> Text -> Expectation
-evalsTo text expected =
-  case snd $ parseExpressionText text of
-    Left e -> fail $ show e
+evalsTo :: String -> Text -> Expectation
+evalsTo code expected =
+  case snd (Parsing.parseString code) of
+    Left e ->
+      fail (show e)
     Right syntax -> do
       result <-
-        syntax
+        (syntax :: Parsing.AnnotatedSyntax)
         |> envcata SyntaxToCore.transform
         |> ( run
            . SyntaxToCore.runTransform
@@ -68,4 +70,3 @@ evalsTo text expected =
         |> (lazyTextToString . jsIR . translateToJS)
         |> evalJS
       result `shouldBe` expected
-

@@ -82,7 +82,7 @@ infersTo code expectedType =
   infersWithSetup code expectedType (return ())
 
 infersWithSetup code expectedType setup =
-  case snd $ textToCore code of
+  case snd (stringToCore code) of
     Left e ->
       fail $ show e
     Right a ->
@@ -96,7 +96,7 @@ failsWith code expectedType =
   failsWithSetup code expectedType (return ())
 
 failsWithSetup code expected setup =
-  case snd $ textToCore code of
+  case snd (stringToCore code) of
     Left e ->
       fail $ show e
     Right a ->
@@ -110,7 +110,7 @@ containsError code expected =
   containsErrorWithSetup code expected (return ())
 
 containsErrorWithSetup code expected setup =
-  case textToCore code of
+  case stringToCore code of
     (_, Left e) ->
       fail $ show e
     (bs, Right a) ->

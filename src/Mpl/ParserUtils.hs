@@ -37,7 +37,7 @@ import           Data.Functor.Foldable      (Base)
 import           Data.Semigroup             (Semigroup, (<>))
 import           Data.Semigroup.Reducer     (Reducer, snoc)
 import           Data.Text                  (Text, pack, unpack)
-import           Mpl.Annotation             (Annotated, Cofree((:<)), annotation)
+import           Mpl.Annotation
 import           Mpl.Parser                 (Parser(..), Result, withDescription, parseByteString, getState, modifyingState)
 import           Mpl.ParserDescription      (ParserDescription(..))
 import           Mpl.Prelude
@@ -55,38 +55,15 @@ import           Text.Trifecta.Util.It
 import           Mpl.Parser.SourceSpan
 import qualified Mpl.Common.Syntax          as CS
 
--- | Parsers wich have access to the parsing context and produce @f@s tagged with source code information.
-type MplParser binder f =
-  GenericContextualParser
-    (SourceAnnotated binder)
-    (SourceAnnotated (f (SourceAnnotated binder)))
-
--- | Parsers which have access to a parsing context capable of working with @f@s.
---
--- This is useful because it prevents the context from depending upon the type of annotation being applied to the tree, which means that the amount of work necessary to change that annotation is limited.
-type GenericContextualParser binder f =
-  ReaderT
-    (ParsingContext binder f)
-    StatefulParser
-    f
-
--- | Parsers that can have source annotations added to their results automatically.
---
--- The parser has access to a parsing context which can work with @f@s which have already been annotated.
---
--- The underlying monad is a parser carrying ParserState
---
--- The result of the parser is an @f@ which hasn't been annotated yet because the function accepting one of these will annotate it.
-type SourceAnnotatable binder f =
-  ReaderT
-    (ParsingContext (SourceAnnotated binder) (SourceAnnotated (f (SourceAnnotated binder))))
-    StatefulParser
-    (f (SourceAnnotated binder) (SourceAnnotated (f (SourceAnnotated binder))))
-
 -- | The result of a parse annotated with source code information.
 --
 -- @f@ must be a Functor because Annotated is fixed point. This is useful because it means @f@ can be annotated with source information without any reference to that information in the datatype itself.
-type SourceAnnotated f = Annotated f SourceSpan
+type SourceAnnotated f =
+  Annotated f SourceSpan
+
+-- | The result of a parse annotated with source code information.
+type SourceUnannotated f =
+  Unannotated (SourceAnnotated f)
 
 -- | A ParseResult contains the original input in addition to the result of the parse.
 --
@@ -107,34 +84,8 @@ instance Monoid ParserState where
   mappend = (<>)
   mempty  = ParserState { descriptionStack = [] }
 
-data ParsingContext binder a =
-  ParsingContext
-    { syntaxConstructors :: SyntaxConstructors binder a
-    , currentDescription :: Maybe ParserDescription
-    }
-
-data SyntaxConstructors binder f
-  = SyntaxConstructors
-  { consExpression :: GenericContextualParser binder f -> GenericContextualParser binder f
-    -- ^ Allows a non-common language to perform parsing before and after a common expression.
-  , consCommon :: CS.SyntaxF binder f -> Base f f
-    -- ^ Lifts a common expression into the non-common language.
-  , consBinder :: StatefulParser (SourceAnnotated CS.Binder) -> StatefulParser binder
-  }
-
-parseFromString :: SyntaxConstructors binder a -> GenericContextualParser binder a -> String -> ParseResult a
-parseFromString syntaxConstructors mplParser string = (byteString, result)
-  where byteString     = stringToByteString string
-        result         = parseByteString parser zeroDelta byteString mempty
-        parser         = runReaderT mplParser parsingContext
-        parsingContext =
-          ParsingContext
-            { syntaxConstructors = syntaxConstructors
-            , currentDescription = Nothing
-            }
-
-annotate' :: String -> String -> [String] -> StatefulParser (f (SourceAnnotated f)) -> StatefulParser (SourceAnnotated f)
-annotate' name expectation examples parser = do
+annotate :: String -> String -> [String] -> StatefulParser (f (SourceAnnotated f)) -> StatefulParser (SourceAnnotated f)
+annotate name expectation examples parser = do
   firstChar   <- lookAhead anyChar
   beforeDelta <- position
   let startDelta = beforeDelta <> delta firstChar
@@ -150,8 +101,8 @@ annotate' name expectation examples parser = do
   endDelta     <- position
   return (SourceSpan startDelta startLine endDelta :< result)
 
-annotate :: String -> String -> [String] -> SourceAnnotatable binder f -> MplParser binder f
-annotate name expectation examples parser = do
+withAnnotation :: String -> String -> [String] -> StatefulParser f -> StatefulParser (SourceSpan, f)
+withAnnotation name expectation examples parser = do
   firstChar   <- lookAhead anyChar
   beforeDelta <- position
   let startDelta = beforeDelta <> delta firstChar
@@ -163,28 +114,14 @@ annotate name expectation examples parser = do
           , parserExpectation = expectation
           }
   startLine    <- line
-  result       <- pushingDescription description parser
+  result       <- modifyingState (\s -> s { descriptionStack = description : descriptionStack s }) parser
   endDelta     <- position
-  return (SourceSpan startDelta startLine endDelta :< result)
+  return (SourceSpan startDelta startLine endDelta, result)
 
-pushingDescription description = mapReaderT (modifyingState (\s -> s { descriptionStack = description : descriptionStack s }))
-
-withExpectation name expectation = mapReaderT (withDescription (ParserDescription name [] mempty expectation))
+withExpectation name expectation = withDescription (ParserDescription name [] mempty expectation)
 
 parens :: TokenParsing m => m a -> m a
 parens = between (symbolic '(') (char ')')
-
-makeCommon common = do
-  constructor <- asks (consCommon . syntaxConstructors)
-  return (constructor common)
-
-makeExpression flatExpression = do
-  transform <- asks (consExpression . syntaxConstructors)
-  transform flatExpression
-
-makeBinder binderParser = do
-  transform <- asks (consBinder . syntaxConstructors)
-  lift $ transform binderParser
 
 zeroDelta = Columns 0 0
 

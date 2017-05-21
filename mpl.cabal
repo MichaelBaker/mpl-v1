@@ -20,7 +20,6 @@ library
     Mpl.Annotation,
     Mpl.Common.BackendJS,
     Mpl.Common.Core,
-    Mpl.Common.Parsers,
     Mpl.Common.Parsing,
     Mpl.Common.Syntax,
     Mpl.Common.SyntaxToCore,
@@ -85,7 +84,9 @@ library
     DeriveTraversable,
     FlexibleContexts,
     FlexibleInstances,
+    FunctionalDependencies,
     GADTs,
+    MultiParamTypeClasses,
     NoImplicitPrelude,
     OverloadedStrings,
     StandaloneDeriving,
@@ -157,7 +158,6 @@ test-suite mpl-test
 
   other-modules:
     Mpl.AnnotationSpec,
-    Mpl.Common.ParsersSpec,
     Mpl.Common.ParsingSpec,
     Mpl.Common.SyntaxToCoreSpec,
     Mpl.Typed.BackendJSSpec,

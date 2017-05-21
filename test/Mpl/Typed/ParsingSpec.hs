@@ -3,11 +3,11 @@ module Mpl.Typed.ParsingSpec where
 import           Mpl.Prelude
 import           Mpl.Rendering
 import           Mpl.Rendering.ParserError
-import           Mpl.Typed.Parsing
 import           Mpl.Utils
 import           TestUtils
 import qualified Data.List         as List
 import qualified Mpl.Common.Syntax as CS
+import qualified Mpl.Typed.Parsing as Parsing
 import qualified Mpl.Typed.Syntax  as S
 
 spec = do
@@ -63,7 +63,7 @@ spec = do
     "#(a: Integer b c: 1loat = a)" `errorContains` ("incorrect " <~> callout_ "type")
 
 errorContains code expected =
-  case parseExpressionText code of
+  case Parsing.parseString code of
     (bs, Left e) ->
       if List.isInfixOf (render expected) (errorMessage bs e)
         then return ()
@@ -77,13 +77,14 @@ errorContains code expected =
             , errorMessage bs e
             , "\n"
             ]
-    (_, Right a) -> fail $ "Successfully parsed " ++ show code
+    (_, Right a) ->
+      fail $ "Successfully parsed " ++ show code
 
 isSameAs a b =
-  case snd $ parseExpressionText a of
+  case snd (Parsing.parseString a) of
     Left e -> fail $ show e
     Right resultA ->
-      case snd $ parseExpressionText b of
+      case snd (Parsing.parseString b) of
         Left e ->
           fail $ show e
         Right resultB -> do
@@ -93,13 +94,13 @@ type FixType   = Fix S.Type
 type FixBinder = Fix (S.Binder FixType)
 type FixSyntax = Fix (S.SyntaxF FixType FixBinder)
 
-parsesTo :: Text -> FixSyntax -> Expectation
-parsesTo text expected =
-  case snd $ parseExpressionText text of
+parsesTo :: String -> FixSyntax -> Expectation
+parsesTo code expected =
+  case snd (Parsing.parseString code) of
     Left e ->
       fail $ show e
     Right result -> do
-      result
+      (result :: Parsing.AnnotatedSyntax)
       |> cata discardAnnotation
       |> (`shouldBe` expected)
 
@@ -108,7 +109,7 @@ discardAnnotation =
   . S.mapCommon (CS.mapBinder discardBinderAnnotation)
   . S.mapType (cata Fix)
 
-discardBinderAnnotation :: SourceBinder -> FixBinder
+discardBinderAnnotation :: Parsing.SourceBinder -> FixBinder
 discardBinderAnnotation =
   cata (Fix . S.mapBinderType (cata Fix))
 
