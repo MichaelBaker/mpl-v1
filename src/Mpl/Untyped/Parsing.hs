@@ -14,7 +14,7 @@ parseString code = (byteString, result)
         result = Parser.parseByteString parser zeroDelta byteString mempty
 
 ------------------------------------------------------
--- Untyped Syntax Instances
+-- Untyped Type Aliases
 
 type Syntax =
   Syntax.SyntaxF Binder
@@ -24,6 +24,9 @@ type Binder =
 
 type AnnotatedSyntax =
   SourceAnnotated Syntax
+
+------------------------------------------------------
+-- Untyped Syntax Instances
 
 instance MakeSymbol Syntax where
   makeSymbol = Syntax.symbol
@@ -42,3 +45,6 @@ instance MakeApplication Syntax where
 
 instance ParseExpression Syntax where
   parseExpression parser = parser
+
+instance NonApplication Syntax where
+  parseNonApplication = nonApplication

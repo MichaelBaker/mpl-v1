@@ -223,4 +223,7 @@ instance (P.Pretty a) => P.Pretty (Type a) where
     text symbol
 
   pretty (FunctionType parameter body) =
-    P.encloseSep "(" ")" " -> " [pretty parameter, pretty body]
+    P.encloseSep "(" ")" " " ["->", pretty parameter, pretty body]
+
+  pretty (TypeApplication function argument) =
+    P.encloseSep "(" ")" " " [pretty function, pretty argument]

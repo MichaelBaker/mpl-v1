@@ -1,11 +1,14 @@
 module Mpl.Typed.TestUtils where
 
-import           Mpl.Prelude
 import           Mpl.ParserUtils
+import           Mpl.Prelude
 import           Mpl.Utils
-import           Mpl.Typed.Parsing
-import qualified Mpl.Typed.SyntaxToCore as SyntaxToCore
-import qualified Mpl.Typed.Core         as C
+import           Test.Hspec
+import qualified Mpl.Rendering.ParserError as ParserError
+import qualified Mpl.Typed.Core            as C
+import qualified Mpl.Typed.Parsing         as Parsing
+import qualified Mpl.Typed.Syntax          as S
+import qualified Mpl.Typed.SyntaxToCore    as SyntaxToCore
 
 type SourceCore =
   SourceAnnotated (C.CoreF SourceCoreType SourceCoreBinder)
@@ -16,17 +19,22 @@ type SourceCoreBinder =
 type SourceCoreType =
   SourceAnnotated C.Type
 
-stringToCore :: String -> (ByteString, Either String SourceCore)
-stringToCore code =
-  case parseString code of
+stringToSyntax :: String -> Either Expectation (ByteString, Parsing.AnnotatedSyntax)
+stringToSyntax code =
+  case Parsing.parseString code of
     (bs, Left e) ->
-      (bs, Left $ show e)
-    (bs, Right syntax) ->
-      syntax
-      |> envcata SyntaxToCore.transform
-      |> ( run
-         . SyntaxToCore.runTransform
-         . SyntaxToCore.runTransformBinder
-         )
-      |> Right
-      |> ((,) bs)
+      Left $ expectationFailure (ParserError.errorMessage bs e)
+    (bs, Right result) -> do
+      Right (bs, result)
+
+stringToCore :: String -> Either Expectation (ByteString, SourceCore)
+stringToCore code = do
+  (bs, syntax) <- stringToSyntax code
+  syntax
+    |> envcata SyntaxToCore.transform
+    |> ( run
+       . SyntaxToCore.runTransform
+       . SyntaxToCore.runTransformBinder
+       )
+    |> ((,) bs)
+    |> Right

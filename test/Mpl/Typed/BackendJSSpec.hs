@@ -8,28 +8,6 @@ import           Mpl.Utils
 import           TestUtils
 import qualified Mpl.Typed.SyntaxToCore as SyntaxToCore
 
-translatesToJS :: String -> String -> Expectation
-translatesToJS code expected =
-  case snd (stringToCore code) of
-    Left e ->
-      fail $ show e
-    Right result -> do
-      result
-      |> (jsIR . translateToJS)
-      |> (`shouldBe` jsIR (readJs expected))
-
-evalsTo :: String -> Text -> Expectation
-evalsTo code expected =
-  case snd (stringToCore code) of
-    Left e ->
-      fail $ show e
-    Right coreResult -> do
-      result <-
-        coreResult
-        |> (lazyTextToString . jsIR . translateToJS)
-        |> evalJS
-      result `shouldBe` expected
-
 spec = do
   it "parses type annotations into comments" $ do
     "f (a: Integer): Function" `translatesToJS` "(f)( /* Integer */ a /* Function */ )"
@@ -45,3 +23,24 @@ spec = do
       "function( /* Integer */ a) { return a; }"
     "#(a: Integer = a) 1" `evalsTo`
       "1"
+
+translatesToJS :: String -> String -> Expectation
+translatesToJS code expected = expect $ do
+  (_, result) <- stringToCore code
+  result
+    |> (jsIR . translateToJS)
+    |> (`shouldBe` jsIR (readJs expected))
+    |> return
+
+evalsTo :: String -> Text -> Expectation
+evalsTo code expected = expect $ do
+  (_, coreResult) <- stringToCore code
+  return $ do
+    result <-
+      coreResult
+        |> translateToJS
+        |> jsIR
+        |> lazyTextToString
+        |> evalJS
+    result `shouldBe` expected
+

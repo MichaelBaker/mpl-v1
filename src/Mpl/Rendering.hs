@@ -1,5 +1,6 @@
 module Mpl.Rendering
   ( module Mpl.Rendering
+  , Pretty
   , hardline
   , pretty
   )
@@ -85,3 +86,6 @@ instance Pretty Text where
 
 instance Pretty ByteString where
   pretty = pretty . byteStringToString
+
+instance (Functor f, Pretty (f Doc)) => Pretty (Fix f) where
+  pretty = cata pretty

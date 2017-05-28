@@ -21,7 +21,8 @@ data Type recurse
   = TypeSymbol Text
   | IntegerType
   | UTF8StringType
-  | FunctionType recurse recurse
+  | FunctionType    recurse recurse
+  | TypeApplication recurse recurse
   deriving (Show, Generic, Functor, Eq, Traversable, Prelude.Foldable, Typeable, Data)
 
 mapBinder :: (binder0 -> binder1)

@@ -50,3 +50,17 @@ transformBinder span (S.AnnotatedBinder r t) =
 
 convertType annotation (S.TypeSymbol text) =
   annotation :< TypeSymbol text
+
+convertType annotation (S.TypeApplication function arguments) =
+  curryTypeApplication annotation arguments function
+
+curryTypeApplication _ [] _ =
+  error "Cannot have a type application with no arguments" -- TODO: Fold this into effectful error handling
+
+curryTypeApplication originalAnnotation (arg:[]) fun =
+  let newSpan = spanUnion originalAnnotation (annotation arg)
+  in (newSpan :< TypeApplication fun arg)
+
+curryTypeApplication originalAnnotation (arg:as) fun =
+  let newSpan = spanUnion originalAnnotation (annotation arg)
+  in curryTypeApplication originalAnnotation as (newSpan :< TypeApplication fun arg)

@@ -31,3 +31,7 @@ mkTranslatesToJS parseExpressionText translateToJS mplCode jsCode =
 evalJS jsCode = do
   V8.withContext $ \context -> do
     V8.eval context (stringToText jsCode)
+
+expect :: Either Expectation Expectation -> Expectation
+expect (Left a)  = a
+expect (Right a) = a

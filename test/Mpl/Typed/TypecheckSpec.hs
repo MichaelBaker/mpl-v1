@@ -81,57 +81,51 @@ emptyAnnotation type_ = (emptySpan, NoReason) :< type_
 infersTo code expectedType =
   infersWithSetup code expectedType (return ())
 
-infersWithSetup code expectedType setup =
-  case snd (stringToCore code) of
-    Left e ->
-      fail $ show e
-    Right a ->
-      case runTypecheck (setup >> infer a) standardContext of
-        Left e ->
-          fail $ show (fst e)
-        Right (ty, _) ->
-          (cata Fix ty) `shouldBe` expectedType
+infersWithSetup code expectedType setup = expect $ do
+  (bs, result) <- stringToCore code
+  let checkResult = runTypecheck (setup >> infer result) standardContext
+  return $ case checkResult of
+    Left (e, context) ->
+      expectationFailure (errorMessage bs context e)
+    Right (ty, _) ->
+      (cata Fix ty) `shouldBe` expectedType
 
 failsWith code expectedType =
   failsWithSetup code expectedType (return ())
 
-failsWithSetup code expected setup =
-  case snd (stringToCore code) of
+failsWithSetup code expected setup = expect $ do
+  (_, result) <- stringToCore code
+  let checkResult = runTypecheck (setup >> infer result) standardContext
+  return $ case checkResult of
     Left e ->
-      fail $ show e
-    Right a ->
-      case runTypecheck (setup >> infer a) standardContext of
-        Left e ->
-          toConstr (fst e) `shouldBe` toConstr expected
-        Right (ty, _) ->
-          fail $ show ty ++ " typechecked successfully"
+      toConstr (fst e) `shouldBe` toConstr expected
+    Right (ty, _) ->
+      fail $ show ty ++ " typechecked successfully"
 
 containsError code expected =
   containsErrorWithSetup code expected (return ())
 
-containsErrorWithSetup code expected setup =
-  case stringToCore code of
-    (_, Left e) ->
-      fail $ show e
-    (bs, Right a) ->
-      case runTypecheck (setup >> infer a) standardContext of
-        Left (e, context) -> do
-          let message = errorMessage bs context e
-          if List.isInfixOf expected message
-            then
-              return ()
-            else do
-              expectationFailure $ concat
-                [ "\n"
-                , "==== Expected " ++ show code ++ " to contain the string:\n\n"
-                , expected
-                , "\n\n"
-                , "==== This was the error that was produced:\n\n"
-                , message
-                , "\n"
-                ]
-        Right (ty, _) ->
-          fail $ show ty ++ " typechecked successfully"
+containsErrorWithSetup code expected setup = expect $ do
+  (bs, result) <- stringToCore code
+  let checkResult = runTypecheck (setup >> infer result) standardContext
+  return $ case checkResult of
+    Left (e, context) -> do
+      let message = errorMessage bs context e
+      if List.isInfixOf expected message
+        then
+          return ()
+        else do
+          expectationFailure $ concat
+            [ "\n"
+            , "==== Expected " ++ show code ++ " to contain the string:\n\n"
+            , expected
+            , "\n\n"
+            , "==== This was the error that was produced:\n\n"
+            , message
+            , "\n"
+            ]
+    Right (ty, _) ->
+      fail $ show ty ++ " typechecked successfully"
 
 integer =
   Fix IntegerType

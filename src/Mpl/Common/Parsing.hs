@@ -1,15 +1,33 @@
 module Mpl.Common.Parsing where
 
 import           Mpl.Parser.SourceSpan
-import           Mpl.ParserUtils       hiding (symbol, makeBinder)
+import           Mpl.ParserUtils              hiding (symbol, makeBinder)
 import           Mpl.Prelude
+import           Mpl.Rendering
 import           Mpl.Utils
-import qualified Mpl.Common.Syntax     as Syntax
-import qualified Mpl.Parser            as Parser
-import qualified Text.Parser.Token     as Token
+import qualified Mpl.Common.Syntax            as Syntax
+import qualified Mpl.Parser                   as Parser
+import qualified Text.Parser.Token            as Token
+import qualified Text.PrettyPrint.ANSI.Leijen as P
 
 ------------------------------------------------------
 -- Parsing Type Classes
+
+class MakeApplication syntax where
+  makeApplication :: SourceAnnotated syntax -> [SourceAnnotated syntax] -> SourceUnannotated syntax
+
+  makeApplicationAnnotation :: StatefulParser (syntax (SourceAnnotated syntax)) -> StatefulParser (SourceAnnotated syntax)
+  makeApplicationAnnotation =
+    annotate
+      "function application"
+      "a function application"
+      ["f 1", "#(a = a + 1) 1"]
+
+class NonApplication syntax where
+  parseNonApplication :: StatefulParser (SourceAnnotated syntax)
+
+class ParseExpression syntax where
+  parseExpression :: StatefulParser (SourceAnnotated syntax) -> StatefulParser (SourceAnnotated syntax)
 
 class MakeSymbol syntax where
   makeSymbol :: Text -> SourceUnannotated syntax
@@ -23,54 +41,63 @@ class MakeUTF8 syntax where
 class MakeFunction syntax binder | syntax -> binder where
   makeFunction :: [binder] -> SourceAnnotated syntax -> SourceUnannotated syntax
 
-class MakeApplication syntax where
-  makeApplication :: SourceAnnotated syntax -> [SourceAnnotated syntax] -> SourceUnannotated syntax
-
 class ParseBinder binder where
   parseBinder :: StatefulParser (SourceSpan, Text) -> StatefulParser binder
 
-class ParseExpression syntax where
-  parseExpression :: StatefulParser (SourceAnnotated syntax) -> StatefulParser (SourceAnnotated syntax)
-
 ------------------------------------------------------
--- Parsers
+-- | Application Parsers
+--
+-- This is a limited set of typeclasses necessary to implement nested application parsing. Languages can use this typeclass to reuse the nested language structure without supporting all of the syntactic elements of the full syntax parser.
 
-type SyntaxParser syntax binder =
-  ( MakeSymbol      syntax
-  , MakeInteger     syntax
-  , MakeUTF8        syntax
-  , MakeApplication syntax
-  , MakeFunction    syntax binder
+type ApplicationSyntaxParser syntax =
+  ( MakeApplication syntax
+  , NonApplication  syntax
   , ParseExpression syntax
-  , ParseBinder     binder
   )
 
-parser :: (SyntaxParser syntax binder) => StatefulParser (SourceAnnotated syntax)
+parser :: (ApplicationSyntaxParser syntax) => StatefulParser (SourceAnnotated syntax)
 parser = applicationOrExpression <* fileEnd
 
-expression :: (SyntaxParser syntax binder) => StatefulParser (SourceAnnotated syntax)
-expression = flatExpression <|> (parens applicationOrExpression)
+expression :: (ApplicationSyntaxParser syntax) => StatefulParser (SourceAnnotated syntax)
+expression =
+      parseExpression parseNonApplication
+  <|> parens applicationOrExpression
 
-applicationOrExpression :: (SyntaxParser syntax binder) => StatefulParser (SourceAnnotated syntax)
-applicationOrExpression = application <|> expression
+applicationOrExpression :: (ApplicationSyntaxParser syntax) => StatefulParser (SourceAnnotated syntax)
+applicationOrExpression =
+      application
+  <|> expression
 
-flatExpression :: (SyntaxParser syntax binder) => StatefulParser (SourceAnnotated syntax)
-flatExpression = parseExpression (int <|> utf8String <|> function <|> symbol)
+application :: (ApplicationSyntaxParser syntax) => StatefulParser (SourceAnnotated syntax)
+application = parseExpression $ makeApplicationAnnotation $ do
+  function <- try $ do
+    function <- expression
+    someSpace
+    notFollowedBy someSpace
+    return function
+  arguments <- sepEndBy1 expression someSpace
+  return $ makeApplication function arguments
 
-application :: (SyntaxParser syntax binder) => StatefulParser (SourceAnnotated syntax)
-application = parseExpression $
-  annotate
-    "function application"
-    "a function application"
-    ["f 1", "#(a = a + 1) 1"]
-    (do
-      function <- try $ do
-        function <- expression
-        someSpace
-        notFollowedBy someSpace
-        return function
-      arguments <- sepEndBy1 expression someSpace
-      return $ makeApplication function arguments)
+------------------------------------------------------
+-- | Syntax Parsers
+--
+-- This represents a parser which supports every syntactic element of the common syntax.
+
+type SyntaxParser syntax binder =
+  ( ApplicationSyntaxParser syntax
+  , MakeFunction            syntax binder
+  , MakeInteger             syntax
+  , MakeSymbol              syntax
+  , MakeUTF8                syntax
+  , ParseBinder             binder
+  )
+
+nonApplication :: (SyntaxParser syntax binder) => StatefulParser (SourceAnnotated syntax)
+nonApplication =
+      int
+  <|> utf8String
+  <|> function
+  <|> symbol
 
 function :: (SyntaxParser syntax binder) => StatefulParser (SourceAnnotated syntax)
 function =
@@ -139,7 +166,7 @@ symbolText firstChars restChars = do
   return $ stringToText (firstChar : rest)
 
 ------------------------------------------------------
--- Common Syntax Instances
+-- Common Type Aliases
 
 type Syntax =
   Syntax.SyntaxF Binder
@@ -149,6 +176,9 @@ type AnnotatedSyntax =
 
 type Binder =
   SourceAnnotated Syntax.Binder
+
+------------------------------------------------------
+-- Common Syntax Instances
 
 instance MakeSymbol Syntax where
   makeSymbol = Syntax.symbol
@@ -173,6 +203,9 @@ instance ParseBinder Binder where
 instance ParseExpression Syntax where
   parseExpression parser = parser
 
+instance NonApplication Syntax where
+  parseNonApplication = nonApplication
+
 ------------------------------------------------------
 -- Utilities
 
@@ -180,3 +213,26 @@ parseString :: String -> ParseResult AnnotatedSyntax
 parseString code = (byteString, result)
   where byteString = stringToByteString code
         result = Parser.parseByteString parser zeroDelta byteString mempty
+
+------------------------------------------------------
+-- Common Pretty Printing
+
+instance (Pretty recurse) => Pretty (Syntax.Binder recurse) where
+  pretty (Syntax.Binder text) = pretty text
+
+instance (Pretty binder, Pretty recurse) => Pretty (Syntax.SyntaxF binder recurse) where
+  pretty (Syntax.Literal l)=
+    case l of
+      Syntax.IntegerLiteral i ->
+        pretty i
+      Syntax.UTF8StringLiteral s ->
+        pretty s
+
+  pretty (Syntax.Symbol symbol) =
+    pretty symbol
+
+  pretty (Syntax.Function parameter body) =
+    P.encloseSep "#(" ")" " " [pretty parameter, "=", pretty body]
+
+  pretty (Syntax.Application function argument) =
+    P.encloseSep "(" ")" " " [pretty function, pretty argument]

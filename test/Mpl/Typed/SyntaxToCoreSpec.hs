@@ -2,65 +2,12 @@ module Mpl.Typed.SyntaxToCoreSpec where
 
 import           Mpl.ParserUtils        hiding (symbol)
 import           Mpl.Prelude
+import           Mpl.Rendering.ParserError
 import           Mpl.Typed.TestUtils
 import           Mpl.Utils
 import           TestUtils
 import qualified Mpl.Common.Core        as CC
 import qualified Mpl.Typed.Core         as C
-
-type FixCore =
-  Fix (C.CoreF FixType FixBinder)
-
-type FixBinder =
-  Fix (C.Binder FixType)
-
-type FixType =
-  Fix C.Type
-
-type SourceBinder =
-  SourceAnnotated (C.Binder SourceType)
-
-type SourceType =
-  SourceAnnotated C.Type
-
-transformsTo :: String -> FixCore -> Expectation
-transformsTo code expected =
-  case snd (stringToCore code) of
-    Left e ->
-      fail $ show e
-    Right result -> do
-      result
-      |> cata discardAnnotation
-      |> (`shouldBe` expected)
-
-discardAnnotation =
-  Fix
-  . C.mapBinder discardBinderAnnotation
-  . C.mapType (cata Fix)
-
-discardBinderAnnotation :: SourceBinder -> FixBinder
-discardBinderAnnotation =
-  cata (Fix . C.mapBinderType (cata Fix))
-
-int =
-  Fix . C.Common . CC.int
-
-symbol =
-  Fix . C.Common . CC.symbol
-
-binder =
-  Fix . C.CommonBinder . CC.binder
-
-annotatedBinder name typeName =
-  Fix $ C.AnnotatedBinder
-          (binder name)
-          (Fix $ C.TypeSymbol typeName)
-
-application a b =
-  Fix $ C.Common $ CC.application a b
-
-function a b =
-  Fix $ C.Common $ CC.function a b
 
 spec = do
   it "converts integers" $ do
@@ -95,3 +42,56 @@ spec = do
   it "converts annotated binders" $ do
     "#(a: Integer = a)" `transformsTo`
       (function (annotatedBinder "a" "Integer") (symbol "a"))
+
+type FixCore =
+  Fix (C.CoreF FixType FixBinder)
+
+type FixBinder =
+  Fix (C.Binder FixType)
+
+type FixType =
+  Fix C.Type
+
+type SourceBinder =
+  SourceAnnotated (C.Binder SourceType)
+
+type SourceType =
+  SourceAnnotated C.Type
+
+transformsTo :: String -> FixCore -> Expectation
+transformsTo code expected = expect $ do
+  (_, result) <- stringToCore code
+  result
+    |> cata discardAnnotation
+    |> (`shouldBe` expected)
+    |> Right
+
+discardAnnotation =
+  Fix
+  . C.mapBinder discardBinderAnnotation
+  . C.mapType (cata Fix)
+
+discardBinderAnnotation :: SourceBinder -> FixBinder
+discardBinderAnnotation =
+  cata (Fix . C.mapBinderType (cata Fix))
+
+int =
+  Fix . C.Common . CC.int
+
+symbol =
+  Fix . C.Common . CC.symbol
+
+binder =
+  Fix . C.CommonBinder . CC.binder
+
+annotatedBinder name typeName =
+  Fix $ C.AnnotatedBinder
+          (binder name)
+          (Fix $ C.TypeSymbol typeName)
+
+application a b =
+  Fix $ C.Common $ CC.application a b
+
+function a b =
+  Fix $ C.Common $ CC.function a b
+

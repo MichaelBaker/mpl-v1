@@ -21,6 +21,7 @@ module Mpl.ParserUtils
   , oneOf
   , optional
   , position
+  , sepEndBy
   , sepEndBy1
   , some
   , someSpace
@@ -39,12 +40,13 @@ import           Data.Semigroup.Reducer     (Reducer, snoc)
 import           Data.Text                  (Text, pack, unpack)
 import           Mpl.Annotation
 import           Mpl.Parser                 (Parser(..), Result, withDescription, parseByteString, getState, modifyingState)
+import           Mpl.Parser.SourceSpan
 import           Mpl.ParserDescription      (ParserDescription(..))
 import           Mpl.Prelude
 import           Mpl.Rendering hiding       (between)
 import           Prelude                    (Bool(..), Show, Eq, Maybe(..), (==), Either(..), (++), (.), ($), (<*>), (*>), Integer, String, Monoid, const, drop, mappend, mempty, fromIntegral, return, mempty)
 import           Text.Parser.Char           (noneOf, oneOf, char, anyChar)
-import           Text.Parser.Combinators    (Parsing, try, optional, notFollowedBy, sepEndBy1, between, eof)
+import           Text.Parser.Combinators    (Parsing, try, optional, notFollowedBy, sepEndBy, sepEndBy1, between, eof)
 import           Text.Parser.LookAhead      (lookAhead)
 import           Text.Parser.Token          (TokenParsing, whiteSpace, symbolic, symbol, someSpace)
 import           Text.Trifecta.Combinators  (MarkParsing(release), spanned, position, line)
@@ -52,8 +54,8 @@ import           Text.Trifecta.Delta        (Delta(Columns), column, rewind, col
 import           Text.Trifecta.Rendering    (Span(..), Spanned((:~)))
 import           Text.Trifecta.Rope
 import           Text.Trifecta.Util.It
-import           Mpl.Parser.SourceSpan
 import qualified Mpl.Common.Syntax          as CS
+import qualified Mpl.ParserError            as ParserError
 
 -- | The result of a parse annotated with source code information.
 --
@@ -72,6 +74,8 @@ type ParseResult a = (ByteString, Result ParserState a)
 
 -- | A Parser carrying ParserState
 type StatefulParser = Parser ParserState
+
+type StatefulError = ParserError.Error ParserState
 
 data ParserState = ParserState
   { descriptionStack :: [ParserDescription] -- ^ Knowing what path we took to get to the current syntactic element helps with generating useful error messages.

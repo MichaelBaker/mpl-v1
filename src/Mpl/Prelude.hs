@@ -72,6 +72,7 @@ module Mpl.Prelude
   , showsPrec
   , snd
   , toConstr
+  , undefined
   , unzip
   ) where
 
@@ -128,6 +129,7 @@ import Prelude
   , showString
   , showsPrec
   , snd
+  , undefined
   , unzip
   )
 

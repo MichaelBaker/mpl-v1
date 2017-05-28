@@ -52,4 +52,9 @@ typeComment _ (UTF8StringType) =
   "UTF8"
 
 typeComment _ (FunctionType type0 type1) =
-  Text.intercalate " " [type0, "->", type1]
+  let function = Text.intercalate " " ["->", type0, type1]
+  in Text.concat ["(", function, ")"]
+
+typeComment _ (TypeApplication type0 type1) =
+  let application = Text.intercalate " " [type0, type1]
+  in Text.concat ["(", application, ")"]

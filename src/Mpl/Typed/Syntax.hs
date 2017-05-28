@@ -15,17 +15,19 @@ data Binder type_ recurse
   deriving (Show, Generic, Functor, Eq, Traversable, Prelude.Foldable)
 
 data Type recurse
-  = TypeSymbol Text
+  = TypeSymbol      Text
+  | TypeApplication recurse [recurse]
   deriving (Show, Generic, Functor, Eq, Traversable, Prelude.Foldable)
 
-literal                    = Common . CS.literal
-symbol                     = Common . CS.symbol
-function parameters body   = Common $ CS.function parameters body
-application func arguments = Common $ CS.application func arguments
-int                        = Common . CS.int
-utf8String                 = Common . CS.utf8String
-typeAnnotation             = TypeAnnotation
-typeSymbol                 = TypeSymbol
+literal                        = Common . CS.literal
+symbol                         = Common . CS.symbol
+function parameters body       = Common $ CS.function parameters body
+application func arguments     = Common $ CS.application func arguments
+int                            = Common . CS.int
+utf8String                     = Common . CS.utf8String
+typeAnnotation                 = TypeAnnotation
+typeSymbol                     = TypeSymbol
+typeApplication func arguments = TypeApplication func arguments
 
 binder          = CommonBinder . CS.binder
 annotatedBinder = AnnotatedBinder

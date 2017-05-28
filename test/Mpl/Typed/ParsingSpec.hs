@@ -3,6 +3,7 @@ module Mpl.Typed.ParsingSpec where
 import           Mpl.Prelude
 import           Mpl.Rendering
 import           Mpl.Rendering.ParserError
+import           Mpl.Typed.TestUtils
 import           Mpl.Utils
 import           TestUtils
 import qualified Data.List         as List
@@ -14,14 +15,31 @@ spec = do
   it "parses type annotations" $ do
     "a: Integer" `parsesTo` (typeAnnotation (symbol "a") (typeSymbol "Integer"))
 
+  it "parses type application" $ do
+    "a: -> Integer Integer" `parsesTo`
+      (typeAnnotation
+        (symbol "a")
+        (typeApplication
+          (typeSymbol "->")
+          [(typeSymbol "Integer"), (typeSymbol "Integer")]))
+
   it "parses type annotations for subexpressions" $ do
     "f (a: Integer)" `parsesTo`
       (application
         (symbol "f")
         [typeAnnotation (symbol "a") (typeSymbol "Integer")])
 
-  it "binds type annotations to their closest expression" $ do
+  it "binds trailing type annotations to their closest expression" $ do
     "f a: Integer" `isSameAs` "f (a: Integer)"
+
+  it "binds type annotations to their closest expression" $ do
+    "f: Integer a" `isSameAs` "(f: Integer) a"
+
+  it "binds trailing type annotations with spaces to their closest expression" $ do
+    "f a : Integer" `isSameAs` "f (a: Integer)"
+
+  it "binds type annotations with whitespace to their closest expression" $ do
+    "f : Integer a" `isSameAs` "(f: Integer) a"
 
   it "parses function arguments without a type annotation" $ do
     "#(a = a)" `parsesTo`
@@ -53,14 +71,14 @@ spec = do
         (symbol "a"))
 
   it "renders type annotation parse errors" $ do
-    "a: 0nteger"   `errorContains` ("incorrect " <~> callout_ "type")
-    "f a: 0nteger" `errorContains` ("incorrect " <~> callout_ "type")
+    "a: 0nteger"   `errorContains` ("incorrect " <~> callout_ "type annotation")
+    "f a: 0nteger" `errorContains` ("incorrect " <~> callout_ "type annotation")
 
   it "renders binder type annotation parse errors" $ do
-    "#(a: 0nteger = a)" `errorContains` ("incorrect " <~> callout_ "type")
+    "#(a: 0nteger = a)" `errorContains` ("incorrect " <~> callout_ "type annotation")
 
   it "renders mixed binder type annotation parse errors" $ do
-    "#(a: Integer b c: 1loat = a)" `errorContains` ("incorrect " <~> callout_ "type")
+    "#(a: Integer b c: 1loat = a)" `errorContains` ("incorrect " <~> callout_ "type annotation")
 
 errorContains code expected =
   case Parsing.parseString code of
@@ -81,28 +99,39 @@ errorContains code expected =
       fail $ "Successfully parsed " ++ show code
 
 isSameAs a b =
-  case snd (Parsing.parseString a) of
-    Left e -> fail $ show e
-    Right resultA ->
-      case snd (Parsing.parseString b) of
-        Left e ->
-          fail $ show e
-        Right resultB -> do
-          (cata discardAnnotation resultA) `shouldBe` (cata discardAnnotation resultB)
+  case Parsing.parseString a of
+    (bs, Left e) ->
+      expectationFailure (errorMessage bs e)
+    (_, Right resultA) ->
+      case Parsing.parseString b of
+        (bs, Left e) ->
+          expectationFailure (errorMessage bs e)
+        (_, Right resultB) -> do
+          shouldBe
+            (render $ cata pretty $ cata discardAnnotation resultA)
+            (render $ cata pretty $ cata discardAnnotation resultB)
 
 type FixType   = Fix S.Type
 type FixBinder = Fix (S.Binder FixType)
 type FixSyntax = Fix (S.SyntaxF FixType FixBinder)
 
 parsesTo :: String -> FixSyntax -> Expectation
-parsesTo code expected =
-  case snd (Parsing.parseString code) of
-    Left e ->
-      fail $ show e
-    Right result -> do
-      (result :: Parsing.AnnotatedSyntax)
-      |> cata discardAnnotation
-      |> (`shouldBe` expected)
+parsesTo code expected = expect $ do
+  (_, result) <- stringToSyntax code
+  result
+    |> cata discardAnnotation
+    |> (`shouldBe` expected)
+    |> return
+
+typeAnnotation a b  = Fix $ S.typeAnnotation a b
+symbol              = Fix . S.symbol
+application a b     = Fix $ S.application a b
+function a b        = Fix $ S.function a b
+binder              = Fix . S.binder
+annotatedBinder a b = Fix $ S.annotatedBinder a b
+
+typeSymbol          = Fix . S.typeSymbol
+typeApplication a b = Fix $ S.typeApplication a b
 
 discardAnnotation =
   Fix
@@ -112,12 +141,4 @@ discardAnnotation =
 discardBinderAnnotation :: Parsing.SourceBinder -> FixBinder
 discardBinderAnnotation =
   cata (Fix . S.mapBinderType (cata Fix))
-
-typeAnnotation a b  = Fix $ S.typeAnnotation a b
-symbol              = Fix . S.symbol
-typeSymbol          = Fix . S.typeSymbol
-application a b     = Fix $ S.application a b
-function a b        = Fix $ S.function a b
-binder              = Fix . S.binder
-annotatedBinder a b = Fix $ S.annotatedBinder a b
 
