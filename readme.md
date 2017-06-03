@@ -17,7 +17,9 @@
 - [X] Annotate types with source spans for better error messages
 - [X] Add explanations for inferred types.
 - [X] Strings and string literals
+- [ ] Vendor all packages
 - [ ] Function type syntax and subtyping rules
+- [ ] Conver pretty printer to https://quchen.github.io/ansi-wl-pprint-docdump/prettyprinter-1/Data-Text-Prettyprint-Doc.html
 - [ ] Using a function from a Typed module in Untyped.
   * Requires figuring out imports
 - [ ] Records

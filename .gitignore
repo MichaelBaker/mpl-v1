@@ -1,3 +1,5 @@
 .stack-work
 config/*.hs
 .texpadtmp
+bin
+~ bin/build-cli
