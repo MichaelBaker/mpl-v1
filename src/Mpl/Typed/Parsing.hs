@@ -49,16 +49,18 @@ instance MakeInteger Syntax where
 instance MakeUTF8 Syntax where
   makeUTF8 = Syntax.utf8String
 
-instance MakeFunction Syntax Binder where
+instance MakeFunction Syntax (Syntax.Binder SourceType) where
   makeFunction parameters body = Syntax.function parameters body
 
 instance MakeApplication Syntax where
   makeApplication = Syntax.application
 
-instance ParseBinder Binder where
+instance ParseBinder (Syntax.Binder SourceType) where
+  makeBinder =
+    Syntax.binder
+
   parseBinder parser = do
-    (span, symbol) <- parser
-    let binder = (span :< Syntax.CommonBinder (CS.Binder symbol))
+    binder <- parser
     annotated binder (Syntax.annotatedBinder binder)
 
 instance ParseExpression Syntax where

@@ -37,7 +37,7 @@ instance MakeInteger Syntax where
 instance MakeUTF8 Syntax where
   makeUTF8 = Syntax.utf8String
 
-instance MakeFunction Syntax Binder where
+instance MakeFunction Syntax CS.Binder where
   makeFunction parameters body = Syntax.function parameters body
 
 instance MakeApplication Syntax where

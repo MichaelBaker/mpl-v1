@@ -33,10 +33,11 @@ class MakeUTF8 syntax where
   makeUTF8 :: Text -> SourceUnannotated syntax
 
 class MakeFunction syntax binder | syntax -> binder where
-  makeFunction :: [binder] -> SourceAnnotated syntax -> SourceUnannotated syntax
+  makeFunction :: [SourceAnnotated binder] -> SourceAnnotated syntax -> SourceUnannotated syntax
 
 class ParseBinder binder where
-  parseBinder :: StatefulParser (SourceSpan, Text) -> StatefulParser binder
+  makeBinder  :: Text -> SourceUnannotated binder
+  parseBinder :: StatefulParser (SourceAnnotated binder) -> StatefulParser (SourceAnnotated binder)
 
 ------------------------------------------------------
 -- | Application Parsers
@@ -103,13 +104,18 @@ function =
       char '#'
       char '('
       whiteSpace
-      parameters <- sepEndBy1 (parseBinder binder) someSpace
+      parameters <- sepEndBy1 groupedBinder someSpace
       char '='
       whiteSpace
       body <- withExpectation "expression" "an expression" applicationOrExpression
       whiteSpace
       char ')'
       return $ makeFunction parameters body)
+
+groupedBinder :: (ParseBinder binder) => StatefulParser (SourceAnnotated binder)
+groupedBinder = parseBinder $
+      parens groupedBinder
+  <|> binder
 
 int :: (MakeInteger syntax) => StatefulParser (SourceAnnotated syntax)
 int =
@@ -144,15 +150,15 @@ symbol =
       text <- symbolText symbolStartChars symbolChars
       return $ makeSymbol text)
 
-binder :: StatefulParser (SourceSpan, Text)
+binder :: (ParseBinder binder) => StatefulParser (SourceAnnotated binder)
 binder =
-  withAnnotation
+  annotate
     "binder"
     "a binder"
     ["a", "<?>", "Hello", "a0~"]
     (do
       text <- symbolText symbolStartChars symbolChars
-      return text)
+      return $ makeBinder text)
 
 symbolText firstChars restChars = do
   firstChar <- oneOf firstChars
@@ -183,16 +189,17 @@ instance MakeInteger Syntax where
 instance MakeUTF8 Syntax where
   makeUTF8 = Syntax.utf8String
 
-instance MakeFunction Syntax Binder where
+instance MakeFunction Syntax Syntax.Binder where
   makeFunction parameters body = Syntax.function parameters body
 
 instance MakeApplication Syntax where
   makeApplication = Syntax.application
 
-instance ParseBinder Binder where
-  parseBinder parser = do
-    (span, symbol) <- parser
-    return (span :< Syntax.binder symbol)
+instance ParseBinder Syntax.Binder where
+  makeBinder =
+    Syntax.binder
+
+  parseBinder = id
 
 instance ParseExpression Syntax where
   parseExpression parser = parser
