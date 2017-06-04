@@ -98,12 +98,6 @@ parseType = applicationOrExpression
 instance MakeApplication Syntax.Type where
   makeApplication = Syntax.typeApplication
 
-  makeApplicationAnnotation =
-    annotate
-      "type application"
-      "a type application"
-      ["-> Integer Integer"]
-
 instance NonApplication Syntax.Type where
   parseNonApplication = parseTypeSymbol
 

@@ -5,6 +5,7 @@ import           Mpl.ParserUtils              hiding (symbol, makeBinder)
 import           Mpl.Prelude
 import           Mpl.Rendering
 import           Mpl.Utils
+import qualified Data.List                    as List
 import qualified Mpl.Common.Syntax            as Syntax
 import qualified Mpl.Parser                   as Parser
 import qualified Text.Parser.Token            as Token
@@ -15,13 +16,6 @@ import qualified Text.PrettyPrint.ANSI.Leijen as P
 
 class MakeApplication syntax where
   makeApplication :: SourceAnnotated syntax -> [SourceAnnotated syntax] -> SourceUnannotated syntax
-
-  makeApplicationAnnotation :: StatefulParser (syntax (SourceAnnotated syntax)) -> StatefulParser (SourceAnnotated syntax)
-  makeApplicationAnnotation =
-    annotate
-      "function application"
-      "a function application"
-      ["f 1", "#(a = a + 1) 1"]
 
 class NonApplication syntax where
   parseNonApplication :: StatefulParser (SourceAnnotated syntax)
@@ -60,23 +54,23 @@ parser = applicationOrExpression <* fileEnd
 
 expression :: (ApplicationSyntaxParser syntax) => StatefulParser (SourceAnnotated syntax)
 expression =
-      parseExpression parseNonApplication
-  <|> parens applicationOrExpression
+      parseExpression (parens applicationOrExpression)
+  <|> applicationOrExpression
+
+argument :: (ApplicationSyntaxParser syntax) => StatefulParser (SourceAnnotated syntax)
+argument =
+      parseExpression (parens applicationOrExpression)
+  <|> parseNonApplication
 
 applicationOrExpression :: (ApplicationSyntaxParser syntax) => StatefulParser (SourceAnnotated syntax)
-applicationOrExpression =
-      application
-  <|> expression
-
-application :: (ApplicationSyntaxParser syntax) => StatefulParser (SourceAnnotated syntax)
-application = parseExpression $ makeApplicationAnnotation $ do
-  function <- try $ do
-    function <- expression
-    someSpace
-    notFollowedBy someSpace
-    return function
-  arguments <- sepEndBy1 expression someSpace
-  return $ makeApplication function arguments
+applicationOrExpression = parseExpression $ do
+  (function:arguments) <- sepEndBy1 argument someSpace
+  if List.null arguments
+    then
+      return function
+    else do
+      let newSpan = spanUnion (annotation function) (annotation $ List.last arguments)
+      return (newSpan :< makeApplication function arguments)
 
 ------------------------------------------------------
 -- | Syntax Parsers

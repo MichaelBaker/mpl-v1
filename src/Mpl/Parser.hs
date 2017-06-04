@@ -24,6 +24,7 @@ module Mpl.Parser
   , parseByteString
   , parseTest
   , modifyingState
+  , modifyingUncommittedErrorState
   , getState
   , withDescription
   ) where
@@ -271,6 +272,17 @@ modifyingState f (Parser m) = Parser $ \eo ee co ce s d bs ->
     d
     bs
 {-# INLINE modifyingState #-}
+
+modifyingUncommittedErrorState f (Parser m) = Parser $ \eo ee co ce s d bs ->
+  m
+    eo
+    (\error -> ee (error { parserState = f (parserState error) }))
+    (\a es s' d' bs' -> co a es s d' bs')
+    ce
+    s
+    d
+    bs
+{-# INLINE modifyingUncommittedErrorState #-}
 
 withDescription desc (Parser m) = Parser $ \eo ee ->
   m

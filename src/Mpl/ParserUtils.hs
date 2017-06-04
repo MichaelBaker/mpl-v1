@@ -39,7 +39,7 @@ import           Data.Semigroup             (Semigroup, (<>))
 import           Data.Semigroup.Reducer     (Reducer, snoc)
 import           Data.Text                  (Text, pack, unpack)
 import           Mpl.Annotation
-import           Mpl.Parser                 (Parser(..), Result, withDescription, parseByteString, getState, modifyingState)
+import           Mpl.Parser
 import           Mpl.Parser.SourceSpan
 import           Mpl.ParserDescription      (ParserDescription(..))
 import           Mpl.Prelude
@@ -90,20 +90,8 @@ instance Monoid ParserState where
 
 annotate :: String -> String -> [String] -> StatefulParser (f (SourceAnnotated f)) -> StatefulParser (SourceAnnotated f)
 annotate name expectation examples parser = do
-  firstChar   <- lookAhead anyChar
-  beforeDelta <- position
-  let startDelta = beforeDelta <> delta firstChar
-  let description =
-        ParserDescription
-          { parserName        = name
-          , parserExamples    = examples
-          , parserDelta       = startDelta
-          , parserExpectation = expectation
-          }
-  startLine    <- line
-  result       <- modifyingState (\s -> s { descriptionStack = description : descriptionStack s }) parser
-  endDelta     <- position
-  return (SourceSpan startDelta startLine endDelta :< result)
+  (span, result) <- withAnnotation name expectation examples parser
+  return (span :< result)
 
 withAnnotation :: String -> String -> [String] -> StatefulParser f -> StatefulParser (SourceSpan, f)
 withAnnotation name expectation examples parser = do
@@ -117,12 +105,15 @@ withAnnotation name expectation examples parser = do
           , parserDelta       = startDelta
           , parserExpectation = expectation
           }
-  startLine    <- line
-  result       <- modifyingState (\s -> s { descriptionStack = description : descriptionStack s }) parser
-  endDelta     <- position
+  startLine <- line
+  result    <- parser
+    |> modifyingState (\s -> s { descriptionStack = description : descriptionStack s })
+    |> modifyingUncommittedErrorState (\s -> s { descriptionStack = drop 1 (descriptionStack s)})
+  endDelta  <- position
   return (SourceSpan startDelta startLine endDelta, result)
 
-withExpectation name expectation = withDescription (ParserDescription name [] mempty expectation)
+withExpectation name expectation =
+  withDescription (ParserDescription name [] mempty expectation)
 
 parens :: TokenParsing m => m a -> m a
 parens = between (symbolic '(') (char ')')
