@@ -1,5 +1,6 @@
 module Mpl.Rendering
   ( module Mpl.Rendering
+  , Doc
   , Pretty
   , hardline
   , pretty

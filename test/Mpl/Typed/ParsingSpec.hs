@@ -80,23 +80,9 @@ spec = do
   it "renders mixed binder type annotation parse errors" $ do
     "#(a: Integer b c: 1loat = a)" `errorContains` ("incorrect " <~> callout_ "type annotation")
 
-errorContains code expected =
-  case Parsing.parseString code of
-    (bs, Left e) ->
-      if List.isInfixOf (render expected) (errorMessage bs e)
-        then return ()
-        else do
-          expectationFailure $ concat
-            [ "\n"
-            , "==== Expected " ++ show code ++ " to contain the string:\n\n"
-            , render expected
-            , "\n\n"
-            , "==== This was the error that was produced:\n\n"
-            , errorMessage bs e
-            , "\n"
-            ]
-    (_, Right a) ->
-      fail $ "Successfully parsed " ++ show code
+errorContains code expected = do
+   let result = Parsing.parseString code
+   isParseError code expected result
 
 isSameAs a b =
   case Parsing.parseString a of

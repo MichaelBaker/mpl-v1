@@ -1,5 +1,6 @@
 module Mpl.Common.ParsingSpec where
 
+import           Mpl.Common.TestUtils
 import           Mpl.Prelude
 import           Mpl.Rendering
 import           Mpl.Rendering.ParserError
@@ -70,6 +71,14 @@ spec = do
           (symbol "f")
           [int 1, int 2, int 3]))
 
+  it "parses binders in parentheses" $ do
+    "#((a) (b) (c) = f 1 2 3)" `parsesTo`
+      (function
+        [binder "a", binder "b", binder "c"]
+        (application
+          (symbol "f")
+          [int 1, int 2, int 3]))
+
   it "parses application of a function" $ do
     "#(a = a) 1" `parsesTo`
       (application
@@ -92,32 +101,16 @@ spec = do
     it "handles unmatched quotes" $ do
       "\"abc" `errorContains` (callout_ "UTF8 string")
 
-parsesTo code expected =
-  case snd (Parsing.parseString code) of
-    Left e ->
-      fail $ show e
-    Right result -> do
-      (result :: ParserUtils.SourceAnnotated Parsing.Syntax)
-      |> (cata (Fix . S.mapBinder (cata Fix)))
-      |> (`shouldBe` expected)
+parsesTo code expected = expect $ do
+  (bs, result) <- stringToSyntax code
+  result
+    |> (cata (Fix . S.mapBinder (cata Fix)))
+    |> (`shouldBe` expected)
+    |> return
 
-errorContains code expected =
-  case Parsing.parseString code of
-    (bs, Left e) ->
-      if List.isInfixOf (render expected) (errorMessage bs e)
-        then return ()
-        else do
-          expectationFailure $ concat
-            [ "\n"
-            , "==== Expected " ++ show code ++ " to contain the string:\n\n"
-            , render expected
-            , "\n\n"
-            , "==== This was the error that was produced:\n\n"
-            , errorMessage bs e
-            , "\n"
-            ]
-    (_, Right a) ->
-      fail $ "Successfully parsed " ++ show code
+errorContains code expected = do
+   let result = Parsing.parseString code
+   isParseError code expected result
 
 int              = Fix . S.int
 utf8String       = Fix . S.utf8String
