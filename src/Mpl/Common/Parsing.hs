@@ -60,7 +60,7 @@ expression =
 
 argument :: (ApplicationSyntaxParser syntax) => StatefulParser (SourceAnnotated syntax)
 argument =
-      parseExpression (parens applicationOrExpression)
+      parens applicationOrExpression
   <|> parseNonApplication
 
 applicationOrExpression :: (ApplicationSyntaxParser syntax) => StatefulParser (SourceAnnotated syntax)

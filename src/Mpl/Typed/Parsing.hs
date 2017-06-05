@@ -75,8 +75,9 @@ instance NonApplication Syntax where
 -- Typed Parsers
 
 annotated withoutAnnotation withAnnotation = do
-  whiteSpace
-  annotation <- lookAhead (optional $ char ':')
+  annotation <- lookAhead $ do
+    whiteSpace
+    optional (char ':')
   case annotation of
     Nothing ->
       return withoutAnnotation
@@ -84,8 +85,9 @@ annotated withoutAnnotation withAnnotation = do
       annotate
         "type annotation"
         "a type annotation"
-        ["a: Integer", "123 : Integer"]
+        ["a: Integer", "(123 : Intege)"]
         (do
+          whiteSpace
           char ':'
           whiteSpace
           annotation <- parseType
@@ -115,8 +117,11 @@ parseTypeSymbol =
     "a type symbol"
     ["Integer"]
     (do
-      text <- symbolText upcaseChars symbolChars
+      text <- symbolText typeStartChars symbolChars
       return $ makeSymbol text)
+
+typeStartChars =
+  symbolStartChars ++ upcaseChars
 
 ------------------------------------------------------
 -- Typed Pretty Printing

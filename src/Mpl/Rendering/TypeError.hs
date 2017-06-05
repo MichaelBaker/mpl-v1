@@ -209,9 +209,6 @@ renderReason byteString ((_, InferredFromTypeAnnotation span) :< _) =
 renderReason _ _ =
   toDoc ("hello" :: Text)
 
-instance P.Pretty InferenceType where
-  pretty = cata pretty
-
 instance (P.Pretty a) => P.Pretty (Type a) where
   pretty IntegerType =
     text "Integer"

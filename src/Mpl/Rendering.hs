@@ -90,3 +90,6 @@ instance Pretty ByteString where
 
 instance (Functor f, Pretty (f Doc)) => Pretty (Fix f) where
   pretty = cata pretty
+
+instance (Functor f, Pretty (f Doc)) => Pretty (Cofree f a) where
+  pretty = cata pretty

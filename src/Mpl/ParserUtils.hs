@@ -120,13 +120,20 @@ parens = between (symbolic '(') (char ')')
 
 zeroDelta = Columns 0 0
 
+unreservedSymbols =
+  ['<', '>', '?', '~', '!', '@', '$', '%', '^', '&', '*', '-', '_', '+', '\\', '/', '|']
+
 symbolStartChars =
-  ['<', '>', '?', '~', '!', '@', '$', '%', '^', '&', '*', '-', '_', '+', '\\', '/', '|'] ++
-  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  unreservedSymbols ++ downcaseChars
 
-upcaseChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+downcaseChars =
+  "abcdefghijklmnopqrstuvwxyz"
 
-symbolChars = symbolStartChars ++ digits
+upcaseChars =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+symbolChars =
+  symbolStartChars ++ upcaseChars ++ digits
 
 digits = "0123456789"
 

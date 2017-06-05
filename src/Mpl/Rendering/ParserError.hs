@@ -23,6 +23,10 @@ errorMessage byteString error = render $ (header_ "Syntax Error") <~> blankLine 
                               else "The parser found an unexpected character, which is highlighed in red."
                       in    summary
                         <~> blankLine
+                        <~> blankLine
+                        <~> pretty (show error)
+                        <~> blankLine
+                        <~> blankLine
                         <~> highlightedCode byteString [] (errorDelta error) (errorEOF error)
                     Message s ->
                           toDoc s

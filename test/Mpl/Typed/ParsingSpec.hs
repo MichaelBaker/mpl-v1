@@ -29,17 +29,25 @@ spec = do
         (symbol "f")
         [typeAnnotation (symbol "a") (typeSymbol "Integer")])
 
-  it "binds trailing type annotations to their closest expression" $ do
-    "f a: Integer" `isSameAs` "f (a: Integer)"
+  it "parses nested type annotations" $ do
+    "f (a: Integer): Function" `parsesTo`
+      (typeAnnotation
+        (application
+          (symbol "f")
+          [typeAnnotation (symbol "a") (typeSymbol "Integer")])
+        (typeSymbol "Function"))
 
-  it "binds type annotations to their closest expression" $ do
-    "f: Integer a" `isSameAs` "(f: Integer) a"
+  it "binds trailing type annotations to function application" $ do
+    "f a: Integer" `isSameAs` "(f a): Integer"
 
-  it "binds trailing type annotations with spaces to their closest expression" $ do
-    "f a : Integer" `isSameAs` "f (a: Integer)"
+  it "parses type application" $ do
+    "f: Integer a" `isSameAs` "f: (Integer a)"
 
-  it "binds type annotations with whitespace to their closest expression" $ do
-    "f : Integer a" `isSameAs` "(f: Integer) a"
+  it "binds trailing type annotations with spaces to function application" $ do
+    "f a : Integer" `isSameAs` "(f a): Integer"
+
+  it "parses type annotations of type applications with whitespace" $ do
+    "f : Integer a" `isSameAs` "f: (Integer a)"
 
   it "parses function arguments without a type annotation" $ do
     "#(a = a)" `parsesTo`
@@ -54,7 +62,7 @@ spec = do
         (symbol "a"))
 
   it "parses multiple function arguments with type annotations" $ do
-    "#(a: Integer b: Integer = a)" `parsesTo`
+    "#((a: Integer) (b: Integer) = a)" `parsesTo`
       (function
         [ annotatedBinder (binder "a") (typeSymbol "Integer")
         , annotatedBinder (binder "b") (typeSymbol "Integer")
@@ -62,7 +70,7 @@ spec = do
         (symbol "a"))
 
   it "parses multiple function arguments with mixed annotations" $ do
-    "#(a: Integer b c: Float = a)" `parsesTo`
+    "#((a: Integer) b (c: Float) = a)" `parsesTo`
       (function
         [ annotatedBinder (binder "a") (typeSymbol "Integer")
         , binder "b"
@@ -78,7 +86,10 @@ spec = do
     "#(a: 0nteger = a)" `errorContains` ("incorrect " <~> callout_ "type annotation")
 
   it "renders mixed binder type annotation parse errors" $ do
-    "#(a: Integer b c: 1loat = a)" `errorContains` ("incorrect " <~> callout_ "type annotation")
+    "#((a: Integer) b (c: 1loat) = a)" `errorContains` ("incorrect " <~> callout_ "type annotation")
+
+  it "renders type annotation parse errors for improperly grouped annotations" $ do
+    "#(a: Integer (c: 1loat) = a)" `errorContains` ("incorrect " <~> callout_ "type annotation")
 
 errorContains code expected = do
    let result = Parsing.parseString code
@@ -94,8 +105,8 @@ isSameAs a b =
           expectationFailure (errorMessage bs e)
         (_, Right resultB) -> do
           shouldBe
-            (render $ cata pretty $ cata discardAnnotation resultA)
-            (render $ cata pretty $ cata discardAnnotation resultB)
+            (render $ pretty resultA)
+            (render $ pretty resultB)
 
 type FixType   = Fix S.Type
 type FixBinder = Fix (S.Binder FixType)
@@ -103,10 +114,12 @@ type FixSyntax = Fix (S.SyntaxF FixType FixBinder)
 
 parsesTo :: String -> FixSyntax -> Expectation
 parsesTo code expected = expect $ do
+  let expectedString = expected |> pretty |> render
   (_, result) <- stringToSyntax code
   result
-    |> cata discardAnnotation
-    |> (`shouldBe` expected)
+    |> pretty
+    |> render
+    |> (`shouldBe` expectedString)
     |> return
 
 typeAnnotation a b  = Fix $ S.typeAnnotation a b
@@ -118,11 +131,6 @@ annotatedBinder a b = Fix $ S.annotatedBinder a b
 
 typeSymbol          = Fix . S.typeSymbol
 typeApplication a b = Fix $ S.typeApplication a b
-
-discardAnnotation =
-  Fix
-  . S.mapCommon (CS.mapBinder discardBinderAnnotation)
-  . S.mapType (cata Fix)
 
 discardBinderAnnotation :: Parsing.SourceBinder -> FixBinder
 discardBinderAnnotation =
