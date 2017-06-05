@@ -20,7 +20,7 @@ handle (Test { pattern = maybePattern }) = do
     Nothing ->
       procs "stack" ["test"] mempty
     Just pattern -> do
-      let testArguments = Text.intercalate " " ["-m", pattern]
+      let testArguments = Text.intercalate " " ["-m", fromString (show pattern)]
       procs "stack" ["test", "--test-arguments", testArguments] mempty
 
 data Options
