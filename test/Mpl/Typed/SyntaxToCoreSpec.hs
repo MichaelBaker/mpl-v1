@@ -41,7 +41,18 @@ spec = do
 
   it "converts annotated binders" $ do
     "#(a: Integer = a)" `transformsTo`
-      (function (annotatedBinder "a" "Integer") (symbol "a"))
+      (function
+        (annotatedBinder "a" (typeSymbol "Integer"))
+        (symbol "a"))
+
+  it "curries function annotations" $ do
+    "#(a: -> Integer Integer = a)" `transformsTo`
+      (function
+        (annotatedBinder "a"
+          (typeApplication
+            (typeApplication (typeSymbol "->") (typeSymbol "Integer"))
+            (typeSymbol "Integer")))
+        (symbol "a"))
 
 type FixCore =
   Fix (C.CoreF FixType FixBinder)
@@ -81,17 +92,20 @@ int =
 symbol =
   Fix . C.Common . CC.symbol
 
-binder =
-  Fix . C.CommonBinder . CC.binder
-
-annotatedBinder name typeName =
-  Fix $ C.AnnotatedBinder
-          (binder name)
-          (Fix $ C.TypeSymbol typeName)
-
 application a b =
   Fix $ C.Common $ CC.application a b
 
 function a b =
   Fix $ C.Common $ CC.function a b
 
+binder =
+  Fix . C.CommonBinder . CC.binder
+
+annotatedBinder name type_ =
+  Fix $ C.AnnotatedBinder (binder name) type_
+
+typeSymbol =
+  Fix . C.TypeSymbol
+
+typeApplication a b =
+  Fix $ C.TypeApplication a b
