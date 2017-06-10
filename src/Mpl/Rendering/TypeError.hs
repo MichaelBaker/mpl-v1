@@ -77,11 +77,19 @@ unboundTypeSymbol byteString context span symbol =
               ""
 
 applicationOfNonFunction byteString context span type_ =
-      "The following value is being used as a function, but it has type " <~> problem type_ <~> "."
+      "The following value is being used as a function"
   <~> blankLine
   <~> indent (highlight byteString span problem)
   <~> blankLine
-  <~> "It has type " <~> callout type_ <~> " because "
+  <~> "but it has type"
+  <~> blankLine
+  <~> indent (problem type_)
+  <~> blankLine
+  <~> "It has type"
+  <~> hardline
+  <~> indent (callout type_)
+  <~> hardline
+  <~> "because "
   <~> renderReason byteString type_
 
 invalidTypeAnnotation byteString context inferredType inferredSpan annotatedType annotationSpan =

@@ -34,6 +34,10 @@ spec = do
       "#(a: Integer = a) 1" `infersTo` integer
       "#(a: UTF8 = a) \"string\"" `infersTo` utf8String
 
+    it "infers functions types" $ do
+      "#(a: -> Integer Integer = a 1)" `infersTo`
+        function (function integer integer) integer
+
   describe "Type errors" $ do
     it "rejects application of non-functions" $ do
       "1 1" `failsWith` (ApplicationOfNonFunction emptySpan (emptyAnnotation IntegerType))

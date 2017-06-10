@@ -6,6 +6,10 @@
 * libffi: stable 3.0.13
 * llvm: 3.5
 
+## Where did I leave off?
+
+Implementing "evalType". I need to figure out how to handle type level datastructures and partial type application.
+
 ## What do I need to actually get a prototype out the door?
 
 - [X] A Binder data type that is distinct from expressions
@@ -17,11 +21,9 @@
 - [X] Annotate types with source spans for better error messages
 - [X] Add explanations for inferred types.
 - [X] Strings and string literals
-- [ ] Vendor all packages
 - [ ] Function type syntax and subtyping rules
-- [ ] Conver pretty printer to https://quchen.github.io/ansi-wl-pprint-docdump/prettyprinter-1/Data-Text-Prettyprint-Doc.html
-- [ ] Using a function from a Typed module in Untyped.
-  * Requires figuring out imports
+- [ ] Parametric polymorphism
+  * Necessary for generic, reusable functions
 - [ ] Records
   * Necessary for data composition.
 - [ ] Eliminators
@@ -33,12 +35,16 @@
   * Necessary for program composition in the presence of side effects and for efficiency.
   * If you have side effects, you need to be able to express a computation that you want to run, without actually running it. Otherwise all side effects will be generated in the entire program.
   * In a strict language, you need the ability to control which expressions get executed so that your program doesn't end up doing more work than you intended.
+- [ ] Using a function from a Typed module in Untyped.
+  * Requires figuring out imports
 - [ ] Javascript FFI
   * If I have this, then I can implement non-trival programs by leaning on JS libraries like React.
 - [ ] Comments
+- [ ] Vendor all packages
 
 ## Steps not yet represented in the new compiler pipeline
 
+- [ ] Keyword arguments
 - [ ] Parsing
 - [ ] Javascript Backend
 
