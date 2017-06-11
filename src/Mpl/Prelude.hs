@@ -131,6 +131,7 @@ import Prelude
   , snd
   , undefined
   , unzip
+  , lookup
   )
 
 import Data.ByteString.UTF8
@@ -208,3 +209,6 @@ byteStringSlice startChar endChar byteString =
 
 lazyTextToString =
   LT.unpack
+
+associativeLookup :: (Eq a) => a -> [(a, b)] -> Maybe b
+associativeLookup = lookup

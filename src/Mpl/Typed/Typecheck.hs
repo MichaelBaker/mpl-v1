@@ -2,7 +2,6 @@ module Mpl.Typed.Typecheck where
 
 import           Control.Monad.Freer.Exception
 import           Control.Monad.Freer.State
-import           Data.Map.Strict            as Map
 import           Mpl.Parser.SourceSpan
 import           Mpl.ParserUtils
 import           Mpl.Prelude
@@ -34,19 +33,19 @@ type CommonCore =
 data Context
   = Context
   { symbolTypes     :: [(Text, InferenceType)]
-  , typeSymbolTypes :: Map.Map Text InferenceType
+  , typeSymbolTypes :: [(Text, InferenceType)]
   }
   deriving (Show)
 
 standardContext =
   Context
-  { symbolTypes     = []
-  , typeSymbolTypes = typeSymbolTable
+  { symbolTypes =
+      []
+  , typeSymbolTypes =
+      [ ("Integer", ((emptySpan, NoReason) :< IntegerType))
+      , ("UTF8",    ((emptySpan, NoReason) :< UTF8StringType))
+      ]
   }
-  where typeSymbolTable =
-          Map.empty
-          |> Map.insert "Integer" ((emptySpan, NoReason) :< IntegerType)
-          |> Map.insert "UTF8"    ((emptySpan, NoReason) :< UTF8StringType)
 
 data TypeError
   = Unimplemented
@@ -215,7 +214,7 @@ lookupSymbolType symbol = do
 
 getType (annotation :< TypeSymbol symbol) = do
   context <- get
-  case Map.lookup symbol (typeSymbolTypes context) of
+  case associativeLookup symbol (typeSymbolTypes context) of
     Just ty ->
       return ty
     Nothing -> do

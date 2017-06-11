@@ -1,7 +1,6 @@
 module Mpl.Rendering.TypeError where
 
 import           Data.List                    as List
-import           Data.Map.Strict              as Map
 import           Data.Text.Metrics
 import           Mpl.Parser.SourceSpan
 import           Mpl.ParserUtils
@@ -64,7 +63,9 @@ unboundTypeSymbol byteString context span symbol =
   <~> indent (highlight byteString span problem)
   <~> suggestions
   where possibleTypes =
-          Map.keys (typeSymbolTypes context) |> List.filter ((< 3) . levenshtein symbol)
+          typeSymbolTypes context
+          |> fmap fst
+          |> List.filter ((< 3) . levenshtein symbol)
 
         suggestions =
           if not (List.null possibleTypes)
@@ -203,7 +204,7 @@ renderReason byteString ((_, _) :< FunctionType paramType bodyType) =
   <~> "because " <~> renderReason byteString paramType
 
 renderReason byteString ((originalSpan, InferredSymbolType span reason) :< type_) =
-      "the symbol " <~> callout (extractSpan span byteString) <~> " has type"
+      "the symbol \"" <~> callout (extractSpan span byteString) <~> "\" has type"
   <~> hardline
   <~> indent (callout type_)
   <~> hardline
