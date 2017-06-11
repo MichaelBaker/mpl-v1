@@ -25,6 +25,25 @@ data Type recurse
   | TypeApplication recurse recurse
   deriving (Show, Generic, Functor, Eq, Traversable, Prelude.Foldable, Typeable, Data)
 
+-- | Parameterized types which haven't been fully applied
+data TypeExpression type_
+  = CompleteType
+      type_
+  | PartialType
+      TypeConstructor          -- ^ The name of the type level function
+      [TypeParameter]          -- ^ Unapplied type parameters needed to construct this type
+      [(TypeParameter, type_)] -- ^ Applied type parameters
+  deriving (Show, Generic, Eq, Typeable, Data)
+
+data TypeConstructor
+  = FunctionTypeConstructor
+  deriving (Show, Generic, Eq, Typeable, Data)
+
+data TypeParameter
+  = PositionalTypeParameter
+      Integer -- ^ The parameter position
+  deriving (Show, Generic, Eq, Typeable, Data)
+
 mapBinder :: (binder0 -> binder1)
           -> CoreF type_ binder0 recurse
           -> CoreF type_ binder1 recurse

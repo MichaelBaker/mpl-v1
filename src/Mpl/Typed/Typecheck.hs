@@ -33,7 +33,7 @@ type CommonCore =
 data Context
   = Context
   { symbolTypes     :: [(Text, InferenceType)]
-  , typeSymbolTypes :: [(Text, InferenceType)]
+  , typeSymbolTypes :: [(Text, TypeExpression InferenceType)]
   }
   deriving (Show)
 
@@ -42,8 +42,15 @@ standardContext =
   { symbolTypes =
       []
   , typeSymbolTypes =
-      [ ("Integer", ((emptySpan, NoReason) :< IntegerType))
-      , ("UTF8",    ((emptySpan, NoReason) :< UTF8StringType))
+      [ ("Integer",
+          CompleteType ((emptySpan, BuiltInType) :< IntegerType))
+      , ("UTF8",
+          CompleteType ((emptySpan, BuiltInType) :< UTF8StringType))
+      , ("->",
+          PartialType
+            FunctionTypeConstructor
+            [PositionalTypeParameter 0, PositionalTypeParameter 1]
+            [])
       ]
   }
 
@@ -70,11 +77,15 @@ data TypeError
       SourceSpan       -- ^ The expression the type was inferred for
       InferenceType    -- ^ The annotated type
       SourceSpan       -- ^ The code of the annotation
+  | ApplicationOfNonTypeFunction
+  | UnappliedTypeParameters
+  | TooManyTypeArguments
   deriving (Show, Eq, Typeable, Data)
 
 data InferenceReason
   = NoReason
-  | InferredFromSyntax
+  | BuiltInType
+  | AppliedFunctionConstructor
   | InferredSymbolType
       SourceSpan      -- ^ The symbol
       InferenceReason -- ^ The reason for the underlying type
@@ -114,7 +125,7 @@ infer (annotation :< Common common) =
   inferCommon annotation common
 
 infer (_ :< a@(TypeAnnotation expression ty)) = do
-  ty' <- getType ty
+  ty' <- evalCompleteType ty
   (inferredType, isType) <- check expression ty'
   if isType
     then
@@ -141,7 +152,7 @@ inferCommon annotation (CC.Literal literal) = do
 inferCommon annotation (CC.Function binder body) =
   case binder of
     (span :< AnnotatedBinder (_ :< CommonBinder (CC.Binder name)) type_) -> do
-      inferredParamType <- getType type_
+      inferredParamType <- evalCompleteType type_
       let paramType = setReason (InferredFromTypeAnnotation span) inferredParamType
       pushSymbol name paramType
       bodyType <- infer body
@@ -212,8 +223,24 @@ lookupSymbolType symbol = do
     |> fmap snd
     |> return
 
-getType (annotation :< TypeSymbol symbol) = do
-  context <- get
+evalCompleteType :: (Typechecker effects) => SourceType -> Eff effects InferenceType
+evalCompleteType type_0 = do
+  typeExpression <- evalType type_0
+  context        <- getContext
+
+  case typeExpression of
+    PartialType FunctionTypeConstructor [] (arg2:arg1:[]) -> do
+      let reason = (annotation type_0, AppliedFunctionConstructor)
+          type_1 = FunctionType (snd arg1) (snd arg2)
+      return (reason :< type_1)
+    PartialType FunctionTypeConstructor typeParams _ -> do
+      throwError (UnappliedTypeParameters, context)
+    CompleteType type_1 -> do
+      return type_1
+
+evalType :: (Typechecker effects) => SourceType -> Eff effects (TypeExpression InferenceType)
+evalType (annotation :< TypeSymbol symbol) = do
+  context <- getContext
   case associativeLookup symbol (typeSymbolTypes context) of
     Just ty ->
       return ty
@@ -221,8 +248,31 @@ getType (annotation :< TypeSymbol symbol) = do
       let error = UnboundTypeSymbol annotation symbol
       throwError (error, context)
 
-getType type_ = do
-  return $ envcata (\span ty -> ((span, InferredFromSyntax) :< ty)) type_
+evalType (annotation :< TypeApplication function_0 argument_0) = do
+  function_1 <- evalType function_0
+  argument_1 <- evalCompleteType argument_0
+  context    <- getContext
+
+  case function_1 of
+    PartialType contructor [] _ -> do
+      throwError (TooManyTypeArguments, context)
+    PartialType constructor (param:remainingParams) args -> do
+      let newArgs = (param, argument_1) : args
+      return (PartialType constructor remainingParams newArgs)
+    CompleteType _ -> do
+      throwError (ApplicationOfNonTypeFunction, context)
+
+evalType (span :< IntegerType) = do
+  return $ CompleteType ((span, NoReason) :< IntegerType)
+
+evalType (span :< UTF8StringType) = do
+  return $ CompleteType ((span, NoReason) :< UTF8StringType)
+
+-- TODO: Replace this with specific matches
+evalType type_ = do
+  envcata (\span ty -> ((span, NoReason) :< ty)) type_
+    |> CompleteType
+    |> return
 
 getContext :: (Typechecker effects) => Eff effects Context
 getContext = get

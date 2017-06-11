@@ -39,6 +39,9 @@ message byteString context (InvalidTypeAnnotation inferredType inferredSpan anno
 message byteString context (InvalidArgument functionSpan paramType argumentSpan argumentType) =
   invalidArgument byteString context functionSpan paramType argumentSpan argumentType
 
+-- TODO: Make this complete
+message byteString context err = toDoc (show err)
+
 cannotInferSymbol byteString context span symbol =
       "The symbol " <~> problem symbol <~> " isn't defined in the following expression."
   <~> blankLine
