@@ -1,6 +1,7 @@
 module Mpl.Rendering.TypeError where
 
-import           Data.List                    as List
+import qualified Data.List                    as List
+import qualified Data.Text                    as Text
 import           Data.Text.Metrics
 import           Mpl.Parser.SourceSpan
 import           Mpl.ParserUtils
@@ -9,7 +10,6 @@ import           Mpl.Rendering
 import           Mpl.Typed.Core
 import           Mpl.Typed.Typecheck
 import           Mpl.Utils
-import qualified Data.Text                    as Text
 import qualified Text.PrettyPrint.ANSI.Leijen as P
 
 errorMessage :: ByteString -> Context -> TypeError -> String
@@ -39,8 +39,14 @@ message byteString context (InvalidTypeAnnotation inferredType inferredSpan anno
 message byteString context (InvalidArgument functionSpan paramType argumentSpan argumentType) =
   invalidArgument byteString context functionSpan paramType argumentSpan argumentType
 
--- TODO: Make this complete
-message byteString context err = toDoc (show err)
+message byteString context (TooManyTypeArguments constructorSpan successfulArgs extraArgs) =
+  tooManyTypeArguments byteString context constructorSpan successfulArgs extraArgs
+
+message byteString context (UnappliedTypeParameters constructorSpan successfulArgs extraParams) =
+  unappliedTypeParameters byteString context constructorSpan successfulArgs extraParams
+
+message byteString context (ApplicationOfNonTypeFunction constructorSpan) =
+  applicationOfNonTypeFunction byteString context constructorSpan
 
 cannotInferSymbol byteString context span symbol =
       "The symbol " <~> problem symbol <~> " isn't defined in the following expression."
@@ -152,36 +158,24 @@ invalidArgument byteString context functionSpan paramType argumentSpan argumentT
     <~> renderReason byteString argumentType
     )
 
-renderReason byteString ((span, InferredApplication functionSpan functionType argumentSpan argumentType bodyType) :< _) =
-      "a function of type"
-  <~> hardline
-  <~> indent (callout functionType)
-  <~> hardline
-  <~> "applied to an argument of type"
-  <~> hardline
-  <~> indent (callout argumentType)
-  <~> hardline
-  <~> "yields a value of type"
-  <~> hardline
-  <~> indent (callout bodyType)
-  <~> hardline
+tooManyTypeArguments byteString context constructorSpan successfulArgs extraArgs =
+      "The type constructor \"" <~> problem (extractSpan constructorSpan byteString) <~> "\" is applied to too many arguments. It takes " <~> callout (successfulArgCount) <~> " but it was applied to " <~> problem totalArgs <~> "."
   <~> blankLine
-  <~> indent
-    (   "The function has type"
-    <~> hardline
-    <~> indent (callout functionType)
-    <~> hardline
-    <~> "because "
-    <~> renderReason byteString functionType
-    <~> hardline
-    <~> blankLine
-    <~> "The argument has type"
-    <~> hardline
-    <~> indent (callout argumentType)
-    <~> hardline
-    <~> "because "
-    <~> renderReason byteString argumentType
-    )
+  <~> indent (toDoc byteString)
+  where successfulArgCount = List.length successfulArgs
+        totalArgs = List.length extraArgs + successfulArgCount
+
+unappliedTypeParameters byteString context constructorSpan successfulArgs extraParams =
+      "The type constructor \"" <~> problem (extractSpan constructorSpan byteString) <~> "\" isn't applied to too enough arguments. It takes " <~> callout (totalArgs) <~> " but it was only applied to " <~> problem successfulArgCount <~> "."
+  <~> blankLine
+  <~> indent (toDoc byteString)
+  where successfulArgCount = List.length successfulArgs
+        totalArgs = List.length extraParams + successfulArgCount
+
+applicationOfNonTypeFunction byteString context constructorSpan =
+      "The type constructor \"" <~> problem (extractSpan constructorSpan byteString) <~> "\" doesn't accept any arguments."
+  <~> blankLine
+  <~> indent (toDoc byteString)
 
 renderReason byteString ((_, InferredIntegerLiteral span) :< _) =
   "it is an integer literal"

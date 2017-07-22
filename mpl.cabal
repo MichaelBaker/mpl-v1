@@ -181,7 +181,8 @@ test-suite mpl-test
     mtl,
     process,
     recursion-schemes,
-    transformers
+    transformers,
+    trifecta
 
   other-modules:
     Mpl.AnnotationSpec,

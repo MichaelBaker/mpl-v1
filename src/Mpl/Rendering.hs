@@ -7,12 +7,13 @@ module Mpl.Rendering
   )
   where
 
+import           Mpl.Parser.SourceSpan
 import           Mpl.Prelude
 import           Mpl.Utils
-import           Mpl.Parser.SourceSpan
 import           Text.PrettyPrint.ANSI.Leijen as P
-import qualified Text.Trifecta.Delta          as T
 import qualified Data.ByteString.UTF8         as UTF8
+import qualified Data.List                    as List
+import qualified Text.Trifecta.Delta          as T
 
 (<~>) = (<>)
 
@@ -38,6 +39,21 @@ problem_ = dullred
 callout :: (Pretty a) => a -> Doc
 callout = callout_ . pretty
 callout_ = dullblue
+
+-- highlights :: ByteString -> [(SourceSpan, ByteString -> Doc)] -> Doc
+-- highlights byteString spans = List.foldl' (<~>) mempty segments
+--   where segments =
+--           zipWith (&) highlighters stringSegments
+-- 
+--         stringSegments =
+--           List.foldl' break ([], byteString) breaks
+-- 
+--         (breaks, highlighters) =
+--           compile (UTF8.length byteString) spans
+-- 
+--         compile maxChar spans =
+--           List.sortBy (startDelta . fst) spans
+
 
 highlight byteString span highlighter =
       toDoc (upTo start byteString)

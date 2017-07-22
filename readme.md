@@ -6,42 +6,6 @@
 * libffi: stable 3.0.13
 * llvm: 3.5
 
-## Where did I leave off?
-
-Implementing "evalType". I need to figure out how to handle type level datastructures and partial type application.
-
-## What do I need to actually get a prototype out the door?
-
-- [X] A Binder data type that is distinct from expressions
-  * Needed to allow type annotations to bindings.
-  * Demonstrates that the recursion-schemes framework I'm using will work when expressions aren't homogenous and potentially include sub syntaxes which are recursive in their own right.
-- [X] Type checking phase for Typed
-  * I can implement this is now because I have integers and functions, which are distinct.
-- [X] Use Core types instead of types dedicated to typechecking
-- [X] Annotate types with source spans for better error messages
-- [X] Add explanations for inferred types.
-- [X] Strings and string literals
-- [ ] Function type syntax and subtyping rules
-- [ ] Parametric polymorphism
-  * Necessary for generic, reusable functions
-- [ ] Records
-  * Necessary for data composition.
-- [ ] Eliminators
-  * Necessary to operate on composed data.
-- [ ] Variants/Cases (necessary for booleans)
-  * Necessary for program composition. They allow you to dispatch a given input to a number of different programs while syntactically guaranteeing that all inputs will be handled.
-  * This will enable a uniform control flow construct instead of having one unique to booleans.
-- [ ] Conditionals/Control structures (thunks)
-  * Necessary for program composition in the presence of side effects and for efficiency.
-  * If you have side effects, you need to be able to express a computation that you want to run, without actually running it. Otherwise all side effects will be generated in the entire program.
-  * In a strict language, you need the ability to control which expressions get executed so that your program doesn't end up doing more work than you intended.
-- [ ] Using a function from a Typed module in Untyped.
-  * Requires figuring out imports
-- [ ] Javascript FFI
-  * If I have this, then I can implement non-trival programs by leaning on JS libraries like React.
-- [ ] Comments
-- [ ] Vendor all packages
-
 ## Steps not yet represented in the new compiler pipeline
 
 - [ ] Keyword arguments

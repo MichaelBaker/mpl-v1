@@ -19,5 +19,6 @@ extra-package-dbs: []
 
 extra-lib-dirs:
 - /usr/local/Cellar/libffi/3.0.13/lib/
+- /usr/local/Cellar/v8/5.1.281.47/lib
 
 local-bin-path: ./bin

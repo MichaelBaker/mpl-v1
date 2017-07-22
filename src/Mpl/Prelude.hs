@@ -212,3 +212,20 @@ lazyTextToString =
 
 associativeLookup :: (Eq a) => a -> [(a, b)] -> Maybe b
 associativeLookup = lookup
+
+zipExtra :: [a] -> [b] -> ([(a, b)], Maybe (Either [a] [b]))
+zipExtra = zipWithExtra (,)
+
+zipWithExtra :: (a -> b -> c) -> [a] -> [b] -> ([c], Maybe (Either [a] [b]))
+zipWithExtra _ [] [] =
+  ([], Nothing)
+
+zipWithExtra _ as [] =
+  ([], Just (Left as))
+
+zipWithExtra _ [] bs =
+  ([], Just (Right bs))
+
+zipWithExtra f (a:as) (b:bs) =
+  let (newPairs, leftover) = zipWithExtra f as bs
+  in  ((f a b) : newPairs, leftover)

@@ -56,6 +56,18 @@ spec = do
       "#(a: Integer = a): Integer" `failsWith`
         (InvalidTypeAnnotation (emptyAnnotation IntegerType) emptySpan (emptyAnnotation IntegerType) emptySpan)
 
+    it "rejects over applied type functions" $ do
+      "#(a: -> Integer Integer Integer = a 1)" `failsWith`
+        (TooManyTypeArguments emptySpan [] [])
+
+    it "rejects under applied type functions" $ do
+      "#(a: -> Integer = a 1)" `failsWith`
+        UnappliedTypeParameters emptySpan [] []
+
+    it "rejects type level application of non functions" $ do
+      "#(a: Integer Integer = a 1)" `failsWith`
+        ApplicationOfNonTypeFunction emptySpan
+
   describe "Error messages" $ do
     it "renders UnboundTypeSymbol errors with suggestions" $ do
       "1: Intger" `containsError` "isn't defined"
@@ -79,6 +91,17 @@ spec = do
     it "renders InvalidArgument errors" $ do
       "#(a: Integer = a) #(a: Integer = a)" `containsError` "of the wrong"
       "#(a: Integer = a) \"string\"" `containsError` "of the wrong"
+
+    it "renders TooManyTypeArguments errors" $ do
+      "#(a: -> Integer Integer Integer = a 1)" `containsError`
+        "too many arguments"
+
+    it "renders UnappliedTypeParameters errors" $ do
+      "#(a: -> Integer = a 1)" `containsError` "enough arguments"
+
+    it "renders ApplicationOfNonTypeFunction errors" $ do
+      "#(a: Integer Integer = a 1)" `containsError`
+        "doesn't accept"
 
 emptyAnnotation type_ = (emptySpan, NoReason) :< type_
 

@@ -1,10 +1,11 @@
 module Mpl.Typed.Core where
 
+import           Mpl.Parser.SourceSpan
 import           Mpl.Prelude
 import           Mpl.Utils
-import qualified Mpl.Typed.Syntax  as TS
-import qualified Mpl.Common.Syntax as CS
 import qualified Mpl.Common.Core   as CC
+import qualified Mpl.Common.Syntax as CS
+import qualified Mpl.Typed.Syntax  as TS
 import qualified Prelude
 
 data CoreF type_ binder recurse
@@ -30,9 +31,10 @@ data TypeExpression type_
   = CompleteType
       type_
   | PartialType
-      TypeConstructor          -- ^ The name of the type level function
-      [TypeParameter]          -- ^ Unapplied type parameters needed to construct this type
-      [(TypeParameter, type_)] -- ^ Applied type parameters
+      SourceSpan
+      TypeConstructor      -- ^ The name of the type level function
+      [TypeParameter]      -- ^ Unapplied type parameters needed to construct this type
+      [TypeArgument type_] -- ^ Applied type parameters
   deriving (Show, Generic, Eq, Typeable, Data)
 
 data TypeConstructor
@@ -42,6 +44,10 @@ data TypeConstructor
 data TypeParameter
   = PositionalTypeParameter
       Integer -- ^ The parameter position
+  deriving (Show, Generic, Eq, Typeable, Data)
+
+data TypeArgument type_
+  = PositionalTypeArgument type_
   deriving (Show, Generic, Eq, Typeable, Data)
 
 mapBinder :: (binder0 -> binder1)

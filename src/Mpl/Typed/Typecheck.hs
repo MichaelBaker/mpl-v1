@@ -48,6 +48,7 @@ standardContext =
           CompleteType ((emptySpan, BuiltInType) :< UTF8StringType))
       , ("->",
           PartialType
+            emptySpan
             FunctionTypeConstructor
             [PositionalTypeParameter 0, PositionalTypeParameter 1]
             [])
@@ -78,8 +79,15 @@ data TypeError
       InferenceType    -- ^ The annotated type
       SourceSpan       -- ^ The code of the annotation
   | ApplicationOfNonTypeFunction
+      SourceSpan                       -- ^ The type constructor
   | UnappliedTypeParameters
+      SourceSpan                       -- ^ The type constructor
+      [(TypeParameter, InferenceType)] -- ^ Successfully applied type arguments
+      [TypeParameter]                  -- ^ Extra type parameters
   | TooManyTypeArguments
+      SourceSpan                       -- ^ The type constructor
+      [(TypeParameter, InferenceType)] -- ^ Successfully applied type arguments
+      [InferenceType]                  -- ^ Extra type arguments
   deriving (Show, Eq, Typeable, Data)
 
 data InferenceReason
@@ -229,48 +237,62 @@ evalCompleteType type_0 = do
   context        <- getContext
 
   case typeExpression of
-    PartialType FunctionTypeConstructor [] (arg2:arg1:[]) -> do
-      let reason = (annotation type_0, AppliedFunctionConstructor)
-          type_1 = FunctionType (snd arg1) (snd arg2)
-      return (reason :< type_1)
-    PartialType FunctionTypeConstructor typeParams _ -> do
-      throwError (UnappliedTypeParameters, context)
     CompleteType type_1 -> do
       return type_1
+
+    PartialType constructorSpan constructor params args -> do
+      let reason =
+            (annotation type_0, AppliedFunctionConstructor)
+
+      let extractArg (PositionalTypeArgument arg) =
+            arg
+
+      let usedArgs =
+            zipWithExtra
+              (\param arg -> (param, extractArg arg))
+              params
+              (List.reverse args)
+
+      case usedArgs of
+        (pairs, Nothing) -> do
+          case constructor of
+            FunctionTypeConstructor -> do
+              let (arg1:arg2:[]) = fmap snd pairs
+              let type_1         = FunctionType arg1 arg2
+              return (reason :< type_1)
+
+        (pairs, Just (Left extraParams)) -> do
+          throwError (UnappliedTypeParameters constructorSpan pairs extraParams, context)
+
+        (pairs, Just (Right extraArgs)) -> do
+          let args = fmap extractArg extraArgs
+          throwError (TooManyTypeArguments constructorSpan pairs args, context)
 
 evalType :: (Typechecker effects) => SourceType -> Eff effects (TypeExpression InferenceType)
 evalType (annotation :< TypeSymbol symbol) = do
   context <- getContext
   case associativeLookup symbol (typeSymbolTypes context) of
-    Just ty ->
-      return ty
+    Just ty -> do
+      return (setTypeExpressionSpan annotation ty)
     Nothing -> do
       let error = UnboundTypeSymbol annotation symbol
       throwError (error, context)
 
-evalType (annotation :< TypeApplication function_0 argument_0) = do
+evalType (_ :< TypeApplication function_0 argument_0) = do
   function_1 <- evalType function_0
   argument_1 <- evalCompleteType argument_0
   context    <- getContext
 
   case function_1 of
-    PartialType contructor [] _ -> do
-      throwError (TooManyTypeArguments, context)
-    PartialType constructor (param:remainingParams) args -> do
-      let newArgs = (param, argument_1) : args
-      return (PartialType constructor remainingParams newArgs)
+    PartialType span constructor params args -> do
+      let newArgs = PositionalTypeArgument argument_1 : args
+      return (PartialType span constructor params newArgs)
     CompleteType _ -> do
-      throwError (ApplicationOfNonTypeFunction, context)
+      throwError (ApplicationOfNonTypeFunction (annotation function_0), context)
 
-evalType (span :< IntegerType) = do
-  return $ CompleteType ((span, NoReason) :< IntegerType)
-
-evalType (span :< UTF8StringType) = do
-  return $ CompleteType ((span, NoReason) :< UTF8StringType)
-
--- TODO: Replace this with specific matches
 evalType type_ = do
-  envcata (\span ty -> ((span, NoReason) :< ty)) type_
+  type_
+    |> envcata (\span ty -> ((span, NoReason) :< ty))
     |> CompleteType
     |> return
 
@@ -279,6 +301,15 @@ getContext = get
 
 getSpan =
   fst . annotation
+
+setTypeExpressionSpan span (CompleteType type_) =
+  CompleteType (setSpan span type_)
+
+setTypeExpressionSpan span (PartialType _ constructor params args) =
+  PartialType span constructor params args
+
+setSpan span ((_, reason) :< type_) =
+  ((span, reason) :< type_)
 
 getReason =
   snd . annotation
